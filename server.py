@@ -3,6 +3,7 @@ import socketserver
 import os
 import webbrowser
 
+HOST = "127.0.0.1"
 PORT = 8000
 DIRECTORY = "dashboard"
 
@@ -12,10 +13,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 def run():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
-        print(f"🚀 Dashboard Server đang chạy tại: http://localhost:{PORT}")
-        print("Mở trình duyệt web để xem giao diện trực quan 5 bước Workflow & Behavioral Simulator.")
-        webbrowser.open(f"http://localhost:{PORT}")
+    with socketserver.TCPServer((HOST, PORT), Handler) as httpd:
+        print(f"🚀 Dashboard Server đang chạy an toàn tại: http://{HOST}:{PORT}")
+        print("Mở trình duyệt web để xem giao diện trực quan Workflow & Behavioral Simulator.")
+        webbrowser.open(f"http://{HOST}:{PORT}")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

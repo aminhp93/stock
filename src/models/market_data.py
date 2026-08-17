@@ -39,4 +39,16 @@ class MarketContext(BaseModel):
     historical_bars: List[PriceBar]
     financials: FinancialMetrics
     news_events: List[MacroNews]
-    market_index_change_pct: float  # VN-Index or S&P500 change % on the day
+    market_index_change_pct: float
+
+class MarketAnalysis(BaseModel):
+    symbol: str
+    current_price: float
+    margin_of_safety: float
+    is_undervalued: bool
+    rsi: float
+    is_uptrend: bool
+    is_overbought: bool
+    is_oversold: bool
+    news_sentiment_score: float
+    summary: str

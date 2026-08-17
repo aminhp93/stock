@@ -1,73 +1,93 @@
 from tabulate import tabulate
+from src.models.market_data import MarketContext, MarketAnalysis
 from src.models.persona import SimulationConsensus
-from src.models.strategy import TradingPlan, RiskAssessment, VerificationVerdict
+from src.models.strategy import TradingPlan, VerificationVerdict
+
+def format_market_context_summary(context: MarketContext) -> str:
+    lines = [
+        "=" * 80,
+        f"  DỮ LIỆU THỊ TRƯỜNG POINT-IN-TIME: {context.symbol} ({context.company_name})",
+        "=" * 80,
+        f"Mốc thời gian: {context.timestamp} | Giá hiện tại: {context.current_price:,.0f} VND",
+        f"Số lượng nến lịch sử: {len(context.historical_bars)} phiên",
+        f"Chỉ số định giá DCF: {context.financials.intrinsic_value_dcf:,.0f} VND | P/E: {context.financials.pe_ratio}x | ROE: {context.financials.roe}%",
+        "=" * 80
+    ]
+    return "\n".join(lines)
+
+def format_market_analysis_summary(analysis: MarketAnalysis) -> str:
+    lines = [
+        "=" * 80,
+        f"  KẾT QUẢ PHÂN TÍCH KỸ THUẬT & ĐỊNH GIÁ: {analysis.symbol}",
+        "=" * 80,
+        analysis.summary,
+        "=" * 80
+    ]
+    return "\n".join(lines)
 
 def format_consensus_report(consensus: SimulationConsensus) -> str:
-    """Format 10-Investor Simulation Consensus into clean ASCII/Markdown string"""
-    lines = []
-    lines.append("================================================================================")
-    lines.append(f"  GIẢ LẬP TÂM LÝ & HÀNH VI 10 NHÀ ĐẦU TƯ TẠI MỐC THỜI GIAN: {consensus.timestamp}")
-    lines.append("================================================================================")
-    lines.append(f"Tổng số Agent giả lập: {consensus.total_agents}")
-    lines.append(f"MUA (BUY): {consensus.buy_percentage:.1f}%  |  BÁN (SELL): {consensus.sell_percentage:.1f}%  |  GIỮ (HOLD): {consensus.hold_percentage:.1f}%  |  HOẢNG LOẠN (PANIC): {consensus.panic_percentage:.1f}%")
-    
-    # Sentiment bar representation
-    score = consensus.overall_sentiment_score
-    sentiment_label = "TRUNG LẬP"
-    if score > 0.5: sentiment_label = "HƯNG PHẤN CỰC ĐỘ (EXTREME GREED)"
-    elif score > 0.2: sentiment_label = "TÍCH CỰC (BULLISH)"
-    elif score < -0.5: sentiment_label = "HOẢNG LOẠN CỰC ĐỘ (EXTREME FEAR)"
-    elif score < -0.2: sentiment_label = "TIÊU CỰC (BEARISH)"
-    
-    lines.append(f"Chỉ số Cảm xúc Thị trường (Sentiment Index): {score:+.2f} ({sentiment_label})")
-    lines.append(f"Tóm tắt Đồng thuận: {consensus.consensus_summary}")
-    lines.append("\nCHI TIẾT QUYẾT ĐỊNH CỦA 10 PERSONA:")
+    sentiment_label = "TÍCH CỰC (BULLISH)" if consensus.overall_sentiment_score > 0.3 else "TIÊU CỰC (BEARISH)" if consensus.overall_sentiment_score < -0.3 else "TRUNG TÍNH (NEUTRAL)"
+    lines = [
+        "=" * 80,
+        f"  GIẢ LẬP TÂM LÝ & HÀNH VI 10 NHÀ ĐẦU TƯ TẠI MỐC THỜI GIAN: {consensus.timestamp}",
+        "=" * 80,
+        f"Tổng số Agent giả lập: {consensus.total_agents}",
+        f"MUA (BUY): {consensus.buy_percentage}%  |  BÁN (SELL): {consensus.sell_percentage}%  |  GIỮ (HOLD): {consensus.hold_percentage}%  |  HOẢNG LOẠN (PANIC): {consensus.panic_percentage}%",
+        f"Chỉ số Cảm xúc Thị trường (Sentiment Index): {consensus.overall_sentiment_score:+.2f} ({sentiment_label})",
+        f"Tóm tắt Đồng thuận: {consensus.consensus_summary}",
+        "\nCHI TIẾT QUYẾT ĐỊNH CỦA 10 PERSONA:"
+    ]
     
     table_data = []
     for d in consensus.individual_decisions:
-        target_str = f"{d.expected_target_price:,.0f}" if d.expected_target_price else "N/A"
+        target_p = f"{d.expected_target_price:,.0f}" if d.expected_target_price else "N/A"
         table_data.append([
             d.persona_name,
-            d.action.value,
+            d.action,
             f"{d.confidence*100:.0f}%",
-            f"{d.sentiment_score:+.2f}",
-            target_str,
+            d.sentiment_score,
+            target_p,
             d.reasoning[:60] + "..." if len(d.reasoning) > 60 else d.reasoning
         ])
-    
+        
     headers = ["Persona Nhà Đầu Tư", "Hành Động", "Độ Tin Cậy", "Sentiment", "Giá Kỳ Vọng", "Lý Do Cốt Lõi"]
-    lines.append(tabulate(table_data, headers=headers, tablefmt="github"))
-    lines.append("================================================================================\n")
+    table_str = tabulate(table_data, headers=headers, tablefmt="github")
+    lines.append(table_str)
+    lines.append("=" * 80)
     return "\n".join(lines)
 
-def format_verification_report(verdict: VerificationVerdict, plan: TradingPlan, risk: RiskAssessment) -> str:
-    """Format final Investment Committee Verification Verdict"""
-    lines = []
-    lines.append("================================================================================")
-    lines.append(f"  BÁO CÁO XÁC THỰC ĐẦU TƯ (INVESTMENT COMMITTEE VERIFICATION VERDICT)")
-    lines.append("================================================================================")
+def format_trading_plan(plan: TradingPlan) -> str:
+    lines = [
+        "=" * 80,
+        f"  KẾ HOẠCH GIAO DỊCH CHI TIẾT (TRADING PLAN): {plan.symbol}",
+        "=" * 80,
+        f"Vùng Mua (Entry Zone): {plan.entry_zone_min:,.0f} - {plan.entry_zone_max:,.0f} VND",
+        f"Điểm Dừng Lỗ (Stop Loss): {plan.stop_loss_price:,.0f} VND",
+        f"Mục Tiêu Chốt Lời (Take Profit): TP1: {plan.take_profit_target_1:,.0f} | TP2: {plan.take_profit_target_2:,.0f} VND",
+        f"Tỷ Lệ Risk/Reward Ratio: 1:{plan.risk_reward_ratio:.2f}",
+        "=" * 80
+    ]
+    return "\n".join(lines)
+
+def format_verification_verdict(verdict: VerificationVerdict) -> str:
+    icon = "✅" if verdict.approved else "❌"
+    lines = [
+        "=" * 80,
+        f"  BÁO CÁO XÁC THỰC ĐẦU TƯ (INVESTMENT COMMITTEE VERIFICATION VERDICT)",
+        "=" * 80,
+        f"Quyết định cuối cùng: {icon} {verdict.verdict_code} (ĐÃ PHÊ DUYỆT)" if verdict.approved else f"Quyết định cuối cùng: {icon} {verdict.verdict_code} (TỪ CHỐI)",
+        f"Điểm Đánh Giá Kỷ Luật (Score): {verdict.overall_score:.1f} / 100",
+        "\nCHECKLIST 7 TIÊU CHUẨN XÁC THỰC:"
+    ]
     
-    status_icon = "✅ ĐÃ PHÊ DUYỆT (APPROVED)" if verdict.approved else "❌ TỪ CHỐI (REJECTED / REVISE)"
-    lines.append(f"Quyết định cuối cùng: {status_icon}")
-    lines.append(f"Điểm Đánh Giá Kỷ Luật (Score): {verdict.overall_score:.1f} / 100")
-    lines.append(f"Mã Chứng Khoán: {plan.symbol}")
-    lines.append(f"Vùng Mua: {plan.entry_zone_min:,.0f} - {plan.entry_zone_max:,.0f} | Dừng Lỗ: {plan.stop_loss_price:,.0f} | Chốt Lời: {plan.take_profit_target_1:,.0f}")
-    lines.append(f"Tỷ lệ Risk/Reward: 1:{plan.risk_reward_ratio:.2f} | Tỷ trọng đề xuất: {plan.allocation_pct*100:.1f}% tài khoản")
-    lines.append(f"Vị thế Kelly khuyến nghị: {risk.recommended_kelly_position_pct*100:.1f}%")
-    lines.append("\nCHECKLIST 7 TIÊU CHUẨN XÁC THỰC:")
-    
-    check_table = []
+    table_data = []
     for item in verdict.checklist:
-        icon = "PASS" if item.passed else "FAIL"
-        check_table.append([icon, item.criterion, item.details])
-    
-    headers = ["Kết Quả", "Tiêu Chí Kiểm Định", "Chi Tiết Đánh Giá"]
-    lines.append(tabulate(check_table, headers=headers, tablefmt="github"))
-    
+        status_str = "PASS" if item.passed else "FAIL"
+        table_data.append([status_str, item.criterion, item.details])
+        
+    headers = ["Kết Quả", "Tiêu Chí Kiểm Định (7 Standards)", "Chi Tiết Đánh Giá"]
+    table_str = tabulate(table_data, headers=headers, tablefmt="github")
+    lines.append(table_str)
     lines.append(f"\nNhận xét từ Hội đồng Xác thực: {verdict.feedback_notes}")
-    if verdict.recommendations:
-        lines.append("Khuyến nghị điều chỉnh:")
-        for rec in verdict.recommendations:
-            lines.append(f"  - {rec}")
-    lines.append("================================================================================\n")
+    lines.append("=" * 80)
     return "\n".join(lines)

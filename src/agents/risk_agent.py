@@ -26,9 +26,9 @@ class RiskManagerAgent(BaseAgent):
         
         # Safety rules check
         warnings = []
-        is_size_safe = plan.allocation_pct <= settings.max_position_size_pct
+        is_size_safe = (plan.allocation_pct / 100.0) <= settings.max_position_size_pct
         if not is_size_safe:
-            warnings.append(f"Tỷ trọng đề xuất ({plan.allocation_pct*100:.1f}%) vượt mức tối đa cho phép ({settings.max_position_size_pct*100:.1f}%).")
+            warnings.append(f"Tỷ trọng đề xuất ({plan.allocation_pct:.1f}%) vượt mức tối đa cho phép ({settings.max_position_size_pct*100:.1f}%).")
             
         rrr_valid = plan.risk_reward_ratio >= settings.min_risk_reward_ratio
         if not rrr_valid:

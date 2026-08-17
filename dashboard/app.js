@@ -113,9 +113,18 @@ const stepDetails = {
     '5': {
         title: "Step 5: Investment Verifier Gatekeeper",
         content: `
-            <div style="padding: 16px; border: 2px solid #000; border-radius: 8px; background: #fafafa; margin-bottom: 12px;">
+            <div style="padding: 16px; border: 2px solid #000; border-radius: 8px; background: #fafafa; margin-bottom: 16px;">
                 <h3 style="font-size: 1.1rem; font-weight: 800;">✅ APPROVED (ĐÃ PHÊ DUYỆT 100/100)</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted);">Đạt 6/6 tiêu chí kỷ luật đầu tư. Đủ điều kiện giải ngân.</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Vượt qua 7/7 tiêu chí kiểm định kỷ luật đầu tư chuyên nghiệp. Đủ điều kiện giải ngân.</p>
+            </div>
+            <div style="font-size: 0.82rem; line-height: 1.6; border: 1px solid #e5e5e5; padding: 12px; border-radius: 6px;">
+                <p><strong>1. Data Completeness:</strong> PASS - Dữ liệu đầy đủ 5 năm nến giá.</p>
+                <p><strong>2. Thesis Logic:</strong> PASS - Đủ 3 kịch bản Bull/Base/Bear.</p>
+                <p><strong>3. Risk/Reward Ratio:</strong> PASS - RRR = 1:3.00 (>= 1:2.5).</p>
+                <p><strong>4. Position Sizing Safety:</strong> PASS - Vị thế <= 20% tài khoản.</p>
+                <p><strong>5. Herd Sanity Check:</strong> PASS - Không rơi vào bẫy quá mua hưng phấn.</p>
+                <p><strong>6. Hard Stop Loss:</strong> PASS - Đã thiết lập điểm cắt lỗ tuyệt đối.</p>
+                <p><strong>7. Catalysts & Holding Period:</strong> PASS - Có đủ 2 động lực bứt phá giá cốt lõi.</p>
             </div>
         `
     }
