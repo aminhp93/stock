@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Investment Workspace - Interactive Flow & Agent Directory</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Minimal Header -->
+        <header>
+            <div class="logo-area">
+                <h1>Multi-Agent Investment Workspace</h1>
+                <p>Sơ đồ luồng tương tác (Pan/Zoom/Drag) & Danh mục Active Agents</p>
+            </div>
+        </header>
+
+        <!-- Section 1: Interactive Flowchart Canvas Container -->
+        <div class="page-title-section">
+            <h2>1. Sơ Đồ Luồng Workflow (Interactive Diagram)</h2>
+            <p>Sơ đồ tương tác kéo thả (Drag & Drop), phóng to/thu nhỏ (Zoom In/Out). Bấm vào node để xem thông tin chi tiết.</p>
+        </div>
+
+        <div id="flow-canvas-wrapper" class="flow-wrapper">
+            <!-- Canvas Controls -->
+            <div class="flow-controls">
+                <button onclick="zoomIn()">+ Zoom In</button>
+                <button onclick="zoomOut()">- Zoom Out</button>
+                <button onclick="resetZoom()">Reset View</button>
+            </div>
+
+            <!-- SVG Background Lines Layer -->
+            <svg id="svg-connections" class="svg-connections"></svg>
+
+            <!-- Flow Nodes Layer -->
+            <div id="flow-nodes-layer" class="nodes-layer">
+                <!-- Nodes rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- Section 2: Agent Directory & Database Metrics -->
+        <div class="page-title-section" style="margin-top: 48px;">
+            <h2>2. Danh Mục Các Agent Trong Hệ Thống (Active Agents Directory)</h2>
+            <p>Trạng thái hoạt động, phạm vi dữ liệu PostgreSQL và thời gian cập nhật thực tế của từng Agent.</p>
+        </div>
+
+        <div class="agents-grid">
+            <!-- Agent 1: Data Collection Agent -->
+            <div class="agent-card">
+                <div class="agent-card-header">
+                    <div class="agent-path">/data-collection-agent</div>
+                    <span class="badge-active">ONLINE</span>
+                </div>
+                <h3 class="agent-name">Step 1: Data Collection Agent</h3>
+                <p class="agent-desc">Thu thập, chuẩn hóa và kiểm tra tính toàn vẹn dữ liệu nến giá OHLCV & chỉ số tài chính từ PostgreSQL.</p>
+                <div class="agent-metrics-box">
+                    <div class="metric-row">
+                        <span>Database Kết Nối:</span>
+                        <strong>PostgreSQL (stock_db:5432)</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Tổng Mã Cổ Phiếu Đã Lưu:</span>
+                        <strong style="color: #000;">1,403 mã (HOSE, HNX, UPCoM)</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Tổng Số Nến Giá OHLCV:</span>
+                        <strong style="color: #000;">464,975 phiên nến</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Khung Thời Gian Cập Nhật:</span>
+                        <strong style="color: #000;">01/01/2021 ➔ 31/12/2025 (5 NĂM)</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent 2: Market Analysis Agent -->
+            <div class="agent-card">
+                <div class="agent-card-header">
+                    <div class="agent-path">/market-analysis-agent</div>
+                    <span class="badge-active">ONLINE</span>
+                </div>
+                <h3 class="agent-name">Step 2A: Market Analysis Agent</h3>
+                <p class="agent-desc">Phân tích xu hướng kỹ thuật (RSI, MA20, MA50) và tính biên an toàn Margin of Safety theo mô hình định giá DCF.</p>
+                <div class="agent-metrics-box">
+                    <div class="metric-row">
+                        <span>Chỉ Số Kỹ Thuật:</span>
+                        <strong>RSI (14 ngày), MA20, MA50</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Mô Hình Định Giá:</span>
+                        <strong>Intrinsic Value DCF & MoS %</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Phân Tích Tin Tức:</span>
+                        <strong>Sentiment Score (-1.0 đến +1.0)</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent 3: Behavioral Simulator Agent -->
+            <div class="agent-card">
+                <div class="agent-card-header">
+                    <div class="agent-path">/behavioral-simulation-agent</div>
+                    <span class="badge-active">ONLINE</span>
+                </div>
+                <h3 class="agent-name">Step 2B: 10-Investor Behavioral Simulator</h3>
+                <p class="agent-desc">Giả lập phản ứng tâm lý 10 nhà đầu tư người thật & mở rộng ma trận Monte-Carlo 10.000 Agents đồng thời.</p>
+                <div class="agent-metrics-box">
+                    <div class="metric-row">
+                        <span>Số lượng Personas:</span>
+                        <strong>10 Persona người thật (FOMO, Value, Swing...)</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Ma Trận Mở Rộng:</span>
+                        <strong>Hỗ trợ 10,000 Agents Vectorized (0.18s)</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Output Giả Lập:</span>
+                        <strong>Buy %, Sell %, Hold %, Panic %</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent 4: Trading Strategy Agent -->
+            <div class="agent-card">
+                <div class="agent-card-header">
+                    <div class="agent-path">/strategy-agent</div>
+                    <span class="badge-active">ONLINE</span>
+                </div>
+                <h3 class="agent-name">Step 3: Strategy & Trading Scenario Agent</h3>
+                <p class="agent-desc">Thiết lập 3 kịch bản đầu tư Bull (35%), Base (50%), Bear (15%) và xây dựng vùng mua Entry/Stop-Loss/Take-Profit.</p>
+                <div class="agent-metrics-box">
+                    <div class="metric-row">
+                        <span>Số Kịch Bản Đầu Tư:</span>
+                        <strong>3 Kịch bản (Bull / Base / Bear)</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Kế Hoạch Giao Dịch:</span>
+                        <strong>Entry Zone, Stop Loss, Take Profit 1 & 2</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent 5: Risk Management Agent -->
+            <div class="agent-card">
+                <div class="agent-card-header">
+                    <div class="agent-path">/risk-management-agent</div>
+                    <span class="badge-active">ONLINE</span>
+                </div>
+                <h3 class="agent-name">Step 4: Risk Manager Agent</h3>
+                <p class="agent-desc">Tính toán quy mô vị thế tối ưu theo Half-Kelly Criterion, đảm bảo Risk/Reward Ratio >= 1:2.5 và kiểm soát Drawdown.</p>
+                <div class="agent-metrics-box">
+                    <div class="metric-row">
+                        <span>Công Thức Vị Thế:</span>
+                        <strong>Half-Kelly Criterion Sizing</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Tiêu Chuẩn RRR:</span>
+                        <strong>Risk/Reward Ratio >= 1:2.5</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Giới Hạn Vị Thế:</span>
+                        <strong>Tối đa <= 20% tài khoản / cổ phiếu</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent 6: Investment Verifier Agent -->
+            <div class="agent-card">
+                <div class="agent-card-header">
+                    <div class="agent-path">/investment-verifier-agent</div>
+                    <span class="badge-active">ONLINE</span>
+                </div>
+                <h3 class="agent-name">Step 5: Investment Verifier Gatekeeper</h3>
+                <p class="agent-desc">Hội đồng Kiểm định độc lập đánh giá 7 tiêu chuẩn kỷ luật chuyên nghiệp trước khi đưa ra quyết định APPROVED.</p>
+                <div class="agent-metrics-box">
+                    <div class="metric-row">
+                        <span>Checklist Kiểm Định:</span>
+                        <strong>7 Tiêu chuẩn kỷ luật đầu tư</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Điều Kiện Phê Duyệt:</span>
+                        <strong>Vượt qua >= 5/6 tiêu chuẩn & Safe Size</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Node Details -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="modal-title">Chi Tiết Bước</h2>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
