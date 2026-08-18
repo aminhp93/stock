@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingView Stock Visualizer - Multi-Agent Stock System</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- TradingView Lightweight Charts Library CDN -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        :root {
+            --bg-main: #131722;
+            --bg-panel: #1e222d;
+            --bg-card: #2a2e39;
+            --text-main: #d1d4dc;
+            --text-muted: #787b86;
+            --border-color: #363a45;
+            --bull-green: #089981;
+            --bear-red: #f23645;
+            --accent-blue: #2962ff;
+            --accent-orange: #ff6d00;
+            --accent-yellow: #f5c518;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Top Navigation Header */
+        header {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 16px;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .brand-logo svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--accent-blue);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-btn.active {
+            color: #ffffff;
+            background: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        /* Stock Selector Controls */
+        .symbol-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box input {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: #ffffff;
+            padding: 6px 12px 6px 32px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            width: 160px;
+            text-transform: uppercase;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            width: 14px;
+            height: 14px;
+            fill: var(--text-muted);
+        }
+
+        .preset-pills {
+            display: flex;
+            gap: 4px;
+        }
+
+        .pill-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .pill-btn:hover, .pill-btn.active {
+            color: #ffffff;
+            border-color: var(--accent-blue);
+            background: rgba(41, 98, 255, 0.2);
+        }
+
+        /* Timeframe Range Controls */
+        .range-selector {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-card);
+            padding: 3px;
+            border-radius: 6px;
+        }
+
+        .range-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .range-btn:hover {
+            color: #ffffff;
+        }
+
+        .range-btn.active {
+            background: var(--accent-blue);
+            color: #ffffff;
+        }
+
+        /* Main Dashboard Grid Layout */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            flex: 1;
+            height: calc(100vh - 56px);
+            overflow: hidden;
+        }
+
+        .chart-section {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            background: var(--bg-main);
+        }
+
+        /* Ticker Info Header Bar */
+        .ticker-header-bar {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .ticker-info-main {
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+        }
+
+        .symbol-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .company-name {
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-muted);
+        }
+
+        .price-large {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .price-change {
+            font-size: 13px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .price-up {
+            color: var(--bull-green);
+            background: rgba(8, 153, 129, 0.15);
+        }
+
+        .price-down {
+            color: var(--bear-red);
+            background: rgba(242, 54, 69, 0.15);
+        }
+
+        .ticker-stats-group {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 11px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .stat-value {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* Chart Containers */
+        .charts-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #main-candlestick-chart {
+            flex: 3;
+            width: 100%;
+            position: relative;
+        }
+
+        .chart-divider {
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        #rsi-sub-chart {
+            flex: 1;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Floating Legend / Indicator Badges */
+        .indicator-legend {
+            position: absolute;
+            top: 10px;
+            left: 14px;
+            z-index: 10;
+            display: flex;
+            gap: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            pointer-events: none;
+            background: rgba(30, 34, 45, 0.85);
+            padding: 4px 10px;
+            border-radius: 4px;
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .color-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Right Sidebar Panel */
+        .sidebar-panel {
+            background-color: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 16px;
+            gap: 16px;
+        }
+
+        .panel-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge-verdict {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .verdict-approved {
+            background: rgba(8, 153, 129, 0.2);
+            color: var(--bull-green);
+            border: 1px solid var(--bull-green);
+        }
+
+        .verdict-rejected {
+            background: rgba(242, 54, 69, 0.2);
+            color: var(--bear-red);
+            border: 1px solid var(--bear-red);
+        }
+
+        /* Signal Grid Rows */
+        .signal-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .signal-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .signal-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .signal-label {
+            color: var(--text-muted);
+        }
+
+        .signal-val {
+            font-weight: 600;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Consensus Sentiment Meter */
+        .meter-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .meter-bar {
+            height: 10px;
+            border-radius: 5px;
+            background: #131722;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .meter-segment {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .segment-buy { background: var(--bull-green); }
+        .segment-hold { background: var(--accent-yellow); }
+        .segment-sell { background: var(--bear-red); }
+
+        .meter-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Loading Spinner Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(19, 23, 34, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Header -->
+    <header>
+        <div class="header-left">
+            <a href="index.html" class="brand-logo">
+                <svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-7M20.5 9.5v5h-5"/></svg>
+                <span>Stock Multi-Agent Engine</span>
+            </a>
+            <nav class="nav-tabs">
+                <a href="chart.html" class="nav-btn active">📈 TradingView Visualizer</a>
+                <a href="index.html" class="nav-btn">🔄 Workflow & Active Agents</a>
+            </nav>
+        </div>
+
+        <div class="symbol-controls">
+            <div class="search-box">
+                <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="symbol-input" value="FPT" placeholder="Mã Cổ Phiếu...">
+            </div>
+
+            <div class="preset-pills">
+                <button class="pill-btn active" onclick="selectSymbol('FPT')">FPT</button>
+                <button class="pill-btn" onclick="selectSymbol('TCB')">TCB</button>
+                <button class="pill-btn" onclick="selectSymbol('SSI')">SSI</button>
+                <button class="pill-btn" onclick="selectSymbol('HPG')">HPG</button>
+                <button class="pill-btn" onclick="selectSymbol('VNM')">VNM</button>
+                <button class="pill-btn" onclick="selectSymbol('MBB')">MBB</button>
+            </div>
+
+            <div class="range-selector">
+                <button class="range-btn" onclick="setRange('1M')">1M</button>
+                <button class="range-btn" onclick="setRange('3M')">3M</button>
+                <button class="range-btn" onclick="setRange('6M')">6M</button>
+                <button class="range-btn active" onclick="setRange('1Y')">1Y</button>
+                <button class="range-btn" onclick="setRange('ALL')">ALL (5Y)</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="main-content">
+        <!-- Chart Section -->
+        <div class="chart-section">
+            <!-- Ticker Stats Header Bar -->
+            <div class="ticker-header-bar">
+                <div class="ticker-info-main">
+                    <span class="symbol-title" id="disp-symbol">FPT</span>
+                    <span class="company-name" id="disp-company">CTCP FPT (HOSE)</span>
+                    <span class="price-large" id="disp-price">135,000</span>
+                    <span class="price-change price-up" id="disp-change">+2.4%</span>
+                </div>
+
+                <div class="ticker-stats-group">
+                    <div class="stat-item">
+                        <span class="stat-label">MA20 (20 ngày)</span>
+                        <span class="stat-value" id="disp-ma20" style="color: var(--accent-blue);">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">MA50 (50 ngày)</span>
+                        <span class="stat-value" id="disp-ma50" style="color: var(--accent-orange);">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">RSI (14 ngày)</span>
+                        <span class="stat-value" id="disp-rsi" style="color: var(--accent-yellow);">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tổng Nến CSDL</span>
+                        <span class="stat-value" id="disp-count">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Canvas Wrappers -->
+            <div class="charts-wrapper">
+                <div id="chart-loading" class="loading-overlay">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Đang nạp dữ liệu nến giá từ PostgreSQL...</div>
+                </div>
+
+                <!-- Candlestick Legend -->
+                <div class="indicator-legend">
+                    <div class="legend-item">
+                        <div class="color-dot" style="background: var(--accent-blue);"></div>
+                        <span>MA20</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-dot" style="background: var(--accent-orange);"></div>
+                        <span>MA50</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-dot" style="background: var(--bull-green);"></div>
+                        <span>Volume</span>
+                    </div>
+                </div>
+
+                <div id="main-candlestick-chart"></div>
+                <div class="chart-divider"></div>
+                <div id="rsi-sub-chart"></div>
+            </div>
+        </div>
+
+        <!-- Sidebar Panel -->
+        <div class="sidebar-panel">
+            <!-- Card 1: Multi-Agent Gatekeeper Verdict -->
+            <div class="panel-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent-blue)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                        <span>Hội Đồng Xác Thực</span>
+                    </div>
+                    <span class="badge-verdict verdict-approved" id="verdict-badge">APPROVED</span>
+                </div>
+
+                <div class="signal-grid">
+                    <div class="signal-row">
+                        <span class="signal-label">Điểm Kỷ Luật:</span>
+                        <span class="signal-val" id="verdict-score" style="color: var(--bull-green);">100 / 100</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Khuyến Nghị Lệnh:</span>
+                        <span class="signal-val" id="verdict-action">BUY (MUA)</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Vùng Mua Entry:</span>
+                        <span class="signal-val" id="verdict-entry">132,000 - 135,000</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Stop Loss Tối Đa:</span>
+                        <span class="signal-val" id="verdict-stop" style="color: var(--bear-red);">125,500</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Mục Tiêu Take Profit:</span>
+                        <span class="signal-val" id="verdict-target" style="color: var(--bull-green);">155,000</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Vị Thế Tối Đa (Kelly):</span>
+                        <span class="signal-val" id="verdict-size">15.0% Tài Khoản</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Tỷ Lệ Risk/Reward:</span>
+                        <span class="signal-val" id="verdict-rrr">1 : 2.77</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: 10-Investor Sentiment Meter -->
+            <div class="panel-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent-yellow)"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                        <span>Đồng Thuận 10 Investor</span>
+                    </div>
+                    <span id="sentiment-tag" style="font-size: 11px; font-weight: 700; color: var(--bull-green);">TÍCH CỰC (+0.58)</span>
+                </div>
+
+                <div class="meter-container">
+                    <div class="meter-bar">
+                        <div class="meter-segment segment-buy" id="bar-buy" style="width: 80%;"></div>
+                        <div class="meter-segment segment-hold" id="bar-hold" style="width: 20%;"></div>
+                        <div class="meter-segment segment-sell" id="bar-sell" style="width: 0%;"></div>
+                    </div>
+                    <div class="meter-labels">
+                        <span style="color: var(--bull-green);">MUA: <strong id="lbl-buy">80%</strong></span>
+                        <span style="color: var(--accent-yellow);">GIỮ: <strong id="lbl-hold">20%</strong></span>
+                        <span style="color: var(--bear-red);">BÁN: <strong id="lbl-sell">0%</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Technical Indicators & MoS Analysis -->
+            <div class="panel-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent-orange)"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                        <span>Phân Tích Kỹ Thuật & Định Giá</span>
+                    </div>
+                </div>
+
+                <div class="signal-grid">
+                    <div class="signal-row">
+                        <span class="signal-label">Xu Hướng Giá (MA):</span>
+                        <span class="signal-val" id="tech-trend" style="color: var(--bull-green);">BULLISH (MA20 > MA50)</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Margin of Safety (MoS):</span>
+                        <span class="signal-val" id="tech-mos" style="color: var(--bull-green);">+18.5% (Vùng Chiết Khấu)</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Trạng Thái RSI (14D):</span>
+                        <span class="signal-val" id="tech-rsi">58.4 (Trung Tính - Tích Cực)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logic JavaScript -->
+    <script>
+        let mainChart, candlestickSeries, volumeSeries, ma20Series, ma50Series;
+        let rsiChart, rsiSeries, overboughtLine, oversoldLine;
+        let currentSymbol = 'FPT';
+        let rawChartData = [];
+
+        // Initialize Charts when DOM ready
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            loadSymbolData(currentSymbol);
+
+            // Input Event for manual ticker search
+            const input = document.getElementById('symbol-input');
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const sym = input.value.trim().toUpperCase();
+                    if (sym) selectSymbol(sym);
+                }
+            });
+        });
+
+        function initCharts() {
+            const mainContainer = document.getElementById('main-candlestick-chart');
+            const rsiContainer = document.getElementById('rsi-sub-chart');
+
+            // 1. Create Main TradingView Chart
+            mainChart = LightweightCharts.createChart(mainContainer, {
+                layout: {
+                    background: { color: '#131722' },
+                    textColor: '#9b9ef0',
+                    fontSize: 11,
+                    fontFamily: 'JetBrains Mono, monospace'
+                },
+                grid: {
+                    vertLines: { color: '#1e222d' },
+                    horzLines: { color: '#1e222d' }
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: '#363a45',
+                },
+                timeScale: {
+                    borderColor: '#363a45',
+                    timeVisible: true,
+                }
+            });
+
+            // Series: Candlesticks
+            candlestickSeries = mainChart.addCandlestickSeries({
+                upColor: '#089981',
+                downColor: '#f23645',
+                borderVisible: false,
+                wickUpColor: '#089981',
+                wickDownColor: '#f23645'
+            });
+
+            // Series: Volume Histogram
+            volumeSeries = mainChart.addHistogramSeries({
+                color: '#26a69a',
+                priceFormat: { type: 'volume' },
+                priceScaleId: '',
+                scaleMargins: {
+                    top: 0.8,
+                    bottom: 0,
+                },
+            });
+
+            // Series: MA20 & MA50 Overlay Lines
+            ma20Series = mainChart.addLineSeries({
+                color: '#2962ff',
+                lineWidth: 2,
+                title: 'MA20'
+            });
+
+            ma50Series = mainChart.addLineSeries({
+                color: '#ff6d00',
+                lineWidth: 2,
+                title: 'MA50'
+            });
+
+            // 2. Create RSI Sub-Chart
+            rsiChart = LightweightCharts.createChart(rsiContainer, {
+                layout: {
+                    background: { color: '#131722' },
+                    textColor: '#787b86',
+                    fontSize: 10,
+                    fontFamily: 'JetBrains Mono, monospace'
+                },
+                grid: {
+                    vertLines: { color: '#1e222d' },
+                    horzLines: { color: '#1e222d' }
+                },
+                rightPriceScale: {
+                    borderColor: '#363a45',
+                },
+                timeScale: {
+                    borderColor: '#363a45',
+                    timeVisible: true,
+                }
+            });
+
+            rsiSeries = rsiChart.addLineSeries({
+                color: '#f5c518',
+                lineWidth: 2,
+                title: 'RSI(14)'
+            });
+
+            // Sync Main Chart & RSI Sub-Chart Time Scale Scrolling & Zooming (Lightweight Charts v4)
+            mainChart.timeScale().subscribeVisibleLogicalRangeChange(logicalRange => {
+                if (logicalRange && rsiChart) {
+                    rsiChart.timeScale().setVisibleLogicalRange(logicalRange);
+                }
+            });
+
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                mainChart.resize(mainContainer.clientWidth, mainContainer.clientHeight);
+                rsiChart.resize(rsiContainer.clientWidth, rsiContainer.clientHeight);
+            });
+        }
+
+        function getApiBaseUrl() {
+            return window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+        }
+
+        async function loadSymbolData(symbol) {
+            document.getElementById('chart-loading').style.display = 'flex';
+            document.getElementById('disp-symbol').innerText = symbol;
+
+            try {
+                // 1. Fetch Chart Data from API endpoint
+                const baseUrl = getApiBaseUrl();
+                const res = await fetch(`${baseUrl}/api/chart?symbol=${symbol}&start_date=2021-01-01`);
+                const json = await res.json();
+                rawChartData = json.data || [];
+
+                if (rawChartData.length > 0) {
+                    renderChartData(rawChartData);
+                }
+
+                // 2. Fetch Multi-Agent Summary
+                loadAgentSummary(symbol);
+            } catch (err) {
+                console.error("Error loading chart data:", err);
+            } finally {
+                document.getElementById('chart-loading').style.display = 'none';
+            }
+        }
+
+        function renderChartData(data) {
+            const candleData = [];
+            const volumeData = [];
+            const ma20Data = [];
+            const ma50Data = [];
+            const rsiData = [];
+
+            data.forEach(item => {
+                candleData.push({
+                    time: item.time,
+                    open: item.open,
+                    high: item.high,
+                    low: item.low,
+                    close: item.close
+                });
+
+                volumeData.push({
+                    time: item.time,
+                    value: item.volume,
+                    color: item.close >= item.open ? 'rgba(8, 153, 129, 0.4)' : 'rgba(242, 54, 69, 0.4)'
+                });
+
+                if (item.ma20 !== null) ma20Data.push({ time: item.time, value: item.ma20 });
+                if (item.ma50 !== null) ma50Data.push({ time: item.time, value: item.ma50 });
+                if (item.rsi !== null) rsiData.push({ time: item.time, value: item.rsi });
+            });
+
+            // Set Data on TradingView Series
+            candlestickSeries.setData(candleData);
+            volumeSeries.setData(volumeData);
+            ma20Series.setData(ma20Data);
+            ma50Series.setData(ma50Data);
+            rsiSeries.setData(rsiData);
+
+            // Update Header Stats Bar with last candle values
+            const last = data[data.length - 1];
+            const prev = data.length > 1 ? data[data.length - 2] : last;
+            const changePct = ((last.close - prev.close) / prev.close * 100).toFixed(2);
+
+            document.getElementById('disp-price').innerText = last.close.toLocaleString('vi-VN');
+            const changeEl = document.getElementById('disp-change');
+            changeEl.innerText = (changePct >= 0 ? '+' : '') + changePct + '%';
+            changeEl.className = 'price-change ' + (changePct >= 0 ? 'price-up' : 'price-down');
+
+            document.getElementById('disp-ma20').innerText = last.ma20 ? last.ma20.toLocaleString('vi-VN') : '--';
+            document.getElementById('disp-ma50').innerText = last.ma50 ? last.ma50.toLocaleString('vi-VN') : '--';
+            document.getElementById('disp-rsi').innerText = last.rsi ? last.rsi.toFixed(1) : '--';
+            document.getElementById('disp-count').innerText = data.length.toLocaleString('vi-VN') + ' nến';
+
+            // Fit content into viewport
+            mainChart.timeScale().fitContent();
+        }
+
+        async function loadAgentSummary(symbol) {
+            try {
+                const baseUrl = getApiBaseUrl();
+                const res = await fetch(`${baseUrl}/api/summary?symbol=${symbol}`);
+                const data = await res.json();
+
+                if (data.symbol) {
+                    document.getElementById('disp-company').innerText = data.company_name || `CTCP ${symbol}`;
+                    document.getElementById('verdict-badge').innerText = data.verdict || 'APPROVED';
+                    document.getElementById('verdict-score').innerText = (data.verifier_score || 100) + ' / 100';
+                    document.getElementById('verdict-action').innerText = (data.recommendation || 'BUY').toUpperCase();
+                    
+                    if (data.entry_zone && data.entry_zone.length === 2) {
+                        document.getElementById('verdict-entry').innerText = `${data.entry_zone[0].toLocaleString('vi-VN')} - ${data.entry_zone[1].toLocaleString('vi-VN')}`;
+                    }
+                    if (data.stop_loss) {
+                        document.getElementById('verdict-stop').innerText = data.stop_loss.toLocaleString('vi-VN');
+                    }
+                    if (data.take_profit_1) {
+                        document.getElementById('verdict-target').innerText = data.take_profit_1.toLocaleString('vi-VN');
+                    }
+                    if (data.position_size_pct) {
+                        document.getElementById('verdict-size').innerText = data.position_size_pct.toFixed(1) + '% Tài Khoản';
+                    }
+                    if (data.risk_reward_ratio) {
+                        document.getElementById('verdict-rrr').innerText = '1 : ' + data.risk_reward_ratio.toFixed(2);
+                    }
+
+                    // Consensus Sentiment Bars
+                    const buy = data.buy_pct || 80;
+                    const hold = data.hold_pct || 20;
+                    const sell = data.sell_pct || 0;
+
+                    document.getElementById('bar-buy').style.width = buy + '%';
+                    document.getElementById('bar-hold').style.width = hold + '%';
+                    document.getElementById('bar-sell').style.width = sell + '%';
+
+                    document.getElementById('lbl-buy').innerText = buy + '%';
+                    document.getElementById('lbl-hold').innerText = hold + '%';
+                    document.getElementById('lbl-sell').innerText = sell + '%';
+
+                    if (data.technical_trend) {
+                        document.getElementById('tech-trend').innerText = data.technical_trend.toUpperCase();
+                    }
+                    if (data.margin_of_safety_pct !== undefined) {
+                        document.getElementById('tech-mos').innerText = (data.margin_of_safety_pct >= 0 ? '+' : '') + data.margin_of_safety_pct.toFixed(1) + '%';
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading agent summary:", err);
+            }
+        }
+
+        function selectSymbol(sym) {
+            currentSymbol = sym;
+            document.getElementById('symbol-input').value = sym;
+
+            // Highlight Pill Button
+            document.querySelectorAll('.pill-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText === sym);
+            });
+
+            loadSymbolData(sym);
+        }
+
+        function setRange(range) {
+            document.querySelectorAll('.range-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText === range);
+            });
+
+            if (!rawChartData.length) return;
+
+            const total = rawChartData.length;
+            let sliceCount = total;
+
+            if (range === '1M') sliceCount = 22;
+            else if (range === '3M') sliceCount = 66;
+            else if (range === '6M') sliceCount = 132;
+            else if (range === '1Y') sliceCount = 250;
+
+            const filteredData = rawChartData.slice(Math.max(0, total - sliceCount));
+            renderChartData(filteredData);
+        }
+    </script>
+</body>
+</html>
