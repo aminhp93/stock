@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>So Sánh Đầu Tư: Lump Sum vs DCA - VCBF-BCF</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-main: #0c0d10;
+            --bg-panel: #14161d;
+            --bg-card: #181b24;
+            --border-color: #232734;
+            --border-hover: #33384a;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-green: #10b981;
+            --accent-green-bg: rgba(16, 185, 129, 0.08);
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-red-bg: rgba(239, 68, 68, 0.12);
+            --accent-purple: #8b5cf6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+
+        /* Minimal Header */
+        header {
+            background: var(--bg-panel);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 6px;
+        }
+
+        .nav-btn {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .nav-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .nav-btn.active {
+            background: #222736;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1240px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.4px;
+            margin-bottom: 6px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            font-weight: 400;
+        }
+
+        /* Presets Bar */
+        .presets-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            background: var(--bg-panel);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .preset-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 12.5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .preset-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: var(--border-color);
+        }
+
+        .preset-btn.active {
+            background: #222736;
+            border-color: #33384a;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* RED COLOR STYLING FOR KỊCH BẢN ĐU ĐỈNH */
+        .preset-btn.btn-red {
+            border-color: rgba(239, 68, 68, 0.4);
+            color: var(--accent-red);
+            background: var(--accent-red-bg);
+        }
+
+        .preset-btn.btn-red:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--accent-red);
+            color: #fff;
+        }
+
+        .preset-btn.btn-red.active {
+            background: var(--accent-red);
+            color: #fff;
+            border-color: var(--accent-red);
+            font-weight: 700;
+        }
+
+        /* MAIN STRATEGY TAB BAR */
+        .strategy-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .tab-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        .tab-btn.active {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-blue);
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 28px;
+        }
+
+        @media (max-width: 960px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Controls Panel */
+        .control-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            height: fit-content;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-badge {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .custom-input {
+            width: 100%;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            transition: border 0.15s;
+        }
+
+        .custom-input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .range-slider {
+            width: 100%;
+            margin-top: 8px;
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        .quick-amounts {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .quick-amt-btn {
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            flex: 1;
+            transition: all 0.15s;
+        }
+
+        .quick-amt-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        /* Hybrid Allocation Control Box */
+        .hybrid-box {
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .hybrid-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-purple);
+            margin-bottom: 8px;
+        }
+
+        /* Results Container */
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Cards Grid */
+        .cards-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+        }
+
+        .stat-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            transition: border-color 0.15s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .stat-card.winner-card {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.04) 0%, var(--bg-panel) 100%);
+        }
+
+        .stat-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-val {
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+            margin-bottom: 4px;
+        }
+
+        .stat-profit {
+            font-size: 12.5px;
+            font-weight: 600;
+        }
+
+        .profit-plus { color: var(--accent-green); }
+        .profit-minus { color: var(--accent-red); }
+
+        .stat-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            padding-top: 6px;
+        }
+
+        /* Chart Card */
+        .chart-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .chart-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 340px;
+            width: 100%;
+        }
+
+        /* Table */
+        .table-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 12.5px;
+        }
+
+        .custom-table th {
+            color: var(--text-muted);
+            padding: 10px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .custom-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+        }
+
+        .custom-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-primary);
+        }
+
+        .table-winner-row td {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .badge-win {
+            background: var(--accent-green-bg);
+            color: var(--accent-green);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .notes-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 18px;
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .notes-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .notes-card ul {
+            padding-left: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Minimal Header -->
+    <header>
+        <div class="header-title">Multi-Agent Investment Workspace</div>
+        <nav class="nav-links">
+            <a href="chart.html" class="nav-btn">TradingView Chart</a>
+            <a href="index.html" class="nav-btn">Agents Workflow</a>
+            <a href="calculator.html" class="nav-btn active">Lump Sum vs DCA</a>
+        </nav>
+    </header>
+
+    <div class="container">
+
+        <!-- Header -->
+        <div class="page-header">
+            <h1 class="page-title">So Sánh Đầu Tư: Lump Sum vs DCA (500 Triệu / 5 Năm)</h1>
+            <p class="page-subtitle">Tính toán toán học & kiểm chứng dữ liệu thực tế VCBF-BCF tại thị trường Việt Nam.</p>
+        </div>
+
+        <!-- Presets Bar (With RED COLOR for Peak 2022) -->
+        <div class="presets-bar">
+            <button class="preset-btn active" id="btn-preset-vcbf" onclick="loadPreset('vcbf5y')">🏛️ Quỹ VCBF-BCF (Thực tế 5 năm: 7.7%/năm)</button>
+            <button class="preset-btn btn-red" id="btn-preset-peak" onclick="loadPreset('peak2022')">🚨 Kịch bản "Đu Đỉnh" 2022 (VCBF-BCF: 2.2%/năm)</button>
+        </div>
+
+        <!-- STRATEGY TABS -->
+        <div class="strategy-tabs">
+            <button class="tab-btn active" id="tab-vcbf" onclick="switchTab('vcbf')">🏛️ Phương Án 1: 100% Quỹ VCBF-BCF</button>
+            <button class="tab-btn" id="tab-bank" onclick="switchTab('bank')">🏦 Phương Án 2: 100% Tiết Kiệm Ngân Hàng</button>
+            <button class="tab-btn" id="tab-hybrid" onclick="switchTab('hybrid')">⚡ Phương Án 3: Chiến Lược Hybrid (Tùy Chỉnh %)</button>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+
+            <!-- Controls Panel -->
+            <div class="control-panel">
+                <div class="panel-title">Tham Số Đầu Vào</div>
+
+                <!-- Initial Capital -->
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>Vốn ban đầu (VNĐ)</span>
+                        <span class="input-badge" id="lbl-capital">500.000.000 ₫</span>
+                    </div>
+                    <input type="text" id="input-capital" class="custom-input" value="500,000,000" onchange="onInputChange()">
+                    <input type="range" id="slider-capital" class="range-slider" min="50000000" max="2000000000" step="50000000" value="500000000" oninput="onSliderCapital(this.value)">
+                    <div class="quick-amounts">
+                        <button class="quick-amt-btn" onclick="setCapital(100000000)">100Tr</button>
+                        <button class="quick-amt-btn" onclick="setCapital(500000000)">500Tr</button>
+                        <button class="quick-amt-btn" onclick="setCapital(1000000000)">1 Tỷ</button>
+                    </div>
+                </div>
+
+                <!-- Duration -->
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>Thời gian (Năm)</span>
+                        <span class="input-badge" id="lbl-years">5 Năm (60 Tháng)</span>
+                    </div>
+                    <input type="range" id="slider-years" class="range-slider" min="1" max="10" step="1" value="5" oninput="onInputChange()">
+                </div>
+
+                <!-- Bank Savings Rate -->
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>Lãi Ngân hàng (%/năm)</span>
+                        <span class="input-badge" id="lbl-bank-rate">7.0%</span>
+                    </div>
+                    <input type="range" id="slider-bank-rate" class="range-slider" min="3.0" max="12.0" step="0.1" value="7.0" oninput="onInputChange()">
+                </div>
+
+                <!-- Fund Return Rate -->
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>Sinh lời VCBF-BCF (%/năm)</span>
+                        <span class="input-badge" id="lbl-fund-rate">7.7%</span>
+                    </div>
+                    <input type="range" id="slider-fund-rate" class="range-slider" min="-10.0" max="40.0" step="0.1" value="7.7" oninput="onInputChange()">
+                </div>
+
+                <!-- Idle Rate -->
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>Lãi tiền nhàn rỗi DCA (%/năm)</span>
+                        <span class="input-badge" id="lbl-idle-rate">3.0%</span>
+                    </div>
+                    <input type="range" id="slider-idle-rate" class="range-slider" min="0.0" max="6.0" step="0.5" value="3.0" oninput="onInputChange()">
+                </div>
+
+                <!-- Hybrid Custom Allocation Slider (ONLY Visible in Tab 3) -->
+                <div class="hybrid-box" id="hybrid-control-box" style="display: none;">
+                    <div class="hybrid-title">⚡ Tùy Chỉnh Phân Bổ Hybrid:</div>
+                    <div class="input-label">
+                        <span>Lump Sum (1 Cục)</span>
+                        <span class="input-badge" style="color: var(--accent-purple);" id="lbl-hybrid-split">60% Lump / 40% DCA</span>
+                    </div>
+                    <input type="range" id="slider-hybrid-split" class="range-slider" min="0" max="100" step="5" value="60" oninput="onInputChange()" style="accent-color: var(--accent-purple);">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;" id="hybrid-breakdown-txt">
+                        Lump Sum: 300.0M ₫ | DCA: 200.0M ₫
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-container">
+
+                <!-- Dynamic Stat Cards Row -->
+                <div class="cards-row" id="cards-container">
+                    <!-- Injected dynamically based on active Tab -->
+                </div>
+
+                <!-- Growth Chart -->
+                <div class="chart-card">
+                    <div class="chart-header" id="chart-title-txt">📊 Đường Tăng Trưởng Tài Sản Quỹ VCBF-BCF (Lump Sum vs DCA)</div>
+                    <div class="chart-wrapper">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-card">
+                    <div class="chart-header" style="margin-bottom: 12px;">📋 Bảng So Sánh Chi Tiết Tổng Hợp</div>
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Phương Án</th>
+                                <th>Vốn Đầu Tư</th>
+                                <th>Cuối Kỳ</th>
+                                <th>Lợi Nhuận</th>
+                                <th>ROI (%)</th>
+                                <th>Đặc Điểm</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Notes -->
+                <div class="notes-card">
+                    <div class="notes-title">📌 Điểm Cốt Lõi Cần Lưu Ý:</div>
+                    <ul id="notes-list">
+                        <li><strong>Phương Án 1 (100% VCBF-BCF):</strong> Lump Sum cho hiệu suất vượt trội trong thị trường tăng trưởng. DCA là lá chắn an toàn khi gặp rủi ro đỉnh sóng.</li>
+                        <li><strong>Phương Án 2 (100% Tiết kiệm):</strong> Gửi 1 Cục luôn thắng tuyệt đối do lãi suất cố định dương 7%/năm không rủi ro.</li>
+                        <li><strong>Phương Án 3 (Hybrid Khuyên Dùng):</strong> Tối ưu nhất với tỷ lệ 60% Lump Sum VCBF + 40% Tiết kiệm linh hoạt DCA (Rút gốc từng phần). Vừa mang lại lợi nhuận cao (+206M đến +270M) vừa an toàn thanh khoản 100%.</li>
+                    </ul>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        let growthChart = null;
+        let activeTab = 'vcbf'; // 'vcbf', 'bank', 'hybrid'
+
+        function formatVND(val) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(val);
+        }
+
+        function formatMillions(val) {
+            return (val / 1000000).toFixed(2) + 'M ₫';
+        }
+
+        function setCapital(val) {
+            document.getElementById('slider-capital').value = val;
+            document.getElementById('input-capital').value = new Intl.NumberFormat('en-US').format(val);
+            onInputChange();
+        }
+
+        function onSliderCapital(val) {
+            document.getElementById('input-capital').value = new Intl.NumberFormat('en-US').format(val);
+            onInputChange();
+        }
+
+        function getCapital() {
+            let raw = document.getElementById('input-capital').value.replace(/,/g, '');
+            return parseFloat(raw) || 500000000;
+        }
+
+        function switchTab(tabName) {
+            activeTab = tabName;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // Show/hide hybrid custom split slider ONLY in Tab 3 (hybrid)
+            let hybridBox = document.getElementById('hybrid-control-box');
+            if (tabName === 'hybrid') {
+                hybridBox.style.display = 'block';
+            } else {
+                hybridBox.style.display = 'none';
+            }
+
+            onInputChange();
+        }
+
+        function onInputChange() {
+            let capital = getCapital();
+            let years = parseInt(document.getElementById('slider-years').value);
+            let bankRate = parseFloat(document.getElementById('slider-bank-rate').value);
+            let idleRate = parseFloat(document.getElementById('slider-idle-rate').value);
+            let fundRate = parseFloat(document.getElementById('slider-fund-rate').value);
+            let hybridLumpPct = parseInt(document.getElementById('slider-hybrid-split').value);
+            let hybridDcaPct = 100 - hybridLumpPct;
+
+            document.getElementById('lbl-capital').innerText = formatVND(capital);
+            document.getElementById('lbl-years').innerText = `${years} Năm (${years * 12} Tháng)`;
+            document.getElementById('lbl-bank-rate').innerText = bankRate.toFixed(1) + '%';
+            document.getElementById('lbl-idle-rate').innerText = idleRate.toFixed(1) + '%';
+            document.getElementById('lbl-fund-rate').innerText = fundRate.toFixed(1) + '%';
+            document.getElementById('lbl-hybrid-split').innerText = `${hybridLumpPct}% Lump / ${hybridDcaPct}% DCA`;
+
+            let lumpAmt = (capital * hybridLumpPct) / 100;
+            let dcaAmt = (capital * hybridDcaPct) / 100;
+            document.getElementById('hybrid-breakdown-txt').innerText = `Lump Sum: ${formatMillions(lumpAmt)} | DCA: ${formatMillions(dcaAmt)}`;
+
+            calculateAndRender(capital, years, bankRate, idleRate, fundRate, hybridLumpPct);
+        }
+
+        function calculateAndRender(capital, years, bankRate, idleRate, fundRate, hybridLumpPct) {
+            let months = years * 12;
+            let monthlyDCA = capital / months;
+
+            let rBank = bankRate / 100 / 12;
+            let rIdle = idleRate / 100 / 12;
+            let rFund = fundRate / 100 / 12;
+
+            let labels = [];
+            let dataBankLump = [];
+            let dataBankDCA = [];
+            let dataFundLump = [];
+            let dataFundDCA = [];
+            let dataHybrid = [];
+
+            // 1. Bank Lump Sum
+            for (let m = 0; m <= months; m++) {
+                labels.push('T' + m);
+                dataBankLump.push(capital * Math.pow(1 + rBank, m));
+            }
+
+            // 2. Bank DCA
+            for (let m = 0; m <= months; m++) {
+                let dcaAccount = 0;
+                for (let k = 1; k <= m; k++) {
+                    dcaAccount += monthlyDCA * Math.pow(1 + rBank, m - k + 1);
+                }
+                let idleAccount = (capital - (m * monthlyDCA)) * Math.pow(1 + rIdle, m);
+                if (idleAccount < 0) idleAccount = 0;
+                dataBankDCA.push(dcaAccount + idleAccount);
+            }
+
+            // 3. Fund Lump Sum
+            for (let m = 0; m <= months; m++) {
+                dataFundLump.push(capital * Math.pow(1 + rFund, m));
+            }
+
+            // 4. Fund DCA
+            for (let m = 0; m <= months; m++) {
+                let dcaFundAcc = 0;
+                for (let k = 1; k <= m; k++) {
+                    dcaFundAcc += monthlyDCA * Math.pow(1 + rFund, m - k + 1);
+                }
+                let idleAccount = (capital - (m * monthlyDCA)) * Math.pow(1 + rIdle, m);
+                if (idleAccount < 0) idleAccount = 0;
+                dataFundDCA.push(dcaFundAcc + idleAccount);
+            }
+
+            // 5. Custom Hybrid (hybridLumpPct % Lump Sum + hybridDcaPct % DCA)
+            let lumpFrac = hybridLumpPct / 100;
+            let dcaFrac = 1 - lumpFrac;
+
+            for (let m = 0; m <= months; m++) {
+                let lumpPart = (capital * lumpFrac) * Math.pow(1 + rFund, m);
+                let dcaPartCapital = capital * dcaFrac;
+                let monthlySubDCA = dcaPartCapital / months;
+                let dcaSubAcc = 0;
+                for (let k = 1; k <= m; k++) {
+                    dcaSubAcc += monthlySubDCA * Math.pow(1 + rFund, m - k + 1);
+                }
+                let idleSubAcc = (dcaPartCapital - (m * monthlySubDCA)) * Math.pow(1 + rIdle, m);
+                if (idleSubAcc < 0) idleSubAcc = 0;
+                dataHybrid.push(lumpPart + dcaSubAcc + idleSubAcc);
+            }
+
+            let valBankLump = dataBankLump[months];
+            let valBankDCA = dataBankDCA[months];
+            let valFundLump = dataFundLump[months];
+            let valFundDCA = dataFundDCA[months];
+            let valHybrid = dataHybrid[months];
+
+            // Render Tab Cards & Chart based on Active Tab
+            renderCardsForTab(capital, valBankLump, valBankDCA, valFundLump, valFundDCA, valHybrid, hybridLumpPct);
+            renderChartForTab(labels, dataBankLump, dataBankDCA, dataFundLump, dataFundDCA, dataHybrid);
+            renderTableForTab(capital, valBankLump, valBankDCA, valFundLump, valFundDCA, valHybrid, hybridLumpPct);
+        }
+
+        function renderCardsForTab(capital, bLump, bDCA, fLump, fDCA, hybrid, hybridLumpPct) {
+            let container = document.getElementById('cards-container');
+            let html = '';
+
+            if (activeTab === 'vcbf') {
+                let winner = fLump >= fDCA ? 'lump' : 'dca';
+                let diff = fDCA - fLump;
+                html = `
+                    <div class="stat-card ${winner === 'lump' ? 'winner-card' : ''}">
+                        <div class="stat-header">🏛️ VCBF-BCF (1 Cục - Lump Sum)</div>
+                        <div class="stat-val">${formatMillions(fLump)}</div>
+                        <div class="stat-profit ${fLump >= capital ? 'profit-plus' : 'profit-minus'}">
+                            ${fLump >= capital ? '+' : ''}${formatMillions(fLump - capital)} (${(((fLump/capital)-1)*100).toFixed(1)}%)
+                        </div>
+                        <div class="stat-sub">Mua trọn vẹn 100% vốn ngay từ ngày đầu.</div>
+                    </div>
+                    <div class="stat-card ${winner === 'dca' ? 'winner-card' : ''}">
+                        <div class="stat-header">🏛️ VCBF-BCF (Chia nhỏ - DCA)</div>
+                        <div class="stat-val">${formatMillions(fDCA)}</div>
+                        <div class="stat-profit ${fDCA >= capital ? 'profit-plus' : 'profit-minus'}">
+                            ${fDCA >= capital ? '+' : ''}${formatMillions(fDCA - capital)} (${(((fDCA/capital)-1)*100).toFixed(1)}%)
+                        </div>
+                        <div class="stat-sub">Chênh lệch so với Lump Sum: ${diff >= 0 ? '+' : ''}${formatMillions(diff)}</div>
+                    </div>
+                `;
+            } else if (activeTab === 'bank') {
+                let diff = bDCA - bLump;
+                html = `
+                    <div class="stat-card winner-card">
+                        <div class="stat-header">🏦 Ngân Hàng (1 Cục - Lump Sum)</div>
+                        <div class="stat-val">${formatMillions(bLump)}</div>
+                        <div class="stat-profit profit-plus">
+                            +${formatMillions(bLump - capital)} (+${(((bLump/capital)-1)*100).toFixed(1)}%)
+                        </div>
+                        <div class="stat-sub">Lãi kép 7.0%/năm cố định trọn vẹn 5 năm.</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">🏦 Ngân Hàng (Chia nhỏ - DCA)</div>
+                        <div class="stat-val">${formatMillions(bDCA)}</div>
+                        <div class="stat-profit profit-plus">
+                            +${formatMillions(bDCA - capital)} (+${(((bDCA/capital)-1)*100).toFixed(1)}%)
+                        </div>
+                        <div class="stat-sub">Thấp hơn Lump Sum: ${formatMillions(diff)}</div>
+                    </div>
+                `;
+            } else if (activeTab === 'hybrid') {
+                let hybridDcaPct = 100 - hybridLumpPct;
+                html = `
+                    <div class="stat-card">
+                        <div class="stat-header">100% Lump Sum VCBF</div>
+                        <div class="stat-val">${formatMillions(fLump)}</div>
+                        <div class="stat-profit profit-plus">+${formatMillions(fLump - capital)}</div>
+                        <div class="stat-sub">Toàn bộ 100% vốn gửi 1 cục.</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">100% DCA VCBF</div>
+                        <div class="stat-val">${formatMillions(fDCA)}</div>
+                        <div class="stat-profit profit-plus">+${formatMillions(fDCA - capital)}</div>
+                        <div class="stat-sub">Toàn bộ 100% vốn chia nhỏ.</div>
+                    </div>
+                    <div class="stat-card winner-card" style="border-color: var(--accent-purple);">
+                        <div class="stat-header" style="color: var(--accent-purple);">⚡ Hybrid Tùy Chỉnh (${hybridLumpPct}/${hybridDcaPct})</div>
+                        <div class="stat-val" style="color: var(--accent-purple);">${formatMillions(hybrid)}</div>
+                        <div class="stat-profit profit-plus">+${formatMillions(hybrid - capital)} (+${(((hybrid/capital)-1)*100).toFixed(1)}%)</div>
+                        <div class="stat-sub">${hybridLumpPct}% Lump Sum + ${hybridDcaPct}% DCA.</div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderChartForTab(labels, bLump, bDCA, fLump, fDCA, hybrid) {
+            let ctx = document.getElementById('growthChart').getContext('2d');
+            if (growthChart) growthChart.destroy();
+
+            let datasets = [];
+            let chartTitle = '';
+
+            if (activeTab === 'vcbf') {
+                chartTitle = '📊 Tăng Trưởng Tài Sản 100% Quỹ VCBF-BCF (Lump Sum vs DCA)';
+                datasets = [
+                    { label: 'VCBF Lump Sum (1 Cục)', data: fLump, borderColor: '#10b981', borderWidth: 2.5, pointRadius: 0, tension: 0.1 },
+                    { label: 'VCBF DCA (Hàng Tháng)', data: fDCA, borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, tension: 0.1 }
+                ];
+            } else if (activeTab === 'bank') {
+                chartTitle = '📊 Tăng Trưởng Tài Sản 100% Tiết Kiệm Ngân Hàng (Lump Sum vs DCA)';
+                datasets = [
+                    { label: 'Ngân Hàng Lump Sum (7%)', data: bLump, borderColor: '#3b82f6', borderWidth: 2.5, pointRadius: 0, tension: 0.1 },
+                    { label: 'Ngân Hàng DCA (7%)', data: bDCA, borderColor: '#93c5fd', borderDash: [4, 4], borderWidth: 1.5, pointRadius: 0, tension: 0.1 }
+                ];
+            } else if (activeTab === 'hybrid') {
+                chartTitle = '📊 So Sánh Tăng Trưởng Chiến Lược Hybrid Tùy Chỉnh vs 100% Lump vs 100% DCA';
+                datasets = [
+                    { label: 'Chiến Lược Hybrid Tùy Chỉnh', data: hybrid, borderColor: '#8b5cf6', borderWidth: 3, pointRadius: 0, tension: 0.1 },
+                    { label: '100% VCBF Lump Sum', data: fLump, borderColor: '#10b981', borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, tension: 0.1 },
+                    { label: '100% VCBF DCA', data: fDCA, borderColor: '#f59e0b', borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, tension: 0.1 }
+                ];
+            }
+
+            document.getElementById('chart-title-txt').innerText = chartTitle;
+
+            growthChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#9ca3af', font: { family: 'Inter', size: 12 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) { return ctx.dataset.label + ': ' + formatVND(ctx.raw); }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: '#1f2430' }, ticks: { color: '#6b7280', maxTicksLimit: 12 } },
+                        y: {
+                            grid: { color: '#1f2430' },
+                            ticks: { color: '#6b7280', callback: function(val) { return (val / 1000000).toFixed(0) + 'M'; } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTableForTab(capital, bLump, bDCA, fLump, fDCA, hybrid, hybridLumpPct) {
+            let hybridDcaPct = 100 - hybridLumpPct;
+            let items = [];
+
+            if (activeTab === 'vcbf') {
+                items = [
+                    { name: '🏛️ Quỹ VCBF-BCF (1 Cục - Lump Sum)', endVal: fLump, desc: 'Tối ưu lợi nhuận trong thị trường tăng trưởng.' },
+                    { name: '🏛️ Quỹ VCBF-BCF (Chia nhỏ - DCA)', endVal: fDCA, desc: 'Trung bình giá hàng tháng, an toàn rủi ro đỉnh sóng.' }
+                ];
+            } else if (activeTab === 'bank') {
+                items = [
+                    { name: '🏦 Tiết kiệm Ngân hàng (1 Cục - Lump Sum)', endVal: bLump, desc: 'Lãi kép 7%/năm cố định 5 năm, an toàn tuyệt đối.' },
+                    { name: '🏦 Tiết kiệm Ngân hàng (Chia nhỏ - DCA)', endVal: bDCA, desc: 'Tài sản tăng chậm hơn do phần tiền chờ chưa gửi.' }
+                ];
+            } else if (activeTab === 'hybrid') {
+                items = [
+                    { name: '🏛️ 100% VCBF-BCF Lump Sum', endVal: fLump, desc: 'Tận dụng 100% vốn ngay ngày đầu.' },
+                    { name: '🏛️ 100% VCBF-BCF DCA', endVal: fDCA, desc: 'Chia đều 100% vốn mua 60 tháng.' },
+                    { name: `⚡ Hybrid Tùy Chỉnh (${hybridLumpPct}% Lump / ${hybridDcaPct}% DCA)`, endVal: hybrid, desc: 'Cân bằng linh hoạt lợi nhuận & dự phòng tiền mặt.' }
+                ];
+            }
+
+            let maxVal = Math.max(...items.map(i => i.endVal));
+            let tbody = document.getElementById('table-body');
+
+            tbody.innerHTML = items.map(item => {
+                let profit = item.endVal - capital;
+                let roi = (profit / capital) * 100;
+                let isWinner = item.endVal === maxVal;
+                return `
+                    <tr class="${isWinner ? 'table-winner-row' : ''}">
+                        <td><strong>${item.name}</strong> ${isWinner ? '<span class="badge-win">TỐI ƯU</span>' : ''}</td>
+                        <td>${formatMillions(capital)}</td>
+                        <td><strong>${formatMillions(item.endVal)}</strong></td>
+                        <td style="color: ${profit >= 0 ? '#10b981' : '#ef4444'};"><strong>${profit >= 0 ? '+' : ''}${formatMillions(profit)}</strong></td>
+                        <td><strong>${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%</strong></td>
+                        <td style="font-size: 11.5px; color: ${isWinner ? '#10b981' : '#6b7280'};">${item.desc}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function loadPreset(preset) {
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            
+            if (preset === 'vcbf5y') {
+                document.getElementById('btn-preset-vcbf').classList.add('active');
+                document.getElementById('slider-bank-rate').value = 7.0;
+                document.getElementById('slider-idle-rate').value = 3.0;
+                document.getElementById('slider-fund-rate').value = 7.7;
+                document.getElementById('slider-years').value = 5;
+            } else if (preset === 'peak2022') {
+                document.getElementById('btn-preset-peak').classList.add('active');
+                document.getElementById('slider-bank-rate').value = 7.0;
+                document.getElementById('slider-idle-rate').value = 3.0;
+                document.getElementById('slider-fund-rate').value = 2.2;
+                document.getElementById('slider-years').value = 4;
+            }
+
+            onInputChange();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            onInputChange();
+        });
+    </script>
+</body>
+</html>
