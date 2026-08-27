@@ -15,4 +15,8 @@ class SystemSettings(BaseModel):
     num_default_personas: int = 10
     scalable_agent_cap: int = 10000
 
+    # Telegram Notification Settings
+    telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "8826335100:AAGMovZALzZMN1mTiY4AAYD0AyPUBNiygPI")
+    telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "@canslim01")
+
 settings = SystemSettings()

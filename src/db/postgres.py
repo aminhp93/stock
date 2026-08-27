@@ -71,22 +71,36 @@ class PostgresDBManager:
                 category VARCHAR(50) DEFAULT 'Macro',
                 importance NUMERIC(4, 2) DEFAULT 0.5
             );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS telegram_messages (
+                id SERIAL PRIMARY KEY,
+                channel_name VARCHAR(100) NOT NULL,
+                message_id BIGINT,
+                sender_name VARCHAR(100),
+                text TEXT NOT NULL,
+                published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT unique_channel_msg UNIQUE (channel_name, message_id)
+            );
             """
         ]
         
-        conn = self.get_connection()
         try:
-            with conn.cursor() as cur:
-                for cmd in commands:
-                    cur.execute(cmd)
-            conn.commit()
-            print("✅ Đã khởi tạo Schema PostgreSQL chuẩn hóa (stocks, stock_prices, financial_metrics, macro_news).")
+            conn = self.get_connection()
+            try:
+                with conn.cursor() as cur:
+                    for cmd in commands:
+                        cur.execute(cmd)
+                conn.commit()
+                print("✅ Đã khởi tạo Schema PostgreSQL chuẩn hóa (stocks, stock_prices, financial_metrics, macro_news).")
+            except Exception as e:
+                conn.rollback()
+                print(f"❌ Lỗi khởi tạo Schema PostgreSQL: {e}")
+                raise e
+            finally:
+                conn.close()
         except Exception as e:
-            conn.rollback()
-            print(f"❌ Lỗi khởi tạo Schema PostgreSQL: {e}")
-            raise e
-        finally:
-            conn.close()
+            print(f"❌ Không thể kết nối PostgreSQL: {e}")
 
     def upsert_stocks(self, stocks_data: List[Dict[str, Any]]):
         """Chèn / Cập nhật danh sách mã cổ phiếu"""
@@ -106,13 +120,16 @@ class PostgresDBManager:
             for s in stocks_data
         ]
         
-        conn = self.get_connection()
         try:
-            with conn.cursor() as cur:
-                execute_values(cur, query, records)
-            conn.commit()
-        finally:
-            conn.close()
+            conn = self.get_connection()
+            try:
+                with conn.cursor() as cur:
+                    execute_values(cur, query, records)
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"⚠️ Lỗi upsert stocks: {e}")
 
     def upsert_prices(self, symbol: str, prices_data: List[Dict[str, Any]]):
         """Chèn / Cập nhật dữ liệu giá lịch sử của 1 mã cổ phiếu"""
@@ -148,71 +165,146 @@ class PostgresDBManager:
             for p in prices_data
         ]
         
-        conn = self.get_connection()
         try:
-            with conn.cursor() as cur:
-                execute_values(cur, query, records)
-            conn.commit()
-        finally:
-            conn.close()
+            conn = self.get_connection()
+            try:
+                with conn.cursor() as cur:
+                    execute_values(cur, query, records)
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"⚠️ Lỗi upsert prices: {e}")
 
     def get_financial_metrics(self, symbol: str, year: int = 2025, quarter: int = 4) -> Optional[Dict[str, Any]]:
         """Truy vấn động chỉ số tài chính Point-In-Time theo symbol, year, quarter từ CSDL"""
-        conn = self.get_connection()
         try:
-            query = """
-                SELECT pe_ratio, pb_ratio, roe, profit_margin, revenue_growth_yoy, eps, intrinsic_value_dcf, debt_to_equity
-                FROM financial_metrics
-                WHERE symbol = %s AND (year < %s OR (year = %s AND quarter <= %s))
-                ORDER BY year DESC, quarter DESC
-                LIMIT 1;
-            """
-            with conn.cursor() as cur:
-                cur.execute(query, (symbol, year, year, quarter))
-                row = cur.fetchone()
-                if row:
-                    return {
-                        "pe_ratio": float(row[0]),
-                        "pb_ratio": float(row[1]),
-                        "roe": float(row[2]),
-                        "profit_margin": float(row[3]),
-                        "revenue_growth_yoy": float(row[4]),
-                        "eps": float(row[5]),
-                        "intrinsic_value_dcf": float(row[6]),
-                        "debt_to_equity": float(row[7])
-                    }
+            conn = self.get_connection()
+            try:
+                query = """
+                    SELECT pe_ratio, pb_ratio, roe, profit_margin, revenue_growth_yoy, eps, intrinsic_value_dcf, debt_to_equity
+                    FROM financial_metrics
+                    WHERE symbol = %s AND (year < %s OR (year = %s AND quarter <= %s))
+                    ORDER BY year DESC, quarter DESC
+                    LIMIT 1;
+                """
+                with conn.cursor() as cur:
+                    cur.execute(query, (symbol, year, year, quarter))
+                    row = cur.fetchone()
+                    if row:
+                        return {
+                            "pe_ratio": float(row[0]),
+                            "pb_ratio": float(row[1]),
+                            "roe": float(row[2]),
+                            "profit_margin": float(row[3]),
+                            "revenue_growth_yoy": float(row[4]),
+                            "eps": float(row[5]),
+                            "intrinsic_value_dcf": float(row[6]),
+                            "debt_to_equity": float(row[7])
+                        }
+            finally:
+                conn.close()
         except Exception as e:
             print(f"⚠️ Lỗi đọc financial_metrics cho {symbol}: {e}")
-        finally:
-            conn.close()
         return None
 
     def get_macro_news(self, symbol: str, end_date: str) -> List[Dict[str, Any]]:
         """Truy vấn tin tức vĩ mô Point-In-Time đến trước mốc end_date"""
-        conn = self.get_connection()
         try:
-            query = """
-                SELECT headline, sentiment_score, category, importance
-                FROM macro_news
-                WHERE (symbol = %s OR symbol IS NULL OR symbol = 'ALL') AND publish_date <= %s
-                ORDER BY publish_date DESC
-                LIMIT 5;
-            """
-            with conn.cursor() as cur:
-                cur.execute(query, (symbol, end_date))
-                rows = cur.fetchall()
-                if rows:
-                    return [
-                        {
-                            "headline": r[0],
-                            "sentiment_score": float(r[1]),
-                            "category": r[2],
-                            "importance": float(r[3])
-                        }
-                        for r in rows
-                    ]
+            conn = self.get_connection()
+            try:
+                query = """
+                    SELECT headline, sentiment_score, category, importance
+                    FROM macro_news
+                    WHERE (symbol = %s OR symbol IS NULL OR symbol = 'ALL') AND publish_date <= %s
+                    ORDER BY publish_date DESC
+                    LIMIT 5;
+                """
+                with conn.cursor() as cur:
+                    cur.execute(query, (symbol, end_date))
+                    rows = cur.fetchall()
+                    if rows:
+                        return [
+                            {
+                                "headline": r[0],
+                                "sentiment_score": float(r[1]),
+                                "category": r[2],
+                                "importance": float(r[3])
+                            }
+                            for r in rows
+                        ]
+            finally:
+                conn.close()
         except Exception as e:
             print(f"⚠️ Lỗi đọc macro_news cho {symbol}: {e}")
-        finally:
-            conn.close()
+        return []
+
+    def upsert_telegram_messages(self, messages: List[Dict[str, Any]]):
+        """Lưu / Cập nhật tin nhắn thu thập từ Telegram vào CSDL PostgreSQL"""
+        if not messages:
+            return
+        
+        query = """
+            INSERT INTO telegram_messages (channel_name, message_id, sender_name, text, published_at)
+            VALUES %s
+            ON CONFLICT (channel_name, message_id) DO UPDATE SET
+                text = EXCLUDED.text,
+                published_at = EXCLUDED.published_at;
+        """
+        records = [
+            (
+                m.get("channel", "canslim01"),
+                m.get("message_id", hash(m.get("text", "")) % (10**9)),
+                m.get("sender_name", "Member"),
+                m.get("text", ""),
+                m.get("published_at")
+            )
+            for m in messages if m.get("text")
+        ]
+        
+        try:
+            conn = self.get_connection()
+            try:
+                with conn.cursor() as cur:
+                    execute_values(cur, query, records)
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"⚠️ Lỗi upsert telegram_messages: {e}")
+
+    def get_telegram_messages(self, channel: Optional[str] = None, symbol: Optional[str] = None, limit: int = 20) -> List[Dict[str, Any]]:
+        """Truy vấn các tin nhắn Telegram đã thu thập theo Kênh hoặc Theo Mã Cổ Phiếu"""
+        try:
+            conn = self.get_connection()
+            try:
+                sql = "SELECT channel_name, text, published_at, sender_name FROM telegram_messages WHERE 1=1"
+                params = []
+                if channel:
+                    sql += " AND channel_name = %s"
+                    params.append(channel)
+                if symbol:
+                    sql += " AND text ILIKE %s"
+                    params.append(f"%{symbol}%")
+                sql += " ORDER BY published_at DESC LIMIT %s;"
+                params.append(limit)
+
+                with conn.cursor() as cur:
+                    cur.execute(sql, tuple(params))
+                    rows = cur.fetchall()
+                    if rows:
+                        return [
+                            {
+                                "channel": r[0],
+                                "text": r[1],
+                                "published_at": str(r[2]),
+                                "sender_name": r[3],
+                                "url": f"https://t.me/{r[0]}"
+                            }
+                            for r in rows
+                        ]
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"⚠️ Lỗi đọc telegram_messages từ DB: {e}")
         return []

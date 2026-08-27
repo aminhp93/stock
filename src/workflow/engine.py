@@ -31,7 +31,8 @@ class InvestmentWorkflowEngine:
         symbol: str,
         timestamp: str = "2025-12-31",
         current_price: Optional[float] = None,
-        verbose: bool = True
+        verbose: bool = True,
+        send_telegram: bool = False
     ) -> Dict[str, Any]:
         """
         Thực thi quy trình 5 bước khép kín cho một mã cổ phiếu tại mốc thời gian T
@@ -99,7 +100,7 @@ class InvestmentWorkflowEngine:
         if verbose:
             print(format_verification_verdict(verdict))
         
-        return {
+        result = {
             "market_context": context,
             "market_analysis": analysis,
             "simulation_consensus": consensus,
@@ -107,3 +108,11 @@ class InvestmentWorkflowEngine:
             "risk_assessment": risk,
             "verification_verdict": verdict
         }
+
+        # Send Telegram notification if requested or configured
+        from src.utils.telegram import TelegramNotifier
+        notifier = TelegramNotifier()
+        if send_telegram or (notifier.is_configured() and verdict.approved):
+            notifier.send_pipeline_alert(result)
+
+        return result

@@ -507,15 +507,15 @@
         <div class="symbol-controls">
             <div class="search-box">
                 <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                <input type="text" id="symbol-input" value="FPT" placeholder="Mã Cổ Phiếu...">
+                <input type="text" id="symbol-input" value="TCH" placeholder="Mã Cổ Phiếu...">
             </div>
 
             <div class="preset-pills">
-                <button class="pill-btn active" onclick="selectSymbol('FPT')">FPT</button>
+                <button class="pill-btn active" onclick="selectSymbol('TCH')">TCH</button>
+                <button class="pill-btn" onclick="selectSymbol('FPT')">FPT</button>
                 <button class="pill-btn" onclick="selectSymbol('TCB')">TCB</button>
                 <button class="pill-btn" onclick="selectSymbol('SSI')">SSI</button>
                 <button class="pill-btn" onclick="selectSymbol('HPG')">HPG</button>
-                <button class="pill-btn" onclick="selectSymbol('VNM')">VNM</button>
                 <button class="pill-btn" onclick="selectSymbol('MBB')">MBB</button>
             </div>
 
@@ -683,6 +683,35 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Card 4: Telegram Crowd Sentiment & Hype Meter -->
+            <div class="panel-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#0088cc"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.37-.49 1.02-.75 3.98-1.73 6.64-2.87 7.97-3.43 3.79-1.58 4.58-1.86 5.09-1.87.11 0 .37.03.54.18.14.12.18.28.2.45-.01.07.01.21 0 .28z"/></svg>
+                        <span>Telegram Crowd Hype</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span id="tg-sentiment-tag" style="font-size: 11px; font-weight: 700; color: var(--accent-yellow);">TRUNG TÍNH</span>
+                        <button onclick="openTelegramModal()" style="background: rgba(0, 136, 204, 0.2); border: 1px solid #0088cc; color: #0088cc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer;">🔍 Chi Tiết</button>
+                    </div>
+                </div>
+
+                <div class="signal-grid">
+                    <div class="signal-row">
+                        <span class="signal-label">Hưng Phấn (Euphoria):</span>
+                        <span class="signal-val" id="tg-euphoria" style="color: var(--accent-yellow);">40.0%</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Đánh Giá Rủi Ro:</span>
+                        <span class="signal-val" id="tg-risk" style="color: var(--bull-green);">BÌNH THƯỜNG</span>
+                    </div>
+                    <div class="signal-row">
+                        <span class="signal-label">Số Bài Viết Đã Lọc:</span>
+                        <span class="signal-val" id="tg-messages">-- bài</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -690,7 +719,7 @@
     <script>
         let mainChart, candlestickSeries, volumeSeries, ma20Series, ma50Series;
         let rsiChart, rsiSeries, overboughtLine, oversoldLine;
-        let currentSymbol = 'FPT';
+        let currentSymbol = 'TCH';
         let rawChartData = [];
 
         // Initialize Charts when DOM ready
@@ -939,8 +968,30 @@
                         document.getElementById('tech-mos').innerText = (data.margin_of_safety_pct >= 0 ? '+' : '') + data.margin_of_safety_pct.toFixed(1) + '%';
                     }
                 }
+
+                // 3. Fetch Telegram Sentiment Data
+                loadTelegramSentiment(symbol);
             } catch (err) {
                 console.error("Error loading agent summary:", err);
+            }
+        }
+
+        let latestTelegramData = null;
+
+        async function loadTelegramSentiment(symbol) {
+            try {
+                const baseUrl = getApiBaseUrl();
+                const res = await fetch(`${baseUrl}/api/telegram-sentiment?symbol=${symbol}`);
+                latestTelegramData = await res.json();
+
+                if (latestTelegramData && latestTelegramData.euphoria_index !== undefined) {
+                    document.getElementById('tg-euphoria').innerText = latestTelegramData.euphoria_index.toFixed(1) + '%';
+                    document.getElementById('tg-sentiment-tag').innerText = latestTelegramData.sentiment_label || 'TRUNG TÍNH';
+                    document.getElementById('tg-risk').innerText = latestTelegramData.risk_level || 'BÌNH THƯỜNG';
+                    document.getElementById('tg-messages').innerText = (latestTelegramData.total_messages || 0) + ' bài viết';
+                }
+            } catch (err) {
+                console.error("Error loading Telegram sentiment:", err);
             }
         }
 
@@ -974,6 +1025,120 @@
             const filteredData = rawChartData.slice(Math.max(0, total - sliceCount));
             renderChartData(filteredData);
         }
+
+        function openTelegramModal() {
+            const overlay = document.getElementById('tg-modal-overlay');
+            const body = document.getElementById('tg-modal-body');
+            overlay.style.display = 'flex';
+
+            if (!latestTelegramData) {
+                body.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Đang tải dữ liệu Telegram...</div>';
+                return;
+            }
+
+            const data = latestTelegramData;
+            const posts = data.posts || [];
+            const channels = (data.channels_scraped || ['cafef_official', 'vneconomy']).join(', ');
+
+            let postsHtml = '';
+            if (posts.length === 0) {
+                postsHtml = '<div style="color: var(--text-muted); padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 13px;">Chưa phát hiện thảo luận riêng cho mã cổ phiếu này. Chỉ số Hưng Phấn dựa trên sắc thái thị trường Telegram tổng thể.</div>';
+            } else {
+                postsHtml = posts.map(p => {
+                    const safeText = (p.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    return `
+                    <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
+                            <span style="color: #0088cc; font-weight: 700;">📢 @${p.channel || 'Telegram'}</span>
+                            <a href="${p.url || '#'}" target="_blank" style="color: var(--accent-blue); text-decoration: none; font-size: 11px;">Xem trên Telegram ↗</a>
+                        </div>
+                        <div style="color: var(--text-main); font-size: 13px; line-height: 1.5; white-space: pre-line;">${safeText}</div>
+                    </div>
+                `}).join('');
+            }
+
+            body.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 11px;">Hưng Phấn (Euphoria)</div>
+                        <div style="color: var(--accent-yellow); font-size: 20px; font-weight: 800;">${data.euphoria_index !== undefined ? data.euphoria_index.toFixed(1) : 40.0}%</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 11px;">Sentiment Score</div>
+                        <div style="color: var(--bull-green); font-size: 20px; font-weight: 800;">${data.sentiment_score !== undefined ? (data.sentiment_score > 0 ? '+' : '') + data.sentiment_score.toFixed(2) : '+0.10'}</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 11px;">Đánh Giá Rủi Ro</div>
+                        <div style="color: #fff; font-size: 14px; font-weight: 700; margin-top: 4px;">${data.risk_level || 'BÌNH THƯỜNG'}</div>
+                    </div>
+                </div>
+
+                <!-- 4 Yếu tố Đánh giá dành cho Nhà Đầu Tư Chuyên Nghiệp -->
+                <div style="background: rgba(41, 98, 255, 0.08); border: 1px solid rgba(41, 98, 255, 0.3); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="font-size: 13px; font-weight: 700; color: #2962ff; display: flex; align-items: center; gap: 6px;">
+                        🎯 <span>4 YẾU TỐ ĐÁNH GIÁ DÀNH CHO NHÀ ĐẦU TƯ CHUYÊN NGHIỆP:</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 12px;">
+                        <div style="background: var(--bg-card); padding: 10px; border-radius: 6px;">
+                            <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 2px;">1. Tín Hiệu Chỉ Báo Ngược (Contrarian):</div>
+                            <strong style="color: ${data.euphoria_index >= 80 ? 'var(--bear-red)' : data.euphoria_index <= 30 ? 'var(--bull-green)' : 'var(--accent-yellow)'}; font-size: 12px;">
+                                ${data.contrarian_signal || 'THEO DÕI TÍCH LŨY'}
+                            </strong>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 10px; border-radius: 6px;">
+                            <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 2px;">2. Tốc Độ Bùng Nổ Thảo Luận (Velocity):</div>
+                            <strong style="color: #fff; font-size: 12px;">
+                                ${data.mention_velocity || 'BÌNH THƯỜNG'}
+                            </strong>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 10px; border-radius: 6px;">
+                            <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 2px;">3. Phân Kỳ Tâm Lý vs Giá (Divergence):</div>
+                            <strong style="color: var(--bull-green); font-size: 12px;">
+                                Đồng Thuận Xu Hướng
+                            </strong>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 10px; border-radius: 6px;">
+                            <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 2px;">4. Kiểm Định Bẫy FOMO (Gatekeeper):</div>
+                            <strong style="color: ${data.euphoria_index >= 85 ? 'var(--bear-red)' : 'var(--bull-green)'}; font-size: 12px;">
+                                ${data.gatekeeper_verdict || 'ĐỦ ĐIỀU KIỆN AN TOÀN'}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size: 12px; color: var(--text-muted);">
+                    <strong>Kênh Telegram đã quét:</strong> <code>${channels}</code>
+                </div>
+
+                <h4 style="color: #fff; font-size: 14px; margin-top: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+                    📝 Danh sách Bài Viết Telegram Gần Đây (${posts.length} bài)
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto;">
+                    ${postsHtml}
+                </div>
+            `;
+        }
+
+        function closeTelegramModal() {
+            document.getElementById('tg-modal-overlay').style.display = 'none';
+        }
     </script>
+
+    <!-- Modal Telegram Sentiment Details -->
+    <div id="tg-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 12px; width: 640px; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+            <div style="padding: 16px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: #fff; font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#0088cc"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.37-.49 1.02-.75 3.98-1.73 6.64-2.87 7.97-3.43 3.79-1.58 4.58-1.86 5.09-1.87.11 0 .37.03.54.18.14.12.18.28.2.45-.01.07.01.21 0 .28z"/></svg>
+                    <span>Chi Tiết Phân Tích Sắc Thái Telegram</span>
+                </h3>
+                <button onclick="closeTelegramModal()" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;">✕</button>
+            </div>
+            <div id="tg-modal-body" style="padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+                <!-- Dynamically rendered -->
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -4,7 +4,7 @@ import os
 import json
 import urllib.parse
 import psycopg2
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -28,6 +28,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/api/summary":
             symbol = query.get("symbol", ["FPT"])[0].upper()
             self.handle_api_summary(symbol)
+        elif path == "/api/telegram-sentiment":
+            symbol = query.get("symbol", [None])[0]
+            self.handle_api_telegram_sentiment(symbol)
         else:
             super().do_GET()
 
@@ -134,6 +137,19 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             }
 
         self.send_json_response(summary)
+
+    def handle_api_telegram_sentiment(self, symbol: Optional[str] = None):
+        try:
+            from src.utils.telegram_analyzer import TelegramSentimentAnalyzer
+            analyzer = TelegramSentimentAnalyzer()
+            if symbol:
+                res = analyzer.analyze_stock_sentiment(symbol.upper())
+            else:
+                res = analyzer.analyze_market_sentiment()
+        except Exception as e:
+            res = {"error": str(e)}
+
+        self.send_json_response(res)
 
     def do_OPTIONS(self):
         self.send_response(204)
