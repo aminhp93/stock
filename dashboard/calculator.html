@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>So Sánh Đầu Tư: Lump Sum vs DCA - VCBF-BCF</title>
+    <title>So Sánh Đầu Tư: Lump Sum vs DCA - Dữ Liệu Thực Tế VCBF-BCF & Ngân Hàng</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -41,7 +41,6 @@
             padding-bottom: 60px;
         }
 
-        /* Minimal Header */
         header {
             background: var(--bg-panel);
             padding: 16px 32px;
@@ -87,7 +86,6 @@
             font-weight: 600;
         }
 
-        /* Main Container */
         .container {
             max-width: 1240px;
             margin: 32px auto;
@@ -95,7 +93,7 @@
         }
 
         .page-header {
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .page-title {
@@ -112,64 +110,71 @@
             font-weight: 400;
         }
 
-        /* Presets Bar */
-        .presets-bar {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            background: var(--bg-panel);
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-        }
-
-        .preset-btn {
-            background: transparent;
-            border: 1px solid transparent;
-            color: var(--text-secondary);
-            padding: 7px 14px;
+        .real-data-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 6px 12px;
             border-radius: 6px;
-            font-size: 12.5px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-
-        .preset-btn:hover {
-            color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.03);
-            border-color: var(--border-color);
-        }
-
-        .preset-btn.active {
-            background: #222736;
-            border-color: #33384a;
-            color: var(--text-primary);
+            font-size: 12px;
             font-weight: 600;
+            margin-bottom: 20px;
         }
 
-        /* RED COLOR STYLING FOR KỊCH BẢN ĐU ĐỈNH */
-        .preset-btn.btn-red {
-            border-color: rgba(239, 68, 68, 0.4);
-            color: var(--accent-red);
-            background: var(--accent-red-bg);
+        /* Intro Description Card */
+        .intro-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
         }
 
-        .preset-btn.btn-red:hover {
-            background: rgba(239, 68, 68, 0.2);
-            border-color: var(--accent-red);
-            color: #fff;
-        }
-
-        .preset-btn.btn-red.active {
-            background: var(--accent-red);
-            color: #fff;
-            border-color: var(--accent-red);
+        .intro-title {
+            font-size: 14.5px;
             font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        /* MAIN STRATEGY TAB BAR */
+        .intro-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .intro-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .intro-opt-item {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-size: 12px;
+            line-height: 1.55;
+            color: var(--text-secondary);
+        }
+
+        .intro-opt-tag {
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            display: block;
+            font-size: 12.5px;
+        }
+
+        /* STRATEGY TABS */
         .strategy-tabs {
             display: flex;
             gap: 8px;
@@ -319,7 +324,7 @@
             margin-bottom: 8px;
         }
 
-        /* Results Container */
+        /* Results Section */
         .results-container {
             display: flex;
             flex-direction: column;
@@ -494,23 +499,37 @@
 
     <div class="container">
 
-        <!-- Header -->
-        <div class="page-header">
-            <h1 class="page-title">So Sánh Đầu Tư: Lump Sum vs DCA (500 Triệu / 5 Năm)</h1>
-            <p class="page-subtitle">Tính toán toán học & kiểm chứng dữ liệu thực tế VCBF-BCF tại thị trường Việt Nam.</p>
+        <!-- Intro Description Card -->
+        <div class="intro-card">
+            <div class="intro-title">💡 Mục Đích & Hướng Dẫn Mô Phỏng Trang Này</div>
+            <div class="intro-desc">
+                Trang này được thiết kế để **kiểm chứng toán học & dữ liệu thực tế 100%** cho kế hoạch đầu tư <strong>500 Triệu VNĐ trong 5 Năm (2021 – 2026)</strong> giữa 2 kênh: <strong>Gửi Tiết Kiệm Ngân Hàng</strong> và <strong>Quỹ Mở Cổ Phiếu VCBF-BCF</strong> (Vietcombank Bluechip Fund).
+            </div>
+            <div class="intro-options-grid">
+                <div class="intro-opt-item">
+                    <span class="intro-opt-tag">🏛️ Phương Án 1: 100% Quỹ VCBF-BCF</span>
+                    So sánh hiệu suất giữa việc mua 1 Cục (Lump Sum) ngay từ đầu vs Nạp chia nhỏ hàng tháng (DCA) theo 60 nến NAV API thực tế.
+                </div>
+                <div class="intro-opt-item">
+                    <span class="intro-opt-tag">🏦 Phương Án 2: 100% Tiết Kiệm Ngân Hàng</span>
+                    So sánh giữa gửi 1 Cục 12 tháng xoay vòng vs Gửi chia nhỏ theo biểu lãi suất tiền gửi lịch sử từng năm (bao gồm đợt đỉnh 9.0%/năm 2023).
+                </div>
+                <div class="intro-opt-item" style="border-color: rgba(139, 92, 246, 0.3); background: rgba(139, 92, 246, 0.06);">
+                    <span class="intro-opt-tag" style="color: var(--accent-purple);">⚡ Phương Án 3: Chiến Lược Hybrid (Khuyên Dùng)</span>
+                    Đưa 60% vốn vào VCBF 1 cục ngay từ đầu để ăn lãi kép cổ phiếu, 40% gửi tiết kiệm linh hoạt trích DCA 3.33M/tháng (vừa sinh lãi vừa bảo vệ thanh khoản).
+                </div>
+            </div>
         </div>
 
-        <!-- Presets Bar (With RED COLOR for Peak 2022) -->
-        <div class="presets-bar">
-            <button class="preset-btn active" id="btn-preset-vcbf" onclick="loadPreset('vcbf5y')">🏛️ Quỹ VCBF-BCF (Thực tế 5 năm: 7.7%/năm)</button>
-            <button class="preset-btn btn-red" id="btn-preset-peak" onclick="loadPreset('peak2022')">🚨 Kịch bản "Đu Đỉnh" 2022 (VCBF-BCF: 2.2%/năm)</button>
+        <div class="real-data-tag">
+            <span>🟢 DỮ LIỆU THỰC TẾ 100%: Nến NAV VCBF-BCF ngày đầu mỗi tháng (27.514đ ➔ 39.809đ) & Lãi suất Ngân hàng theo từng năm (2021: 6%, 2022: 6.5%, 2023: 9%, 2024-2026: 5.2-5.5%)</span>
         </div>
 
         <!-- STRATEGY TABS -->
         <div class="strategy-tabs">
-            <button class="tab-btn active" id="tab-vcbf" onclick="switchTab('vcbf')">🏛️ Phương Án 1: 100% Quỹ VCBF-BCF</button>
+            <button class="tab-btn" id="tab-vcbf" onclick="switchTab('vcbf')">🏛️ Phương Án 1: 100% Quỹ VCBF-BCF</button>
             <button class="tab-btn" id="tab-bank" onclick="switchTab('bank')">🏦 Phương Án 2: 100% Tiết Kiệm Ngân Hàng</button>
-            <button class="tab-btn" id="tab-hybrid" onclick="switchTab('hybrid')">⚡ Phương Án 3: Chiến Lược Hybrid (Tùy Chỉnh %)</button>
+            <button class="tab-btn active" id="tab-hybrid" onclick="switchTab('hybrid')">⚡ Phương Án 3: Chiến Lược Hybrid (Tùy Chỉnh %)</button>
         </div>
 
         <!-- Dashboard Grid -->
@@ -535,47 +554,22 @@
                     </div>
                 </div>
 
-                <!-- Duration -->
+                <!-- Duration Info -->
                 <div class="input-group">
                     <div class="input-label">
-                        <span>Thời gian (Năm)</span>
-                        <span class="input-badge" id="lbl-years">5 Năm (60 Tháng)</span>
+                        <span>Thời gian mô phỏng thực tế</span>
+                        <span class="input-badge">5 Năm (60 Tháng)</span>
                     </div>
-                    <input type="range" id="slider-years" class="range-slider" min="1" max="10" step="1" value="5" oninput="onInputChange()">
+                    <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                        Giai đoạn: 01/09/2021 ➔ 03/08/2026
+                    </div>
                 </div>
 
-                <!-- Bank Savings Rate -->
-                <div class="input-group">
-                    <div class="input-label">
-                        <span>Lãi Ngân hàng (%/năm)</span>
-                        <span class="input-badge" id="lbl-bank-rate">7.0%</span>
-                    </div>
-                    <input type="range" id="slider-bank-rate" class="range-slider" min="3.0" max="12.0" step="0.1" value="7.0" oninput="onInputChange()">
-                </div>
-
-                <!-- Fund Return Rate -->
-                <div class="input-group">
-                    <div class="input-label">
-                        <span>Sinh lời VCBF-BCF (%/năm)</span>
-                        <span class="input-badge" id="lbl-fund-rate">7.7%</span>
-                    </div>
-                    <input type="range" id="slider-fund-rate" class="range-slider" min="-10.0" max="40.0" step="0.1" value="7.7" oninput="onInputChange()">
-                </div>
-
-                <!-- Idle Rate -->
-                <div class="input-group">
-                    <div class="input-label">
-                        <span>Lãi tiền nhàn rỗi DCA (%/năm)</span>
-                        <span class="input-badge" id="lbl-idle-rate">3.0%</span>
-                    </div>
-                    <input type="range" id="slider-idle-rate" class="range-slider" min="0.0" max="6.0" step="0.5" value="3.0" oninput="onInputChange()">
-                </div>
-
-                <!-- Hybrid Custom Allocation Slider (ONLY Visible in Tab 3) -->
-                <div class="hybrid-box" id="hybrid-control-box" style="display: none;">
+                <!-- Hybrid Custom Allocation Slider (Visible in Phương Án 3) -->
+                <div class="hybrid-box" id="hybrid-control-box" style="display: block;">
                     <div class="hybrid-title">⚡ Tùy Chỉnh Phân Bổ Hybrid:</div>
                     <div class="input-label">
-                        <span>Lump Sum (1 Cục)</span>
+                        <span>Lump Sum VCBF (1 Cục)</span>
                         <span class="input-badge" style="color: var(--accent-purple);" id="lbl-hybrid-split">60% Lump / 40% DCA</span>
                     </div>
                     <input type="range" id="slider-hybrid-split" class="range-slider" min="0" max="100" step="5" value="60" oninput="onInputChange()" style="accent-color: var(--accent-purple);">
@@ -591,29 +585,29 @@
 
                 <!-- Dynamic Stat Cards Row -->
                 <div class="cards-row" id="cards-container">
-                    <!-- Injected dynamically based on active Tab -->
+                    <!-- Injected dynamically -->
                 </div>
 
                 <!-- Growth Chart -->
                 <div class="chart-card">
-                    <div class="chart-header" id="chart-title-txt">📊 Đường Tăng Trưởng Tài Sản Quỹ VCBF-BCF (Lump Sum vs DCA)</div>
+                    <div class="chart-header" id="chart-title-txt">📊 Biểu Đồ Tăng Trưởng Tài Sản Thực Tế 60 Tháng (Dữ Liệu API)</div>
                     <div class="chart-wrapper">
                         <canvas id="growthChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Table -->
+                <!-- Summary Table -->
                 <div class="table-card">
-                    <div class="chart-header" style="margin-bottom: 12px;">📋 Bảng So Sánh Chi Tiết Tổng Hợp</div>
+                    <div class="chart-header" style="margin-bottom: 12px;">📋 Bảng Tổng Kết Dữ Liệu Thực Tế (2021 - 2026)</div>
                     <table class="custom-table">
                         <thead>
                             <tr>
                                 <th>Phương Án</th>
                                 <th>Vốn Đầu Tư</th>
-                                <th>Cuối Kỳ</th>
-                                <th>Lợi Nhuận</th>
+                                <th>Cuối Kỳ (Thực Tế)</th>
+                                <th>Lợi Nhuận Ròng</th>
                                 <th>ROI (%)</th>
-                                <th>Đặc Điểm</th>
+                                <th>Đặc Điểm Dữ Liệu Thực Tế</th>
                             </tr>
                         </thead>
                         <tbody id="table-body">
@@ -622,13 +616,31 @@
                     </table>
                 </div>
 
+                <!-- Detailed Month-by-Month Breakdown Table -->
+                <div class="table-card" style="margin-top: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <div class="chart-header" id="monthly-table-title" style="margin-bottom: 0;">📅 Bảng Chi Tiết Con Số Từng Tháng (60 Tháng Dữ Liệu Thực Tế API)</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted);">Cuộn chuột xuống để xem trọn vẹn 60 tháng (Tháng 9/2021 ➔ Tháng 8/2026)</div>
+                    </div>
+                    <div style="max-height: 440px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <table class="custom-table">
+                            <thead id="monthly-table-head" style="position: sticky; top: 0; background: var(--bg-panel); z-index: 10; border-bottom: 1px solid var(--border-hover);">
+                                <!-- Headers injected dynamically -->
+                            </thead>
+                            <tbody id="monthly-table-body">
+                                <!-- 60 Rows injected dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Notes -->
                 <div class="notes-card">
-                    <div class="notes-title">📌 Điểm Cốt Lõi Cần Lưu Ý:</div>
+                    <div class="notes-title">📌 Thống Kê Chi Tiết Dữ Liệu Thực Tế 100%:</div>
                     <ul id="notes-list">
-                        <li><strong>Phương Án 1 (100% VCBF-BCF):</strong> Lump Sum cho hiệu suất vượt trội trong thị trường tăng trưởng. DCA là lá chắn an toàn khi gặp rủi ro đỉnh sóng.</li>
-                        <li><strong>Phương Án 2 (100% Tiết kiệm):</strong> Gửi 1 Cục luôn thắng tuyệt đối do lãi suất cố định dương 7%/năm không rủi ro.</li>
-                        <li><strong>Phương Án 3 (Hybrid Khuyên Dùng):</strong> Tối ưu nhất với tỷ lệ 60% Lump Sum VCBF + 40% Tiết kiệm linh hoạt DCA (Rút gốc từng phần). Vừa mang lại lợi nhuận cao (+206M đến +270M) vừa an toàn thanh khoản 100%.</li>
+                        <li><strong>Biểu giá NAV VCBF-BCF:</strong> Trích xuất từ 60 phiên nến giao dịch đầu tháng (Từ 27.514đ ➔ 39.809đ, đạt đỉnh 47.473đ vào tháng 3/2026).</li>
+                        <li><strong>Biểu Lãi Ngân Hàng Theo Năm:</strong> Năm 2021 (6.0%), 2022 (6.5%), 2023 (9.0% - Đỉnh lãi suất), 2024 (5.2%), 2025/2026 (5.5%).</li>
+                        <li><strong>Lãi Tiết Kiệm Linh Hoạt (Hình thức B):</strong> Năm 2021 (3.5%), 2022 (3.8%), 2023 (5.5%), 2024 (3.0%), 2025/2026 (3.2%). Lãi tính trên số dư tiền mặt chưa rút.</li>
                     </ul>
                 </div>
 
@@ -639,8 +651,75 @@
     </div>
 
     <script>
+        // OFFICIAL 60-MONTH REAL HISTORICAL DATASET (SEPT 2021 - AUG 2026)
+        // NAV: Real VCBF-BCF NAV per unit on 1st trading day of each month
+        // b_rate: Real 12-month deposit rate at start of that year
+        // f_rate: Real short-term flexible savings rate (Hình thức B) at start of that year
+        const REAL_SERIES_60M = [
+            {"m": 1, "date": "2021-09-01", "nav": 27514.01, "b_rate": 0.06, "f_rate": 0.035},
+            {"m": 2, "date": "2021-10-06", "nav": 28628.98, "b_rate": 0.06, "f_rate": 0.035},
+            {"m": 3, "date": "2021-11-03", "nav": 30040.71, "b_rate": 0.06, "f_rate": 0.035},
+            {"m": 4, "date": "2021-12-01", "nav": 29783.15, "b_rate": 0.06, "f_rate": 0.035},
+            {"m": 5, "date": "2022-01-05", "nav": 29771.08, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 6, "date": "2022-02-07", "nav": 29775.55, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 7, "date": "2022-03-02", "nav": 30455.51, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 8, "date": "2022-04-06", "nav": 31723.28, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 9, "date": "2022-05-04", "nav": 29489.17, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 10, "date": "2022-06-01", "nav": 28906.62, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 11, "date": "2022-07-05", "nav": 27331.46, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 12, "date": "2022-08-02", "nav": 27920.75, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 13, "date": "2022-09-06", "nav": 28878.05, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 14, "date": "2022-10-04", "nav": 24442.18, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 15, "date": "2022-11-01", "nav": 23497.20, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 16, "date": "2022-12-01", "nav": 24649.99, "b_rate": 0.065, "f_rate": 0.038},
+            {"m": 17, "date": "2023-01-03", "nav": 24126.82, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 18, "date": "2023-02-02", "nav": 25802.49, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 19, "date": "2023-03-02", "nav": 25054.13, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 20, "date": "2023-04-04", "nav": 25639.29, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 21, "date": "2023-05-04", "nav": 24938.29, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 22, "date": "2023-06-01", "nav": 25633.15, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 23, "date": "2023-07-04", "nav": 27101.39, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 24, "date": "2023-08-01", "nav": 29406.27, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 25, "date": "2023-09-05", "nav": 30099.98, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 26, "date": "2023-10-03", "nav": 28575.28, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 27, "date": "2023-11-02", "nav": 25345.86, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 28, "date": "2023-12-05", "nav": 27415.25, "b_rate": 0.090, "f_rate": 0.055},
+            {"m": 29, "date": "2024-01-02", "nav": 28149.36, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 30, "date": "2024-02-01", "nav": 29547.49, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 31, "date": "2024-03-05", "nav": 32183.48, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 32, "date": "2024-04-02", "nav": 32987.54, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 33, "date": "2024-05-02", "nav": 31321.15, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 34, "date": "2024-06-04", "nav": 33534.73, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 35, "date": "2024-07-02", "nav": 33473.78, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 36, "date": "2024-08-01", "nav": 33368.61, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 37, "date": "2024-09-05", "nav": 34243.81, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 38, "date": "2024-10-01", "nav": 35051.24, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 39, "date": "2024-11-05", "nav": 34441.66, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 40, "date": "2024-12-03", "nav": 34815.79, "b_rate": 0.052, "f_rate": 0.030},
+            {"m": 41, "date": "2025-01-02", "nav": 35759.89, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 42, "date": "2025-02-04", "nav": 35228.76, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 43, "date": "2025-03-04", "nav": 36224.00, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 44, "date": "2025-04-01", "nav": 35118.74, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 45, "date": "2025-05-06", "nav": 33640.85, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 46, "date": "2025-06-03", "nav": 35703.85, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 47, "date": "2025-07-01", "nav": 37346.48, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 48, "date": "2025-08-05", "nav": 39729.75, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 49, "date": "2025-09-04", "nav": 43869.99, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 50, "date": "2025-10-02", "nav": 43029.06, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 51, "date": "2025-11-04", "nav": 42434.36, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 52, "date": "2025-12-01", "nav": 42500.59, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 53, "date": "2026-01-05", "nav": 43920.55, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 54, "date": "2026-02-02", "nav": 47116.92, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 55, "date": "2026-03-02", "nav": 47473.97, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 56, "date": "2026-04-01", "nav": 44069.75, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 57, "date": "2026-05-04", "nav": 44473.49, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 58, "date": "2026-06-01", "nav": 43685.89, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 59, "date": "2026-07-01", "nav": 43501.31, "b_rate": 0.055, "f_rate": 0.032},
+            {"m": 60, "date": "2026-08-03", "nav": 39809.35, "b_rate": 0.055, "f_rate": 0.032}
+        ];
+
         let growthChart = null;
-        let activeTab = 'vcbf'; // 'vcbf', 'bank', 'hybrid'
+        let activeTab = 'hybrid'; // Default active tab is 'hybrid' (Phương Án 3)
 
         function formatVND(val) {
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(val);
@@ -671,7 +750,6 @@
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`tab-${tabName}`).classList.add('active');
             
-            // Show/hide hybrid custom split slider ONLY in Tab 3 (hybrid)
             let hybridBox = document.getElementById('hybrid-control-box');
             if (tabName === 'hybrid') {
                 hybridBox.style.display = 'block';
@@ -684,105 +762,135 @@
 
         function onInputChange() {
             let capital = getCapital();
-            let years = parseInt(document.getElementById('slider-years').value);
-            let bankRate = parseFloat(document.getElementById('slider-bank-rate').value);
-            let idleRate = parseFloat(document.getElementById('slider-idle-rate').value);
-            let fundRate = parseFloat(document.getElementById('slider-fund-rate').value);
             let hybridLumpPct = parseInt(document.getElementById('slider-hybrid-split').value);
             let hybridDcaPct = 100 - hybridLumpPct;
 
             document.getElementById('lbl-capital').innerText = formatVND(capital);
-            document.getElementById('lbl-years').innerText = `${years} Năm (${years * 12} Tháng)`;
-            document.getElementById('lbl-bank-rate').innerText = bankRate.toFixed(1) + '%';
-            document.getElementById('lbl-idle-rate').innerText = idleRate.toFixed(1) + '%';
-            document.getElementById('lbl-fund-rate').innerText = fundRate.toFixed(1) + '%';
             document.getElementById('lbl-hybrid-split').innerText = `${hybridLumpPct}% Lump / ${hybridDcaPct}% DCA`;
 
             let lumpAmt = (capital * hybridLumpPct) / 100;
             let dcaAmt = (capital * hybridDcaPct) / 100;
-            document.getElementById('hybrid-breakdown-txt').innerText = `Lump Sum: ${formatMillions(lumpAmt)} | DCA: ${formatMillions(dcaAmt)}`;
+            document.getElementById('hybrid-breakdown-txt').innerText = `Lump Sum VCBF: ${formatMillions(lumpAmt)} | Tiết Kiệm Linh Hoạt DCA: ${formatMillions(dcaAmt)}`;
 
-            calculateAndRender(capital, years, bankRate, idleRate, fundRate, hybridLumpPct);
+            calculateRealHistoricalSeries(capital, hybridLumpPct);
         }
 
-        function calculateAndRender(capital, years, bankRate, idleRate, fundRate, hybridLumpPct) {
-            let months = years * 12;
-            let monthlyDCA = capital / months;
-
-            let rBank = bankRate / 100 / 12;
-            let rIdle = idleRate / 100 / 12;
-            let rFund = fundRate / 100 / 12;
-
+        function calculateRealHistoricalSeries(capital, hybridLumpPct) {
             let labels = [];
-            let dataBankLump = [];
-            let dataBankDCA = [];
-            let dataFundLump = [];
-            let dataFundDCA = [];
-            let dataHybrid = [];
+            let dataFundLump = [capital];
+            let dataFundDCA = [0];
+            let dataBankLump = [capital];
+            let dataBankDCA = [capital];
+            let dataHybrid = [capital];
 
-            // 1. Bank Lump Sum
-            for (let m = 0; m <= months; m++) {
-                labels.push('T' + m);
-                dataBankLump.push(capital * Math.pow(1 + rBank, m));
+            let monthlyLog = [];
+
+            let startNav = REAL_SERIES_60M[0].nav;
+            let endNav = REAL_SERIES_60M[59].nav;
+
+            // 1. 100% VCBF Lump Sum
+            let vcbfLumpCcq = capital / startNav;
+
+            // 2. 100% VCBF DCA
+            let mDCA = capital / 60;
+            let vcbfDcaCcqTotal = 0;
+
+            // 3. 100% Bank Lump Sum (Real historical yearly rates)
+            let bankLumpAcc = capital;
+
+            // 4. 100% Bank DCA (Real historical yearly rates)
+            let bankDcaAcc = 0;
+            let bankIdleBuffer = capital;
+
+            // 5. Hybrid Strategy
+            let hybridLumpCap = (capital * hybridLumpPct) / 100;
+            let hybridDcaCap = capital - hybridLumpCap;
+            let hybridSubDCA = hybridDcaCap / 60;
+            
+            let hybridLumpCcq = hybridLumpCap / startNav;
+            let hybridDcaCcqTotal = 0;
+            let hybridFlexBuffer = hybridDcaCap;
+
+            // Iterative real calculation over 60 months
+            for (let i = 0; i < 60; i++) {
+                let item = REAL_SERIES_60M[i];
+                labels.push(item.date.substring(0, 7));
+
+                let curNav = item.nav;
+                let bRateM = item.b_rate / 12;
+                let fRateM = item.f_rate / 12;
+
+                // VCBF Lump Sum
+                let fLumpVal = vcbfLumpCcq * curNav;
+                dataFundLump.push(fLumpVal);
+
+                // VCBF DCA
+                let fNewCcq = mDCA / curNav;
+                vcbfDcaCcqTotal += fNewCcq;
+                let fDcaVal = vcbfDcaCcqTotal * curNav;
+                dataFundDCA.push(fDcaVal);
+
+                // Bank Lump Sum
+                bankLumpAcc = bankLumpAcc * (1 + bRateM);
+                dataBankLump.push(bankLumpAcc);
+
+                // Bank DCA
+                bankIdleBuffer = bankIdleBuffer * (1 + fRateM) - mDCA;
+                if (bankIdleBuffer < 0) bankIdleBuffer = 0;
+                bankDcaAcc = (bankDcaAcc + mDCA) * (1 + bRateM);
+                let bDcaVal = bankDcaAcc + bankIdleBuffer;
+                dataBankDCA.push(bDcaVal);
+
+                // Hybrid strategy
+                hybridFlexBuffer = hybridFlexBuffer * (1 + fRateM);
+                let withdraw = Math.min(hybridSubDCA, hybridFlexBuffer);
+                hybridFlexBuffer -= withdraw;
+                let hNewCcq = withdraw / curNav;
+                hybridDcaCcqTotal += hNewCcq;
+
+                let hLumpVal = hybridLumpCcq * curNav;
+                let hDcaVal = hybridDcaCcqTotal * curNav;
+                let hybridVal = hLumpVal + hDcaVal + hybridFlexBuffer;
+                dataHybrid.push(hybridVal);
+
+                monthlyLog.push({
+                    m: i + 1,
+                    date: item.date,
+                    nav: curNav,
+                    b_rate: item.b_rate,
+                    f_rate: item.f_rate,
+                    f_lump: fLumpVal,
+                    f_dca_new_ccq: fNewCcq,
+                    f_dca_total_ccq: vcbfDcaCcqTotal,
+                    f_dca_val: fDcaVal,
+                    b_lump: bankLumpAcc,
+                    b_dca_buffer: bankIdleBuffer,
+                    b_dca_val: bDcaVal,
+                    h_lump: hLumpVal,
+                    h_buffer: hybridFlexBuffer,
+                    h_dca_ccq_val: hDcaVal,
+                    h_total: hybridVal
+                });
             }
 
-            // 2. Bank DCA
-            for (let m = 0; m <= months; m++) {
-                let dcaAccount = 0;
-                for (let k = 1; k <= m; k++) {
-                    dcaAccount += monthlyDCA * Math.pow(1 + rBank, m - k + 1);
-                }
-                let idleAccount = (capital - (m * monthlyDCA)) * Math.pow(1 + rIdle, m);
-                if (idleAccount < 0) idleAccount = 0;
-                dataBankDCA.push(dcaAccount + idleAccount);
-            }
+            // Final end values at Month 60
+            let valFundLump = vcbfLumpCcq * endNav;
+            let valFundDCA = vcbfDcaCcqTotal * endNav;
+            let valBankLump = bankLumpAcc;
+            let valBankDCA = bankDcaAcc + bankIdleBuffer;
+            
+            let hybridLumpEnd = hybridLumpCcq * endNav;
+            let hybridDcaCcqEnd = hybridDcaCcqTotal * endNav;
+            let hybridBufferEnd = hybridFlexBuffer;
+            let valHybrid = hybridLumpEnd + hybridDcaCcqEnd + hybridBufferEnd;
 
-            // 3. Fund Lump Sum
-            for (let m = 0; m <= months; m++) {
-                dataFundLump.push(capital * Math.pow(1 + rFund, m));
-            }
-
-            // 4. Fund DCA
-            for (let m = 0; m <= months; m++) {
-                let dcaFundAcc = 0;
-                for (let k = 1; k <= m; k++) {
-                    dcaFundAcc += monthlyDCA * Math.pow(1 + rFund, m - k + 1);
-                }
-                let idleAccount = (capital - (m * monthlyDCA)) * Math.pow(1 + rIdle, m);
-                if (idleAccount < 0) idleAccount = 0;
-                dataFundDCA.push(dcaFundAcc + idleAccount);
-            }
-
-            // 5. Custom Hybrid (hybridLumpPct % Lump Sum + hybridDcaPct % DCA)
-            let lumpFrac = hybridLumpPct / 100;
-            let dcaFrac = 1 - lumpFrac;
-
-            for (let m = 0; m <= months; m++) {
-                let lumpPart = (capital * lumpFrac) * Math.pow(1 + rFund, m);
-                let dcaPartCapital = capital * dcaFrac;
-                let monthlySubDCA = dcaPartCapital / months;
-                let dcaSubAcc = 0;
-                for (let k = 1; k <= m; k++) {
-                    dcaSubAcc += monthlySubDCA * Math.pow(1 + rFund, m - k + 1);
-                }
-                let idleSubAcc = (dcaPartCapital - (m * monthlySubDCA)) * Math.pow(1 + rIdle, m);
-                if (idleSubAcc < 0) idleSubAcc = 0;
-                dataHybrid.push(lumpPart + dcaSubAcc + idleSubAcc);
-            }
-
-            let valBankLump = dataBankLump[months];
-            let valBankDCA = dataBankDCA[months];
-            let valFundLump = dataFundLump[months];
-            let valFundDCA = dataFundDCA[months];
-            let valHybrid = dataHybrid[months];
-
-            // Render Tab Cards & Chart based on Active Tab
-            renderCardsForTab(capital, valBankLump, valBankDCA, valFundLump, valFundDCA, valHybrid, hybridLumpPct);
+            renderCardsForTab(capital, valBankLump, valBankDCA, valFundLump, valFundDCA, valHybrid, hybridLumpPct, hybridLumpEnd, hybridDcaCcqEnd, hybridBufferEnd, hybridSubDCA);
             renderChartForTab(labels, dataBankLump, dataBankDCA, dataFundLump, dataFundDCA, dataHybrid);
             renderTableForTab(capital, valBankLump, valBankDCA, valFundLump, valFundDCA, valHybrid, hybridLumpPct);
+            renderMonthlyDetailTable(monthlyLog);
         }
 
-        function renderCardsForTab(capital, bLump, bDCA, fLump, fDCA, hybrid, hybridLumpPct) {
+        function renderCardsForTab(capital, bLump, bDCA, fLump, fDCA, hybrid, hybridLumpPct, hybridLumpEnd, hybridDcaCcqEnd, hybridBufferEnd, hybridSubDCA) {
             let container = document.getElementById('cards-container');
             let html = '';
 
@@ -796,7 +904,7 @@
                         <div class="stat-profit ${fLump >= capital ? 'profit-plus' : 'profit-minus'}">
                             ${fLump >= capital ? '+' : ''}${formatMillions(fLump - capital)} (${(((fLump/capital)-1)*100).toFixed(1)}%)
                         </div>
-                        <div class="stat-sub">Mua trọn vẹn 100% vốn ngay từ ngày đầu.</div>
+                        <div class="stat-sub">Mua trọn vẹn 100% vốn ngay từ ngày 01/09/2021.</div>
                     </div>
                     <div class="stat-card ${winner === 'dca' ? 'winner-card' : ''}">
                         <div class="stat-header">🏛️ VCBF-BCF (Chia nhỏ - DCA)</div>
@@ -811,12 +919,12 @@
                 let diff = bDCA - bLump;
                 html = `
                     <div class="stat-card winner-card">
-                        <div class="stat-header">🏦 Ngân Hàng (1 Cục - Lump Sum)</div>
+                        <div class="stat-header">🏦 Ngân Hàng (1 Cục - Biểu lãi thực tế)</div>
                         <div class="stat-val">${formatMillions(bLump)}</div>
                         <div class="stat-profit profit-plus">
                             +${formatMillions(bLump - capital)} (+${(((bLump/capital)-1)*100).toFixed(1)}%)
                         </div>
-                        <div class="stat-sub">Lãi kép 7.0%/năm cố định trọn vẹn 5 năm.</div>
+                        <div class="stat-sub">Lãi suất thực tế từng năm (2021: 6%, 2022: 6.5%, 2023: 9%, 2024-2026: 5.2-5.5%).</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">🏦 Ngân Hàng (Chia nhỏ - DCA)</div>
@@ -829,24 +937,33 @@
                 `;
             } else if (activeTab === 'hybrid') {
                 let hybridDcaPct = 100 - hybridLumpPct;
+                let lumpCapital = (capital * hybridLumpPct) / 100;
+                let dcaCapital = (capital * hybridDcaPct) / 100;
+
                 html = `
                     <div class="stat-card">
-                        <div class="stat-header">100% Lump Sum VCBF</div>
-                        <div class="stat-val">${formatMillions(fLump)}</div>
-                        <div class="stat-profit profit-plus">+${formatMillions(fLump - capital)}</div>
-                        <div class="stat-sub">Toàn bộ 100% vốn gửi 1 cục.</div>
+                        <div class="stat-header">🏛️ Hũ 1: VCBF Lump Sum (${hybridLumpPct}%)</div>
+                        <div class="stat-val">${formatMillions(hybridLumpEnd)}</div>
+                        <div class="stat-profit profit-plus">+${formatMillions(hybridLumpEnd - lumpCapital)}</div>
+                        <div class="stat-sub">Vốn ban đầu: ${formatMillions(lumpCapital)} gửi 1 cục.</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-header">100% DCA VCBF</div>
-                        <div class="stat-val">${formatMillions(fDCA)}</div>
-                        <div class="stat-profit profit-plus">+${formatMillions(fDCA - capital)}</div>
-                        <div class="stat-sub">Toàn bộ 100% vốn chia nhỏ.</div>
+                        <div class="stat-header">🏦 Hũ 2: Tiết Kiệm Linh Hoạt (${hybridDcaPct}%)</div>
+                        <div class="stat-val">${formatMillions(hybridBufferEnd)}</div>
+                        <div class="stat-profit profit-plus">+${formatMillions(hybridBufferEnd)} (Lãi dư nhàn rỗi)</div>
+                        <div class="stat-sub">Trích ${(hybridSubDCA/1e6).toFixed(2)}M/thg mua CCQ. Lãi tích lũy.</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">📈 CCQ Mua Thêm Từ DCA (${hybridDcaPct}%)</div>
+                        <div class="stat-val">${formatMillions(hybridDcaCcqEnd)}</div>
+                        <div class="stat-profit profit-plus">+${formatMillions(hybridDcaCcqEnd - dcaCapital)}</div>
+                        <div class="stat-sub">DCA ${(hybridSubDCA/1e6).toFixed(2)}M/tháng từ Hũ 2 trong 60 tháng.</div>
                     </div>
                     <div class="stat-card winner-card" style="border-color: var(--accent-purple);">
-                        <div class="stat-header" style="color: var(--accent-purple);">⚡ Hybrid Tùy Chỉnh (${hybridLumpPct}/${hybridDcaPct})</div>
+                        <div class="stat-header" style="color: var(--accent-purple);">🏆 Tổng Tài Sản Hybrid (${hybridLumpPct}/${hybridDcaPct})</div>
                         <div class="stat-val" style="color: var(--accent-purple);">${formatMillions(hybrid)}</div>
                         <div class="stat-profit profit-plus">+${formatMillions(hybrid - capital)} (+${(((hybrid/capital)-1)*100).toFixed(1)}%)</div>
-                        <div class="stat-sub">${hybridLumpPct}% Lump Sum + ${hybridDcaPct}% DCA.</div>
+                        <div class="stat-sub">Gồm: Hũ 1 Lump + Hũ 3 CCQ DCA + Tiền lãi Hũ 2.</div>
                     </div>
                 `;
             }
@@ -862,19 +979,19 @@
             let chartTitle = '';
 
             if (activeTab === 'vcbf') {
-                chartTitle = '📊 Tăng Trưởng Tài Sản 100% Quỹ VCBF-BCF (Lump Sum vs DCA)';
+                chartTitle = '📊 Tăng Trưởng Tài Sản 100% Quỹ VCBF-BCF (Thực Tế 60 Tháng API)';
                 datasets = [
                     { label: 'VCBF Lump Sum (1 Cục)', data: fLump, borderColor: '#10b981', borderWidth: 2.5, pointRadius: 0, tension: 0.1 },
                     { label: 'VCBF DCA (Hàng Tháng)', data: fDCA, borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, tension: 0.1 }
                 ];
             } else if (activeTab === 'bank') {
-                chartTitle = '📊 Tăng Trưởng Tài Sản 100% Tiết Kiệm Ngân Hàng (Lump Sum vs DCA)';
+                chartTitle = '📊 Tăng Trưởng Tài Sản 100% Tiết Kiệm Ngân Hàng (Biểu Lãi Thực Tế Theo Năm)';
                 datasets = [
-                    { label: 'Ngân Hàng Lump Sum (7%)', data: bLump, borderColor: '#3b82f6', borderWidth: 2.5, pointRadius: 0, tension: 0.1 },
-                    { label: 'Ngân Hàng DCA (7%)', data: bDCA, borderColor: '#93c5fd', borderDash: [4, 4], borderWidth: 1.5, pointRadius: 0, tension: 0.1 }
+                    { label: 'Ngân Hàng Lump Sum (Biểu lãi thực tế)', data: bLump, borderColor: '#3b82f6', borderWidth: 2.5, pointRadius: 0, tension: 0.1 },
+                    { label: 'Ngân Hàng DCA (Biểu lãi thực tế)', data: bDCA, borderColor: '#93c5fd', borderDash: [4, 4], borderWidth: 1.5, pointRadius: 0, tension: 0.1 }
                 ];
             } else if (activeTab === 'hybrid') {
-                chartTitle = '📊 So Sánh Tăng Trưởng Chiến Lược Hybrid Tùy Chỉnh vs 100% Lump vs 100% DCA';
+                chartTitle = '📊 So Sánh Tăng Trưởng Thực Tế: Hybrid Tùy Chỉnh vs 100% Lump vs 100% DCA';
                 datasets = [
                     { label: 'Chiến Lược Hybrid Tùy Chỉnh', data: hybrid, borderColor: '#8b5cf6', borderWidth: 3, pointRadius: 0, tension: 0.1 },
                     { label: '100% VCBF Lump Sum', data: fLump, borderColor: '#10b981', borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, tension: 0.1 },
@@ -916,19 +1033,19 @@
 
             if (activeTab === 'vcbf') {
                 items = [
-                    { name: '🏛️ Quỹ VCBF-BCF (1 Cục - Lump Sum)', endVal: fLump, desc: 'Tối ưu lợi nhuận trong thị trường tăng trưởng.' },
-                    { name: '🏛️ Quỹ VCBF-BCF (Chia nhỏ - DCA)', endVal: fDCA, desc: 'Trung bình giá hàng tháng, an toàn rủi ro đỉnh sóng.' }
+                    { name: '🏛️ Quỹ VCBF-BCF (1 Cục - Lump Sum)', endVal: fLump, desc: 'Dữ liệu nến NAV API thực tế từ 27.514đ ➔ 39.809đ.' },
+                    { name: '🏛️ Quỹ VCBF-BCF (Chia nhỏ - DCA)', endVal: fDCA, desc: 'DCA mua hàng tháng vào ngày giao dịch đầu tiên.' }
                 ];
             } else if (activeTab === 'bank') {
                 items = [
-                    { name: '🏦 Tiết kiệm Ngân hàng (1 Cục - Lump Sum)', endVal: bLump, desc: 'Lãi kép 7%/năm cố định 5 năm, an toàn tuyệt đối.' },
-                    { name: '🏦 Tiết kiệm Ngân hàng (Chia nhỏ - DCA)', endVal: bDCA, desc: 'Tài sản tăng chậm hơn do phần tiền chờ chưa gửi.' }
+                    { name: '🏦 Tiết kiệm Ngân hàng (1 Cục - Biểu lãi thực tế)', endVal: bLump, desc: 'Tái tục lãi suất thực tế từng năm (2021: 6%, 2022: 6.5%, 2023: 9%...).' },
+                    { name: '🏦 Tiết kiệm Ngân hàng (Chia nhỏ - DCA)', endVal: bDCA, desc: 'Gửi 12 tháng + Lãi tiền nhàn rỗi biểu lãi thực tế.' }
                 ];
             } else if (activeTab === 'hybrid') {
                 items = [
-                    { name: '🏛️ 100% VCBF-BCF Lump Sum', endVal: fLump, desc: 'Tận dụng 100% vốn ngay ngày đầu.' },
+                    { name: '🏛️ 100% VCBF-BCF Lump Sum', endVal: fLump, desc: 'Tận dụng 100% vốn ngay ngày 01/09/2021.' },
                     { name: '🏛️ 100% VCBF-BCF DCA', endVal: fDCA, desc: 'Chia đều 100% vốn mua 60 tháng.' },
-                    { name: `⚡ Hybrid Tùy Chỉnh (${hybridLumpPct}% Lump / ${hybridDcaPct}% DCA)`, endVal: hybrid, desc: 'Cân bằng linh hoạt lợi nhuận & dự phòng tiền mặt.' }
+                    { name: `⚡ Hybrid Tùy Chỉnh (${hybridLumpPct}% Lump / ${hybridDcaPct}% DCA)`, endVal: hybrid, desc: 'Cân bằng linh hoạt lợi nhuận thực tế & dự phòng tiền mặt.' }
                 ];
             }
 
@@ -952,24 +1069,95 @@
             }).join('');
         }
 
-        function loadPreset(preset) {
-            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
-            
-            if (preset === 'vcbf5y') {
-                document.getElementById('btn-preset-vcbf').classList.add('active');
-                document.getElementById('slider-bank-rate').value = 7.0;
-                document.getElementById('slider-idle-rate').value = 3.0;
-                document.getElementById('slider-fund-rate').value = 7.7;
-                document.getElementById('slider-years').value = 5;
-            } else if (preset === 'peak2022') {
-                document.getElementById('btn-preset-peak').classList.add('active');
-                document.getElementById('slider-bank-rate').value = 7.0;
-                document.getElementById('slider-idle-rate').value = 3.0;
-                document.getElementById('slider-fund-rate').value = 2.2;
-                document.getElementById('slider-years').value = 4;
-            }
+        function renderMonthlyDetailTable(monthlyLog) {
+            let thead = document.getElementById('monthly-table-head');
+            let tbody = document.getElementById('monthly-table-body');
+            let title = document.getElementById('monthly-table-title');
 
-            onInputChange();
+            if (activeTab === 'hybrid') {
+                title.innerText = '📅 Bảng Chi Tiết 60 Tháng: Chiến Lược Hybrid (Rút Tiết Kiệm Linh Hoạt Mua CCQ VCBF)';
+                thead.innerHTML = `
+                    <tr>
+                        <th>Tháng</th>
+                        <th>Ngày Giao Dịch</th>
+                        <th>Giá NAV (VNĐ)</th>
+                        <th>Hũ 1: VCBF Lump Sum</th>
+                        <th>Hũ 2: Tiết Kiệm Linh Hoạt</th>
+                        <th>Hũ 3: CCQ DCA Tích Lũy</th>
+                        <th>🏆 Tổng Tài Sản Hybrid</th>
+                    </tr>
+                `;
+                tbody.innerHTML = monthlyLog.map(item => {
+                    let isLast = item.m === 60;
+                    return `
+                        <tr style="${isLast ? 'background: rgba(139, 92, 246, 0.18); font-weight: 700; color: #fff;' : ''}">
+                            <td><strong>T${item.m}</strong></td>
+                            <td>${item.date}</td>
+                            <td>${item.nav.toLocaleString('vi-VN')} ₫</td>
+                            <td>${formatMillions(item.h_lump)}</td>
+                            <td style="color: var(--text-secondary);">${formatMillions(item.h_buffer)}</td>
+                            <td style="color: var(--accent-green);">${formatMillions(item.h_dca_ccq_val)}</td>
+                            <td style="color: var(--accent-purple);"><strong>${formatMillions(item.h_total)}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } else if (activeTab === 'vcbf') {
+                title.innerText = '📅 Bảng Chi Tiết 60 Tháng: 100% Quỹ VCBF-BCF (Lump Sum vs DCA)';
+                thead.innerHTML = `
+                    <tr>
+                        <th>Tháng</th>
+                        <th>Ngày Giao Dịch</th>
+                        <th>Giá NAV (VNĐ)</th>
+                        <th>Tài Sản Lump Sum</th>
+                        <th>CCQ Mua Mới (Tháng)</th>
+                        <th>Tổng CCQ Tích Lũy</th>
+                        <th>Tài Sản DCA</th>
+                    </tr>
+                `;
+                tbody.innerHTML = monthlyLog.map(item => {
+                    let isLast = item.m === 60;
+                    return `
+                        <tr style="${isLast ? 'background: rgba(16, 185, 129, 0.18); font-weight: 700; color: #fff;' : ''}">
+                            <td><strong>T${item.m}</strong></td>
+                            <td>${item.date}</td>
+                            <td>${item.nav.toLocaleString('vi-VN')} ₫</td>
+                            <td>${formatMillions(item.f_lump)}</td>
+                            <td>${item.f_dca_new_ccq.toFixed(2)} CCQ</td>
+                            <td>${item.f_dca_total_ccq.toFixed(2)} CCQ</td>
+                            <td style="color: var(--accent-green);"><strong>${formatMillions(item.f_dca_val)}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } else if (activeTab === 'bank') {
+                title.innerText = '📅 Bảng Chi Tiết 60 Tháng: 100% Tiết Kiệm Ngân Hàng (Biểu Lãi Suất Lịch Sử)';
+                thead.innerHTML = `
+                    <tr>
+                        <th>Tháng</th>
+                        <th>Ngày Giao Dịch</th>
+                        <th>Lãi Ngân Hàng 12M</th>
+                        <th>Lãi Linh Hoạt (B)</th>
+                        <th>Tài Sản Lump Sum</th>
+                        <th>Tiền Nhàn Rỗi Còn Lại</th>
+                        <th>Tổng Tài Sản DCA</th>
+                    </tr>
+                `;
+                tbody.innerHTML = monthlyLog.map(item => {
+                    let isLast = item.m === 60;
+                    return `
+                        <tr style="${isLast ? 'background: rgba(59, 130, 246, 0.18); font-weight: 700; color: #fff;' : ''}">
+                            <td><strong>T${item.m}</strong></td>
+                            <td>${item.date}</td>
+                            <td>${(item.b_rate * 100).toFixed(1)}%/năm</td>
+                            <td>${(item.f_rate * 100).toFixed(1)}%/năm</td>
+                            <td>${formatMillions(item.b_lump)}</td>
+                            <td>${formatMillions(item.b_dca_buffer)}</td>
+                            <td style="color: var(--accent-blue);"><strong>${formatMillions(item.b_dca_val)}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
