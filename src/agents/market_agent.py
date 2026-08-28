@@ -30,9 +30,10 @@ class MarketAnalyzerAgent(BaseAgent):
         last_bar = bars[-1] if bars else None
         
         rsi = last_bar.rsi if (last_bar and last_bar.rsi is not None) else 50.0
-        ma20 = last_bar.ma20 if (last_bar and last_bar.ma20 is not None) else current_price
-        
-        is_uptrend = current_price >= ma20
+        ma20 = last_bar.ma20 if (last_bar and last_bar.ma20 is not None) else None
+
+        # Conservative: treat as no-trend when MA20 data is unavailable
+        is_uptrend = (current_price >= ma20) if ma20 is not None else False
         is_overbought = rsi >= 70.0
         is_oversold = rsi <= 30.0
         

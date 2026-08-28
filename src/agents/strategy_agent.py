@@ -27,12 +27,27 @@ class StrategyAgent(BaseAgent):
         consensus: SimulationConsensus = inputs["simulation_consensus"]
         
         current_price = context.current_price
-        
-        entry_min = current_price * 0.985
-        entry_max = current_price * 1.00
-        stop_loss = current_price * 0.935
-        take_profit_1 = current_price * 1.18
-        take_profit_2 = current_price * 1.30
+
+        last_bar = context.historical_bars[-1] if context.historical_bars else None
+        ma50 = last_bar.ma50 if (last_bar and last_bar.ma50 is not None) else None
+        ma20 = last_bar.ma20 if (last_bar and last_bar.ma20 is not None) else None
+
+        # Stop loss: 3% below MA50 technical support; fallback hard floor at -6.5%
+        if ma50 is not None and ma50 < current_price:
+            stop_loss = round(ma50 * 0.97, 0)
+        else:
+            stop_loss = round(current_price * 0.935, 0)
+
+        # Entry zone: near MA20 pullback if price above it, else tight near current price
+        if ma20 is not None and ma20 < current_price:
+            entry_min = round(ma20 * 0.995, 0)
+            entry_max = round(current_price * 1.00, 0)
+        else:
+            entry_min = round(current_price * 0.985, 0)
+            entry_max = round(current_price * 1.00, 0)
+
+        take_profit_1 = round(current_price * 1.18, 0)
+        take_profit_2 = round(current_price * 1.30, 0)
         
         rrr = calculate_rrr(entry_max, stop_loss, take_profit_1)
         
@@ -62,11 +77,11 @@ class StrategyAgent(BaseAgent):
         
         plan = TradingPlan(
             symbol=context.symbol,
-            entry_zone_min=round(entry_min, 0),
-            entry_zone_max=round(entry_max, 0),
-            stop_loss_price=round(stop_loss, 0),
-            take_profit_target_1=round(take_profit_1, 0),
-            take_profit_target_2=round(take_profit_2, 0),
+            entry_zone_min=entry_min,
+            entry_zone_max=entry_max,
+            stop_loss_price=stop_loss,
+            take_profit_target_1=take_profit_1,
+            take_profit_target_2=take_profit_2,
             recommended_holding_period="3 - 6 tháng",
             allocation_pct=15.0,
             risk_reward_ratio=round(rrr, 2),

@@ -1,8 +1,11 @@
 import psycopg2
+from psycopg2 import pool as pg_pool
 from psycopg2.extras import execute_values
 from typing import List, Dict, Any, Optional
 
 class PostgresDBManager:
+    _pool: Optional[pg_pool.ThreadedConnectionPool] = None  # class-level shared pool
+
     def __init__(self, host: str = "localhost", port: int = 5432, dbname: str = "stock_db", user: str = "postgres", password: str = "postgres"):
         self.config = {
             "host": host,
@@ -11,9 +14,27 @@ class PostgresDBManager:
             "user": user,
             "password": password
         }
+        if PostgresDBManager._pool is None:
+            try:
+                PostgresDBManager._pool = pg_pool.ThreadedConnectionPool(
+                    minconn=1, maxconn=5, **self.config
+                )
+            except Exception as e:
+                print(f"⚠️ Connection pool init failed ({e}), will use direct connections.")
 
     def get_connection(self):
+        if PostgresDBManager._pool:
+            return PostgresDBManager._pool.getconn()
         return psycopg2.connect(**self.config)
+
+    def _release(self, conn):
+        """Return connection to pool or close if pool unavailable."""
+        if conn is None:
+            return
+        if PostgresDBManager._pool:
+            PostgresDBManager._pool.putconn(conn)
+        else:
+            self._release(conn)
 
     def init_schema(self):
         """Khởi tạo cấu trúc các bảng PostgreSQL chuẩn hóa"""
@@ -98,7 +119,7 @@ class PostgresDBManager:
                 print(f"❌ Lỗi khởi tạo Schema PostgreSQL: {e}")
                 raise e
             finally:
-                conn.close()
+                self._release(conn)
         except Exception as e:
             print(f"❌ Không thể kết nối PostgreSQL: {e}")
 
@@ -127,7 +148,7 @@ class PostgresDBManager:
                     execute_values(cur, query, records)
                 conn.commit()
             finally:
-                conn.close()
+                self._release(conn)
         except Exception as e:
             print(f"⚠️ Lỗi upsert stocks: {e}")
 
@@ -172,7 +193,7 @@ class PostgresDBManager:
                     execute_values(cur, query, records)
                 conn.commit()
             finally:
-                conn.close()
+                self._release(conn)
         except Exception as e:
             print(f"⚠️ Lỗi upsert prices: {e}")
 
@@ -203,7 +224,7 @@ class PostgresDBManager:
                             "debt_to_equity": float(row[7])
                         }
             finally:
-                conn.close()
+                self._release(conn)
         except Exception as e:
             print(f"⚠️ Lỗi đọc financial_metrics cho {symbol}: {e}")
         return None
@@ -234,7 +255,7 @@ class PostgresDBManager:
                             for r in rows
                         ]
             finally:
-                conn.close()
+                self._release(conn)
         except Exception as e:
             print(f"⚠️ Lỗi đọc macro_news cho {symbol}: {e}")
         return []
@@ -269,7 +290,7 @@ class PostgresDBManager:
                     execute_values(cur, query, records)
                 conn.commit()
             finally:
-                conn.close()
+                self._release(conn)
         except Exception as e:
             print(f"⚠️ Lỗi upsert telegram_messages: {e}")
 
@@ -304,7 +325,27 @@ class PostgresDBManager:
                             for r in rows
                         ]
             finally:
-                conn.close()
+                self._release(conn)
         except Exception as e:
             print(f"⚠️ Lỗi đọc telegram_messages từ DB: {e}")
         return []
+
+    def get_stock_info(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """Fetch company_name and sector from the stocks table."""
+        conn = None
+        try:
+            conn = self.get_connection()
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT company_name, sector FROM stocks WHERE symbol = %s",
+                    (symbol,)
+                )
+                row = cur.fetchone()
+                if row:
+                    return {"company_name": row[0], "sector": row[1]}
+        except Exception as e:
+            print(f"⚠️ Lỗi đọc stock info cho {symbol}: {e}")
+        finally:
+            self._release(conn)
+        return None
+

@@ -1,4 +1,5 @@
 from typing import Dict, Any, Optional
+from src.utils.telegram import TelegramNotifier
 from src.agents.data_agent import DataCollectorAgent
 from src.agents.market_agent import MarketAnalyzerAgent
 from src.agents.simulator import BehavioralSimulationEngine
@@ -110,7 +111,6 @@ class InvestmentWorkflowEngine:
         }
 
         # Send Telegram notification if requested or configured
-        from src.utils.telegram import TelegramNotifier
         notifier = TelegramNotifier()
         if send_telegram or (notifier.is_configured() and verdict.approved):
             notifier.send_pipeline_alert(result)

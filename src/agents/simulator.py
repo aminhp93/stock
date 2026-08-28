@@ -42,16 +42,18 @@ class BehavioralSimulationEngine(BaseAgent):
     def _evaluate_persona(self, persona: PersonaProfile, ctx: MarketContext, analysis: MarketAnalysis) -> PersonaDecision:
         current_price = ctx.current_price
         rsi = analysis.rsi
-        mos = analysis.margin_of_safety
+        mos = analysis.margin_of_safety  # percentage, e.g. 13.5 means 13.5%
         sentiment = analysis.news_sentiment_score
-        
-        target_price = current_price
-        reasoning = ""
+
         action = ActionType.HOLD
         confidence = 0.5
         sent_val = 0.0
+        target_price = current_price
+        reasoning = ""
 
-        if persona.id == "p1_fomo_retailer":
+        pid = persona.id
+
+        if pid == "p01_fomo_retailer":
             if sentiment > 0.3 or rsi > 60:
                 action = ActionType.FOMO_BUY
                 confidence = 0.85
@@ -64,8 +66,12 @@ class BehavioralSimulationEngine(BaseAgent):
                 sent_val = -0.90
                 target_price = current_price * 0.85
                 reasoning = "Thị trường xấu và giá sụt giảm mạnh, cắt lỗ tháo chạy!"
+            else:
+                action = ActionType.HOLD
+                confidence = 0.50
+                reasoning = "Chưa có tín hiệu rõ ràng để hành động."
 
-        elif persona.id == "p2_deep_value":
+        elif pid == "p02_deep_value":
             if mos >= 15.0:
                 action = ActionType.BUY
                 confidence = 0.90
@@ -75,9 +81,9 @@ class BehavioralSimulationEngine(BaseAgent):
             else:
                 action = ActionType.HOLD
                 confidence = 0.60
-                reasoning = "Biên an toàn MoS chưa đủ hấp dẫn (< 15%). Kiên nhẫn chờ giá chiết khấu sâu hơn."
+                reasoning = f"Biên an toàn MoS chưa đủ hấp dẫn ({mos:.1f}% < 15%). Kiên nhẫn chờ giá chiết khấu sâu hơn."
 
-        elif persona.id == "p3_swing_trader":
+        elif pid == "p03_swing_trader":
             if analysis.is_uptrend and rsi < 68:
                 action = ActionType.BUY
                 confidence = 0.80
@@ -95,7 +101,7 @@ class BehavioralSimulationEngine(BaseAgent):
                 confidence = 0.50
                 reasoning = "Chờ đợi tín hiệu tích lũy breakout rõ ràng hơn."
 
-        elif persona.id == "p4_panic_seller":
+        elif pid == "p04_panic_seller":
             if rsi < 35 or sentiment < -0.2:
                 action = ActionType.PANIC_SELL
                 confidence = 0.95
@@ -109,7 +115,46 @@ class BehavioralSimulationEngine(BaseAgent):
                 target_price = current_price * 0.95
                 reasoning = "Thị trường tạm yên ổn, giữ nhưng sẵn sàng bấm nút bán."
 
-        elif persona.id == "p7_contrarian":
+        elif pid == "p05_quant_fund":
+            # Algo: mean-reversion in uptrend; exit on overbought or trend break
+            if analysis.is_uptrend and 30 <= rsi <= 50:
+                action = ActionType.BUY
+                confidence = 0.82
+                sent_val = 0.55
+                target_price = current_price * 1.10
+                reasoning = f"Thuật toán: Uptrend + RSI ({rsi:.1f}) vùng hồi phục. Xác suất thống kê nghiêng về BUY."
+            elif rsi >= 70 or (not analysis.is_uptrend and rsi > 60):
+                action = ActionType.SELL
+                confidence = 0.80
+                sent_val = -0.55
+                target_price = current_price * 0.93
+                reasoning = f"Thuật toán: RSI ({rsi:.1f}) quá mua hoặc xu hướng đảo chiều. Thoát vị thế."
+            else:
+                action = ActionType.HOLD
+                confidence = 0.65
+                reasoning = "Tín hiệu thống kê chưa đủ mạnh để triển khai vị thế."
+
+        elif pid == "p06_dividend_growth":
+            fin = ctx.financials
+            strong_fundamentals = fin.roe >= 18.0 and fin.profit_margin >= 12.0 and fin.debt_to_equity <= 0.8
+            if strong_fundamentals and mos >= 5.0:
+                action = ActionType.BUY
+                confidence = 0.78
+                sent_val = 0.60
+                target_price = fin.intrinsic_value_dcf
+                reasoning = f"ROE {fin.roe:.1f}%, Biên LN {fin.profit_margin:.1f}%, D/E {fin.debt_to_equity:.2f} – nền tảng cổ tức ổn định."
+            elif fin.debt_to_equity > 1.5 or fin.roe < 12.0:
+                action = ActionType.SELL
+                confidence = 0.72
+                sent_val = -0.45
+                target_price = current_price * 0.95
+                reasoning = "Chỉ số nền tảng suy yếu (ROE thấp / nợ cao). Giảm tỷ trọng."
+            else:
+                action = ActionType.HOLD
+                confidence = 0.70
+                reasoning = "Nền tảng ổn, tiếp tục nắm giữ để nhận cổ tức."
+
+        elif pid == "p07_contrarian":
             if rsi >= 72:
                 action = ActionType.SELL
                 confidence = 0.88
@@ -122,8 +167,73 @@ class BehavioralSimulationEngine(BaseAgent):
                 sent_val = 0.80
                 target_price = current_price * 1.20
                 reasoning = "Đám đông hoảng loạn tháo chạy (RSI < 32). Mua gom khi thị trường sợ hãi nhất!"
+            else:
+                action = ActionType.HOLD
+                confidence = 0.55
+                reasoning = f"RSI ({rsi:.1f}) chưa đạt vùng cực đoan. Chờ tín hiệu đảo chiều rõ hơn."
 
-        if action == ActionType.HOLD and (persona.id not in ["p1_fomo_retailer", "p2_deep_value", "p3_swing_trader", "p4_panic_seller", "p7_contrarian"]):
+        elif pid == "p08_aggressive_scalper":
+            # Pure momentum, ultra-short T+, tight exits
+            if analysis.is_uptrend and 45 <= rsi <= 70:
+                action = ActionType.FOMO_BUY
+                confidence = 0.88
+                sent_val = 0.75
+                target_price = current_price * 1.05
+                reasoning = f"Momentum mạnh (RSI {rsi:.1f}), đang uptrend. Vào lệnh lướt T+."
+            elif rsi > 72 or not analysis.is_uptrend:
+                action = ActionType.SELL
+                confidence = 0.90
+                sent_val = -0.70
+                target_price = current_price * 0.97
+                reasoning = f"Gãy momentum hoặc RSI ({rsi:.1f}) quá mua. Thoát lệnh ngay lập tức."
+            else:
+                action = ActionType.HOLD
+                confidence = 0.45
+                reasoning = "Không có tín hiệu momentum rõ ràng. Đứng ngoài chờ cơ hội."
+
+        elif pid == "p09_smart_money":
+            # Tracks institutional/foreign flows via index movement + sentiment
+            idx_positive = ctx.market_index_change_pct > 0
+            if idx_positive and analysis.is_uptrend and sentiment > 0.2:
+                action = ActionType.BUY
+                confidence = 0.83
+                sent_val = 0.65
+                target_price = current_price * 1.15
+                reasoning = "VN-Index tích cực, dòng tiền lớn đang tích lũy. Theo chân smart money."
+            elif not idx_positive and sentiment < -0.2:
+                action = ActionType.SELL
+                confidence = 0.80
+                sent_val = -0.60
+                target_price = current_price * 0.92
+                reasoning = "Dòng tiền lớn rút lui, VN-Index điều chỉnh. Giảm tỷ trọng."
+            else:
+                action = ActionType.HOLD
+                confidence = 0.65
+                reasoning = "Tín hiệu dòng tiền lớn chưa rõ chiều hướng. Quan sát thêm."
+
+        elif pid == "p10_macro_strategist":
+            # Top-down: macro sentiment + cycle positioning
+            strong_macro = sentiment > 0.4 and ctx.market_index_change_pct > 0
+            weak_macro = sentiment < -0.3 or ctx.market_index_change_pct < -1.5
+            if strong_macro and analysis.is_uptrend:
+                action = ActionType.BUY
+                confidence = 0.80
+                sent_val = 0.70
+                target_price = current_price * 1.20
+                reasoning = f"Tín hiệu vĩ mô tích cực (Sentiment: {sentiment:.2f}), chu kỳ tăng trưởng thuận lợi."
+            elif weak_macro:
+                action = ActionType.SELL
+                confidence = 0.78
+                sent_val = -0.65
+                target_price = current_price * 0.90
+                reasoning = f"Môi trường vĩ mô bất lợi (Sentiment: {sentiment:.2f}). Giảm tỷ trọng phòng thủ."
+            else:
+                action = ActionType.HOLD
+                confidence = 0.68
+                reasoning = "Vĩ mô chưa có tín hiệu đột biến. Duy trì vị thế trung tính."
+
+        else:
+            # Fallback generic weighted scoring for any unrecognised persona
             score = (
                 persona.technical_weight * (1.0 if analysis.is_uptrend else -0.5) +
                 persona.fundamental_weight * (1.0 if analysis.is_undervalued else -0.2) +
@@ -134,18 +244,16 @@ class BehavioralSimulationEngine(BaseAgent):
                 confidence = min(0.95, 0.65 + score * 0.3)
                 sent_val = round(score, 2)
                 target_price = current_price * (1.0 + score * 0.1)
-                reasoning = f"Tiêu chuẩn chiến lược {persona.name} thỏa mãn tín hiệu Mua (Score: {score:.2f})."
+                reasoning = f"Tiêu chuẩn {persona.name} thỏa mãn tín hiệu Mua (Score: {score:.2f})."
             elif score < -0.35:
                 action = ActionType.SELL
                 confidence = min(0.95, 0.65 - score * 0.3)
                 sent_val = round(score, 2)
                 target_price = current_price * (1.0 + score * 0.1)
-                reasoning = f"Tiêu chuẩn chiến lược {persona.name} vi phạm ngưỡng an toàn (Score: {score:.2f})."
+                reasoning = f"Tiêu chuẩn {persona.name} vi phạm ngưỡng an toàn (Score: {score:.2f})."
             else:
                 action = ActionType.HOLD
                 confidence = 0.60
-                sent_val = 0.0
-                target_price = current_price * 1.0
                 reasoning = f"Biến động trong biên độ chấp nhận của {persona.name}."
 
         return PersonaDecision(
@@ -197,34 +305,51 @@ class BehavioralSimulationEngine(BaseAgent):
         )
 
     def run_large_scale_simulation(self, ctx: MarketContext, analysis: MarketAnalysis, count: int = 10000) -> Dict[str, Any]:
-        """Mô phỏng 10,000 Agents đồng nhất công thức với 10 Personas"""
+        """Sample randomized persona weights across `count` agents to estimate market distribution."""
         print(f"🚀 Đang khởi chạy mô phỏng quy mô lớn với {count:,} Agents giả lập...")
-        
-        tech_weights = np.random.uniform(0.1, 0.8, count)
-        fund_weights = np.random.uniform(0.1, 0.8, count)
-        news_sens = np.random.uniform(0.1, 0.9, count)
-        herd_instincts = np.random.uniform(0.1, 0.95, count)
-        
+
+        rng = np.random.default_rng(seed=42)  # fixed seed for reproducibility
+        tech_weights = rng.uniform(0.1, 0.8, count)
+        fund_weights = rng.uniform(0.1, 0.8, count)
+        news_sens = rng.uniform(0.1, 0.9, count)
+        herd_instincts = rng.uniform(0.1, 0.95, count)
+        panic_thresholds = rng.uniform(0.03, 0.25, count)
+
         uptrend_val = 1.0 if analysis.is_uptrend else -0.5
         undervalued_val = 1.0 if analysis.is_undervalued else -0.2
         sent_val = analysis.news_sentiment_score
-        
+        rsi_signal = 0.5 if analysis.rsi > 60 else (-0.5 if analysis.rsi < 40 else 0.0)
+
         scores = (
             tech_weights * uptrend_val +
             fund_weights * undervalued_val +
             news_sens * sent_val +
-            herd_instincts * (0.5 if analysis.rsi > 60 else -0.5 if analysis.rsi < 40 else 0)
+            herd_instincts * rsi_signal
         )
-        
-        buys = np.sum(scores > 0.35)
-        sells = np.sum(scores < -0.35)
-        holds = count - (buys + sells)
-        
+
+        # Panic agents: triggered by extreme fear conditions
+        panic_condition = (analysis.rsi < 35) or (sent_val < -0.5)
+        if panic_condition:
+            panic_mask = rng.random(count) < panic_thresholds
+            panics = int(np.sum(panic_mask))
+            active_scores = scores[~panic_mask]
+        else:
+            panics = 0
+            active_scores = scores
+
+        buys = int(np.sum(active_scores > 0.35))
+        sells = int(np.sum(active_scores < -0.35))
+        holds = count - buys - sells - panics
+
         return {
             "total_agents": count,
             "buy_pct": round((buys / count) * 100, 2),
             "sell_pct": round((sells / count) * 100, 2),
-            "hold_pct": round((holds / count) * 100, 2),
-            "panic_pct": 0.0,
-            "market_state": "HƯNG PHẤN BẦY ĐÀN" if buys > 6000 else "ĐIỀU CHỈNH HOẢNG LOẠN" if sells > 5000 else "TÍCH LŨY PHÂN HÓA"
+            "hold_pct": round(max(0, holds / count) * 100, 2),
+            "panic_pct": round((panics / count) * 100, 2),
+            "market_state": (
+                "HƯNG PHẤN BẦY ĐÀN" if buys > count * 0.6
+                else "ĐIỀU CHỈNH HOẢNG LOẠN" if (sells + panics) > count * 0.5
+                else "TÍCH LŨY PHÂN HÓA"
+            )
         }

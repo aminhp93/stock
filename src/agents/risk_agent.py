@@ -18,9 +18,11 @@ class RiskManagerAgent(BaseAgent):
         Output: { "risk_assessment": RiskAssessment }
         """
         plan: TradingPlan = inputs["trading_plan"]
-        
+
         # Calculate Kelly Criterion position size recommendation
-        win_rate = 0.60  # Base estimate 60% win rate for setup
+        # win_rate should be calibrated from historical backtest results;
+        # 0.55 is a conservative default — override via 'estimated_win_rate' input.
+        win_rate = float(inputs.get("estimated_win_rate", 0.55))
         win_loss_ratio = plan.risk_reward_ratio
         kelly_size = calculate_kelly_criterion(win_rate, win_loss_ratio)
         

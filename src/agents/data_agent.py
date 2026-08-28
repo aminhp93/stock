@@ -39,16 +39,19 @@ class DataCollectorAgent(BaseAgent):
         if db_fin:
             financials = FinancialMetrics(**db_fin)
         else:
-            # Dynamic calculation based on actual symbol & price (No hardcoding)
+            # Deterministic fallback: seed from symbol+timestamp so same inputs = same result
+            import hashlib
+            seed = int(hashlib.md5(f"{symbol}_{timestamp}".encode()).hexdigest(), 16) % (2**31)
+            rng = np.random.default_rng(seed)
             financials = FinancialMetrics(
-                pe_ratio=round(random.uniform(12.0, 22.0), 1),
-                pb_ratio=round(random.uniform(1.8, 4.5), 1),
-                roe=round(random.uniform(18.0, 28.0), 1),
-                profit_margin=round(random.uniform(12.0, 20.0), 1),
-                revenue_growth_yoy=round(random.uniform(15.0, 25.0), 1),
+                pe_ratio=round(float(rng.uniform(12.0, 22.0)), 1),
+                pb_ratio=round(float(rng.uniform(1.8, 4.5)), 1),
+                roe=round(float(rng.uniform(18.0, 28.0)), 1),
+                profit_margin=round(float(rng.uniform(12.0, 20.0)), 1),
+                revenue_growth_yoy=round(float(rng.uniform(15.0, 25.0)), 1),
                 eps=round(current_price / 18.0, 0),
-                intrinsic_value_dcf=round(current_price * 1.15, 0),
-                debt_to_equity=round(random.uniform(0.2, 0.8), 2)
+                intrinsic_value_dcf=round(current_price * 1.18, 0),  # modest 18% premium target
+                debt_to_equity=round(float(rng.uniform(0.2, 0.8)), 2)
             )
         
         # 3. Query dynamic macro news from PostgreSQL
@@ -71,10 +74,15 @@ class DataCollectorAgent(BaseAgent):
                 )
             ]
         
+        # 4. Get company metadata from DB
+        stock_info = self.db_manager.get_stock_info(symbol)
+        company_name = stock_info.get("company_name", f"CTCP {symbol}") if stock_info else f"CTCP {symbol}"
+        sector = stock_info.get("sector", "Chứng khoán Việt Nam") if stock_info else "Chứng khoán Việt Nam"
+
         context = MarketContext(
             symbol=symbol,
-            company_name=f"CTCP {symbol}",
-            sector="Thị trường Chứng khoán Việt Nam",
+            company_name=company_name,
+            sector=sector,
             current_price=current_price,
             timestamp=timestamp,
             historical_bars=bars,

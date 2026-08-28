@@ -87,23 +87,39 @@ class InvestmentVerifierAgent(BaseAgent):
             details=f"Xác nhận có {len(plan.scenarios[0].catalysts)} động lực tăng giá cốt lõi thúc đẩy kịch bản Bull Case."
         ))
         
-        # Final Verification Decision (Pass >= 6 / 7 standards and strict Risk compliance)
+        # Final decision: >= 6/7 + hard gates = APPROVED; 4-5/7 + hard gates = REVISE_REQUIRED; else REJECTED
         passed_count = sum(1 for item in checklist if item.passed)
-        is_approved = passed_count >= 6 and c3 and c4 and c6
-        
+        is_hard_gates_ok = c3 and c4 and c6
+
+        if passed_count >= 6 and is_hard_gates_ok:
+            verdict_code = "APPROVED"
+            is_approved = True
+        elif passed_count >= 4 and is_hard_gates_ok:
+            verdict_code = "REVISE_REQUIRED"
+            is_approved = False
+        else:
+            verdict_code = "REJECTED"
+            is_approved = False
+
+        status_label = (
+            "ĐỦ ĐIỀU KIỆN" if verdict_code == "APPROVED"
+            else "CẦN ĐIỀU CHỈNH" if verdict_code == "REVISE_REQUIRED"
+            else "KHÔNG ĐỦ ĐIỀU KIỆN"
+        )
+
         verdict = VerificationVerdict(
             approved=is_approved,
-            verdict_code="APPROVED" if is_approved else "REJECTED",
+            verdict_code=verdict_code,
             overall_score=round((passed_count / len(checklist)) * 100, 1),
             checklist=checklist,
             feedback_notes=(
                 f"Kế hoạch đầu tư {context.symbol} vượt qua {passed_count}/{len(checklist)} tiêu chí kiểm định. "
-                f"Kế hoạch {'ĐỦ ĐIỀU KIỆN' if is_approved else 'KHÔNG ĐỦ ĐIỀU KIỆN'} giải ngân."
+                f"Kế hoạch {status_label} giải ngân."
             ),
             recommendations=[
                 f"Giải ngân tỷ trọng {plan.allocation_pct:.1f}% trong vùng mua {plan.entry_zone_min:,.0f} - {plan.entry_zone_max:,.0f} VND.",
                 f"Đặt lệnh Stop Loss tại {plan.stop_loss_price:,.0f} VND ngay khi mở vị thế."
             ]
         )
-        
+
         return {"verification_verdict": verdict}
