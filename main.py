@@ -1,6 +1,6 @@
 import sys
-from src.workflow.engine import InvestmentWorkflowEngine
-from src.workflow.backtester import TimeStepBacktester
+from backend.workflow.engine import InvestmentWorkflowEngine
+from backend.workflow.backtester import TimeStepBacktester
 
 def main():
     print("""

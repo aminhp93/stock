@@ -1,7 +1,7 @@
 from tabulate import tabulate
-from src.models.market_data import MarketContext, MarketAnalysis
-from src.models.persona import SimulationConsensus
-from src.models.strategy import TradingPlan, VerificationVerdict
+from backend.models.market_data import MarketContext, MarketAnalysis
+from backend.models.persona import SimulationConsensus
+from backend.models.strategy import TradingPlan, VerificationVerdict
 
 def format_market_context_summary(context: MarketContext) -> str:
     lines = [

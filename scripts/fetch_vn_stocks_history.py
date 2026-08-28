@@ -10,8 +10,8 @@ from typing import List, Dict, Any, Optional
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from vnstock import stock_historical_data
-from src.db.postgres import PostgresDBManager
-from src.utils.metrics import calculate_rsi
+from backend.db.postgres import PostgresDBManager
+from backend.utils.metrics import calculate_rsi
 
 def fetch_all_vietnam_stock_tickers() -> List[Dict[str, Any]]:
     """Lấy danh sách TOÀN BỘ hơn 1.400 cổ phiếu niêm yết trên 3 sàn HOSE, HNX, UPCoM"""

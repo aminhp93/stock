@@ -1,8 +1,8 @@
 from typing import Dict, Any, List
-from src.agents.base_agent import BaseAgent
-from src.models.market_data import MarketContext, MarketAnalysis
-from src.models.persona import SimulationConsensus
-from src.models.strategy import TradingPlan, RiskAssessment, VerificationVerdict, VerificationCheckItem
+from backend.agents.base_agent import BaseAgent
+from backend.models.market_data import MarketContext, MarketAnalysis
+from backend.models.persona import SimulationConsensus
+from backend.models.strategy import TradingPlan, RiskAssessment, VerificationVerdict, VerificationCheckItem
 
 class InvestmentVerifierAgent(BaseAgent):
     def __init__(self):

@@ -17,8 +17,8 @@ python3 main.py
 
 - Core Rulebook: [AGENTS.md](file:///Users/aminhp93/personal/stock/AGENTS.md)
 - Persona Definitions: [config/personas.json](file:///Users/aminhp93/personal/stock/config/personas.json)
-- Base Agent: [src/agents/base_agent.py](file:///Users/aminhp93/personal/stock/src/agents/base_agent.py)
-- Simulation Engine: [src/agents/simulator.py](file:///Users/aminhp93/personal/stock/src/agents/simulator.py)
-- Verification Gatekeeper: [src/agents/verify_agent.py](file:///Users/aminhp93/personal/stock/src/agents/verify_agent.py)
-- Workflow Orchestrator: [src/workflow/engine.py](file:///Users/aminhp93/personal/stock/src/workflow/engine.py)
-- Time-Series Backtester: [src/workflow/backtester.py](file:///Users/aminhp93/personal/stock/src/workflow/backtester.py)
+- Base Agent: [backend/agents/base_agent.py](file:///Users/aminhp93/personal/stock/backend/agents/base_agent.py)
+- Simulation Engine: [backend/agents/simulator.py](file:///Users/aminhp93/personal/stock/backend/agents/simulator.py)
+- Verification Gatekeeper: [backend/agents/verify_agent.py](file:///Users/aminhp93/personal/stock/backend/agents/verify_agent.py)
+- Workflow Orchestrator: [backend/workflow/engine.py](file:///Users/aminhp93/personal/stock/backend/workflow/engine.py)
+- Time-Series Backtester: [backend/workflow/backtester.py](file:///Users/aminhp93/personal/stock/backend/workflow/backtester.py)

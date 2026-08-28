@@ -1,6 +1,6 @@
 import re
 from typing import List, Dict, Any
-from src.utils.telegram_reader import TelegramChannelReader
+from backend.utils.telegram_reader import TelegramChannelReader
 
 class TelegramSentimentAnalyzer:
     """
@@ -108,7 +108,7 @@ class TelegramSentimentAnalyzer:
         Lọc riêng các thảo luận có nhắc tới mã cổ phiếu cụ thể (VD: FPT, TCB, HPG, TCH) trên Telegram
         từ cả CSDL PostgreSQL (lưu từ trước) và tin nhắn Live mới nhất.
         """
-        from src.db.postgres import PostgresDBManager
+        from backend.db.postgres import PostgresDBManager
         db = PostgresDBManager()
 
         all_posts = []

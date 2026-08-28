@@ -1,9 +1,9 @@
 from typing import Dict, Any
-from src.agents.base_agent import BaseAgent
-from src.models.market_data import MarketContext, MarketAnalysis
-from src.models.persona import SimulationConsensus
-from src.models.strategy import TradingPlan, ScenarioDetail, ScenarioType
-from src.utils.metrics import calculate_risk_reward_ratio as calculate_rrr
+from backend.agents.base_agent import BaseAgent
+from backend.models.market_data import MarketContext, MarketAnalysis
+from backend.models.persona import SimulationConsensus
+from backend.models.strategy import TradingPlan, ScenarioDetail, ScenarioType
+from backend.utils.metrics import calculate_risk_reward_ratio as calculate_rrr
 
 class StrategyAgent(BaseAgent):
     def __init__(self):
@@ -51,7 +51,8 @@ class StrategyAgent(BaseAgent):
 
         rrr = calculate_rrr(entry_max, stop_loss, take_profit_1)
 
-        # Consensus-adjusted scenario probabilitiesconsensus.buy_percentage / 100.0
+        # Consensus-adjusted scenario probabilities
+        buy_factor = consensus.buy_percentage / 100.0
         panic_factor = consensus.panic_percentage / 100.0
         sell_factor = (consensus.sell_percentage + consensus.panic_percentage) / 100.0
 

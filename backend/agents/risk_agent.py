@@ -1,7 +1,7 @@
 from typing import Dict, Any
-from src.agents.base_agent import BaseAgent
-from src.models.strategy import TradingPlan, RiskAssessment
-from src.utils.metrics import calculate_kelly_criterion
+from backend.agents.base_agent import BaseAgent
+from backend.models.strategy import TradingPlan, RiskAssessment
+from backend.utils.metrics import calculate_kelly_criterion
 from config.settings import settings
 
 class RiskManagerAgent(BaseAgent):

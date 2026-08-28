@@ -2,10 +2,10 @@ import hashlib
 import numpy as np
 from datetime import date, timedelta
 from typing import Dict, Any, List
-from src.agents.base_agent import BaseAgent
-from src.models.market_data import MarketContext, PriceBar, FinancialMetrics, MacroNews
-from src.utils.metrics import calculate_rsi
-from src.db.postgres import PostgresDBManager
+from backend.agents.base_agent import BaseAgent
+from backend.models.market_data import MarketContext, PriceBar, FinancialMetrics, MacroNews
+from backend.utils.metrics import calculate_rsi
+from backend.db.postgres import PostgresDBManager
 
 class DataCollectorAgent(BaseAgent):
     def __init__(self):

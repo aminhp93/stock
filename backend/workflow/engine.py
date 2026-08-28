@@ -1,16 +1,16 @@
 from typing import Dict, Any, Optional
-from src.utils.telegram import TelegramNotifier
-from src.agents.data_agent import DataCollectorAgent
-from src.agents.market_agent import MarketAnalyzerAgent
-from src.agents.simulator import BehavioralSimulationEngine
-from src.agents.strategy_agent import StrategyAgent
-from src.agents.risk_agent import RiskManagerAgent
-from src.agents.verify_agent import InvestmentVerifierAgent
+from backend.utils.telegram import TelegramNotifier
+from backend.agents.data_agent import DataCollectorAgent
+from backend.agents.market_agent import MarketAnalyzerAgent
+from backend.agents.simulator import BehavioralSimulationEngine
+from backend.agents.strategy_agent import StrategyAgent
+from backend.agents.risk_agent import RiskManagerAgent
+from backend.agents.verify_agent import InvestmentVerifierAgent
 
-from src.models.market_data import MarketContext, MarketAnalysis
-from src.models.persona import SimulationConsensus
-from src.models.strategy import TradingPlan, RiskAssessment, VerificationVerdict
-from src.utils.formatters import (
+from backend.models.market_data import MarketContext, MarketAnalysis
+from backend.models.persona import SimulationConsensus
+from backend.models.strategy import TradingPlan, RiskAssessment, VerificationVerdict
+from backend.utils.formatters import (
     format_market_context_summary,
     format_market_analysis_summary,
     format_consensus_report,

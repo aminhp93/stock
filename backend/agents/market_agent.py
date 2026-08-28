@@ -1,8 +1,8 @@
 import numpy as np
 from typing import Dict, Any
-from src.agents.base_agent import BaseAgent
-from src.models.market_data import MarketContext, MarketAnalysis
-from src.utils.metrics import calculate_margin_of_safety
+from backend.agents.base_agent import BaseAgent
+from backend.models.market_data import MarketContext, MarketAnalysis
+from backend.utils.metrics import calculate_margin_of_safety
 
 class MarketAnalyzerAgent(BaseAgent):
     def __init__(self):

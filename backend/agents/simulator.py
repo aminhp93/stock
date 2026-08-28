@@ -2,9 +2,9 @@ import os
 import json
 import numpy as np
 from typing import Dict, Any, List
-from src.agents.base_agent import BaseAgent
-from src.models.market_data import MarketContext, MarketAnalysis
-from src.models.persona import PersonaProfile, PersonaDecision, SimulationConsensus, ActionType
+from backend.agents.base_agent import BaseAgent
+from backend.models.market_data import MarketContext, MarketAnalysis
+from backend.models.persona import PersonaProfile, PersonaDecision, SimulationConsensus, ActionType
 
 class BehavioralSimulationEngine(BaseAgent):
     def __init__(self, personas_file: str = "config/personas.json"):
