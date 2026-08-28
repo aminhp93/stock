@@ -56,7 +56,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     self.path = "/index.html"
                 super().do_GET()
         except Exception as e:
-            self.send_json_response({"error": str(e)}, status_code=200)
+            self.send_json_response({"error": str(e)}, status_code=500)
 
     def do_POST(self):
         try:
@@ -70,7 +70,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 self.send_json_response({"status": "OK"})
         except Exception as e:
-            self.send_json_response({"error": str(e)}, status_code=200)
+            self.send_json_response({"error": str(e)}, status_code=500)
 
     def handle_api_data_stats(self):
         try:
@@ -90,7 +90,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
             cur.execute("SELECT MIN(trading_date), MAX(trading_date) FROM stock_prices;")
             min_d, max_d = cur.fetchone()
-            conn.close()
+            db._release(conn)
 
             res = {
                 "total_stocks": total_stocks,
@@ -123,7 +123,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 LIMIT %s;
             """, (symbol, limit))
             rows = cur.fetchall()
-            conn.close()
+            db._release(conn)
 
             data = [
                 {
@@ -172,12 +172,27 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             if symbol in k:
                 del _CACHE[k]
 
+        synced_bars = 0
+        latest_date = "N/A"
+        try:
+            from src.db.postgres import PostgresDBManager
+            db = PostgresDBManager()
+            conn = db.get_connection()
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*), MAX(trading_date) FROM stock_prices WHERE symbol = %s", (symbol,))
+                row = cur.fetchone()
+                synced_bars = int(row[0]) if row[0] else 0
+                latest_date = row[1].strftime("%Y-%m-%d") if row[1] else "N/A"
+            db._release(conn)
+        except Exception:
+            pass
+
         res = {
             "status": "SUCCESS",
             "symbol": symbol,
             "message": f"Đã đồng bộ & cập nhật toàn bộ nến giá Point-In-Time cho mã {symbol}.",
-            "synced_bars": 1248,
-            "latest_date": "2026-08-28",
+            "synced_bars": synced_bars,
+            "latest_date": latest_date,
             "sync_time": time.strftime("%Y-%m-%d %H:%M:%S")
         }
         self.send_json_response(res)
@@ -200,7 +215,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 LIMIT 500;
             """)
             rows = cur.fetchall()
-            conn.close()
+            db._release(conn)
             stocks = [
                 {"symbol": r[0], "company_name": r[1], "exchange": r[2], "sector": r[3]}
                 for r in rows
@@ -239,7 +254,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 ORDER BY trading_date ASC;
             """, (symbol, start_date))
             rows = cur.fetchall()
-            conn.close()
+            db._release(conn)
 
             chart_data = []
             for r in rows:
@@ -482,36 +497,15 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def handle_api_simulation(self, symbol: str, count: int = 10000):
         try:
             from src.agents.simulator import BehavioralSimulationEngine
-            from src.models.market_data import MarketContext, MarketAnalysis, FinancialMetrics
-            
+            from src.agents.data_agent import DataCollectorAgent
+            from src.agents.market_agent import MarketAnalyzerAgent
+
+            data_res = DataCollectorAgent().execute({"symbol": symbol, "timestamp": "2026-08-28"})
+            ctx = data_res["market_context"]
+            analysis_res = MarketAnalyzerAgent().execute({"market_context": ctx})
+            analysis = analysis_res["market_analysis"]
+
             sim_engine = BehavioralSimulationEngine()
-            ctx = MarketContext(
-                symbol=symbol,
-                company_name=f"CTCP {symbol}",
-                sector="Tổng hợp",
-                current_price=135000.0,
-                timestamp="2026-08-18",
-                historical_bars=[],
-                financials=FinancialMetrics(
-                    pe_ratio=18.0, pb_ratio=4.0, roe=25.0, profit_margin=18.0,
-                    revenue_growth_yoy=20.0, eps=7500.0, intrinsic_value_dcf=160000.0,
-                    debt_to_equity=0.4
-                ),
-                news_events=[],
-                market_index_change_pct=0.8
-            )
-            analysis = MarketAnalysis(
-                symbol=symbol,
-                current_price=135000.0,
-                margin_of_safety=18.5,
-                is_undervalued=True,
-                rsi=58.4,
-                is_uptrend=True,
-                is_overbought=False,
-                is_oversold=False,
-                news_sentiment_score=0.5,
-                summary="Bullish trend"
-            )
             res = sim_engine.run_large_scale_simulation(ctx=ctx, analysis=analysis, count=count)
             self.send_json_response(res)
         except Exception:

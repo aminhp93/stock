@@ -1,5 +1,6 @@
-import random
+import hashlib
 import numpy as np
+from datetime import date, timedelta
 from typing import Dict, Any, List
 from src.agents.base_agent import BaseAgent
 from src.models.market_data import MarketContext, PriceBar, FinancialMetrics, MacroNews
@@ -40,7 +41,6 @@ class DataCollectorAgent(BaseAgent):
             financials = FinancialMetrics(**db_fin)
         else:
             # Deterministic fallback: seed from symbol+timestamp so same inputs = same result
-            import hashlib
             seed = int(hashlib.md5(f"{symbol}_{timestamp}".encode()).hexdigest(), 16) % (2**31)
             rng = np.random.default_rng(seed)
             financials = FinancialMetrics(
@@ -79,6 +79,14 @@ class DataCollectorAgent(BaseAgent):
         company_name = stock_info.get("company_name", f"CTCP {symbol}") if stock_info else f"CTCP {symbol}"
         sector = stock_info.get("sector", "Chứng khoán Việt Nam") if stock_info else "Chứng khoán Việt Nam"
 
+        # Derive a proxy index change from the last 2 bars if available
+        if len(bars) >= 2:
+            prev_close = bars[-2].close
+            last_close = bars[-1].close
+            index_change_pct = round((last_close - prev_close) / prev_close * 100, 2) if prev_close else 0.0
+        else:
+            index_change_pct = 0.0
+
         context = MarketContext(
             symbol=symbol,
             company_name=company_name,
@@ -88,7 +96,7 @@ class DataCollectorAgent(BaseAgent):
             historical_bars=bars,
             financials=financials,
             news_events=news_events,
-            market_index_change_pct=1.2
+            market_index_change_pct=index_change_pct
         )
         
         return {"market_context": context}
@@ -106,7 +114,7 @@ class DataCollectorAgent(BaseAgent):
             with conn.cursor() as cur:
                 cur.execute(query, (symbol, end_date))
                 rows = cur.fetchall()
-            conn.close()
+            self.db_manager._release(conn)
 
             if not rows:
                 return []
@@ -130,26 +138,45 @@ class DataCollectorAgent(BaseAgent):
             return []
 
     def _generate_fallback_bars(self, base_price: float, count: int, end_date: str) -> List[PriceBar]:
+        """Generate deterministic synthetic bars with real calendar dates."""
         bars = []
         price = base_price * 0.85
         prices_list = []
-        
-        for i in range(count):
-            change = random.uniform(-0.02, 0.035)
+
+        # Parse end_date and walk backwards, skipping weekends
+        try:
+            end = date.fromisoformat(end_date)
+        except (ValueError, TypeError):
+            end = date.today()
+
+        # Generate date list in chronological order (oldest first)
+        trading_dates = []
+        cursor = end
+        while len(trading_dates) < count:
+            if cursor.weekday() < 5:  # Mon-Fri only
+                trading_dates.append(cursor)
+            cursor -= timedelta(days=1)
+        trading_dates.reverse()
+
+        seed = int(hashlib.md5(f"{base_price}_{end_date}".encode()).hexdigest(), 16) % (2**31)
+        rng = np.random.default_rng(seed)
+
+        for bar_date in trading_dates:
+            change = float(rng.uniform(-0.02, 0.035))
             open_p = price
             close_p = price * (1 + change)
-            high_p = max(open_p, close_p) * (1 + random.uniform(0.001, 0.015))
-            low_p = min(open_p, close_p) * (1 - random.uniform(0.001, 0.015))
-            volume = random.uniform(1500000, 4500000)
+            high_p = max(open_p, close_p) * (1 + float(rng.uniform(0.001, 0.015)))
+            low_p = min(open_p, close_p) * (1 - float(rng.uniform(0.001, 0.015)))
+            volume = float(rng.uniform(1_500_000, 4_500_000))
             price = close_p
             prices_list.append(close_p)
-            
+
             rsi_val = calculate_rsi(prices_list)
             ma20 = float(np.mean(prices_list[-20:])) if len(prices_list) >= 20 else None
             ma50 = float(np.mean(prices_list[-50:])) if len(prices_list) >= 50 else None
-            
+
             bars.append(PriceBar(
-                timestamp=f"Day-{count-i}",
+                timestamp=bar_date.isoformat(),
                 open=round(open_p, 0),
                 high=round(high_p, 0),
                 low=round(low_p, 0),

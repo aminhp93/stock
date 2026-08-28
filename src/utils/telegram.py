@@ -65,7 +65,7 @@ class TelegramNotifier:
 
 <b>1. Phân tích Thị trường & Tâm lý:</b>
 - Xu hướng Kỹ thuật: <b>{trend_str}</b>
-- Biên an toàn định giá: <b>{analysis.margin_of_safety * 100:.1f}%</b>
+- Biên an toàn định giá: <b>{analysis.margin_of_safety:.1f}%</b>
 - Đồng thuận 10 Personas: MUA <b>{consensus.buy_percentage:.0f}%</b> | BÁN <b>{consensus.sell_percentage:.0f}%</b> | GIỮ <b>{consensus.hold_percentage:.0f}%</b>
 - Chỉ số Cảm xúc: <b>{consensus.overall_sentiment_score:+.2f}</b>
 

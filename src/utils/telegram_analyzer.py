@@ -55,8 +55,8 @@ class TelegramSentimentAnalyzer:
             text = p.get("text", "").lower()
             
             # Đếm số lượng từ khóa hưng phấn / sợ hãi
-            bull_matches = sum(1 for kw in self.BULLISH_KEYWORDS if re.search(r'\b' + re.escape(kw) + r'\b', text))
-            bear_matches = sum(1 for kw in self.BEARISH_KEYWORDS if re.search(r'\b' + re.escape(kw) + r'\b', text))
+            bull_matches = sum(1 for kw in self.BULLISH_KEYWORDS if kw in text)
+            bear_matches = sum(1 for kw in self.BEARISH_KEYWORDS if kw in text)
 
             bullish_count += bull_matches
             bearish_count += bear_matches

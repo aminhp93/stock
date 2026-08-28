@@ -70,12 +70,20 @@ def format_trading_plan(plan: TradingPlan) -> str:
     return "\n".join(lines)
 
 def format_verification_verdict(verdict: VerificationVerdict) -> str:
-    icon = "✅" if verdict.approved else "❌"
+    if verdict.verdict_code == "APPROVED":
+        icon = "✅"
+        label = "(ĐÃ PHÊ DUYỆT)"
+    elif verdict.verdict_code == "REVISE_REQUIRED":
+        icon = "⚠️"
+        label = "(CẦN ĐIỀU CHỈNH)"
+    else:
+        icon = "❌"
+        label = "(TỪ CHỐI)"
     lines = [
         "=" * 80,
         f"  BÁO CÁO XÁC THỰC ĐẦU TƯ (INVESTMENT COMMITTEE VERIFICATION VERDICT)",
         "=" * 80,
-        f"Quyết định cuối cùng: {icon} {verdict.verdict_code} (ĐÃ PHÊ DUYỆT)" if verdict.approved else f"Quyết định cuối cùng: {icon} {verdict.verdict_code} (TỪ CHỐI)",
+        f"Quyết định cuối cùng: {icon} {verdict.verdict_code} {label}",
         f"Điểm Đánh Giá Kỷ Luật (Score): {verdict.overall_score:.1f} / 100",
         "\nCHECKLIST 7 TIÊU CHUẨN XÁC THỰC:"
     ]

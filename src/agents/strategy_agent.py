@@ -48,27 +48,44 @@ class StrategyAgent(BaseAgent):
 
         take_profit_1 = round(current_price * 1.18, 0)
         take_profit_2 = round(current_price * 1.30, 0)
-        
+
         rrr = calculate_rrr(entry_max, stop_loss, take_profit_1)
-        
+
+        # Consensus-adjusted scenario probabilitiesconsensus.buy_percentage / 100.0
+        panic_factor = consensus.panic_percentage / 100.0
+        sell_factor = (consensus.sell_percentage + consensus.panic_percentage) / 100.0
+
+        bull_prob = round(min(0.60, max(0.15, 0.35 + (buy_factor - 0.5) * 0.3)), 2)
+        bear_prob = round(min(0.40, max(0.05, 0.15 + sell_factor * 0.3)), 2)
+        base_prob = round(max(0.20, 1.0 - bull_prob - bear_prob), 2)
+
+        # Allocation: reduce exposure when panic > 20% or sell dominates
+        base_allocation = 15.0
+        if panic_factor > 0.20 or sell_factor > 0.50:
+            allocation = round(base_allocation * 0.7, 1)  # reduce by 30%
+        elif buy_factor > 0.70:
+            allocation = round(min(20.0, base_allocation * 1.2), 1)  # allow up to 20%
+        else:
+            allocation = base_allocation
+
         scenarios = [
             ScenarioDetail(
                 scenario=ScenarioType.BULL,
-                probability=0.35,
+                probability=bull_prob,
                 target_price=round(take_profit_2, 0),
                 catalysts=[f"Doanh thu {context.symbol} tăng trưởng > 25%", "Dòng vốn ngoại tiếp tục gia tăng mua ròng"],
                 risks=["Áp lực chốt lời ngắn hạn khi vượt đỉnh"]
             ),
             ScenarioDetail(
                 scenario=ScenarioType.BASE,
-                probability=0.50,
+                probability=base_prob,
                 target_price=round(take_profit_1, 0),
                 catalysts=[f"Doanh thu {context.symbol} tăng trưởng 15% - 20%", "Thị trường duy trì xu hướng MA20"],
                 risks=["Đi ngang tích lũy tích tụ năng lượng"]
             ),
             ScenarioDetail(
                 scenario=ScenarioType.BEAR,
-                probability=0.15,
+                probability=bear_prob,
                 target_price=round(stop_loss, 0),
                 catalysts=["Biến động vĩ mô bất lợi"],
                 risks=["Gãy mốc hỗ trợ cứng MA50"]
@@ -83,10 +100,14 @@ class StrategyAgent(BaseAgent):
             take_profit_target_1=take_profit_1,
             take_profit_target_2=take_profit_2,
             recommended_holding_period="3 - 6 tháng",
-            allocation_pct=15.0,
+            allocation_pct=allocation,
             risk_reward_ratio=round(rrr, 2),
             scenarios=scenarios,
-            thesis_summary=f"Kế hoạch đầu tư {context.symbol} đạt tỷ lệ RRR 1:{rrr:.2f} với 3 kịch bản phân bổ xác suất rõ ràng."
+            thesis_summary=(
+                f"Kế hoạch đầu tư {context.symbol}: RRR 1:{rrr:.2f} | "
+                f"Phân bổ xác suất Bull {bull_prob*100:.0f}% / Base {base_prob*100:.0f}% / Bear {bear_prob*100:.0f}% "
+                f"(dựa trên đồng thuận {consensus.buy_percentage:.0f}% MUA từ 10 Personas)."
+            )
         )
         
         return {"trading_plan": plan}
