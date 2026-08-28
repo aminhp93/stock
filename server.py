@@ -67,21 +67,20 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             from backend.db.postgres import PostgresDBManager
             db = PostgresDBManager()
-            conn = db.get_connection()
-            cur = conn.cursor()
-            cur.execute("SELECT COUNT(*) FROM stocks;")
-            total_stocks = cur.fetchone()[0]
+            with db.get_connection_ctx() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*) FROM stocks;")
+                    total_stocks = cur.fetchone()[0]
 
-            cur.execute("SELECT COUNT(*) FROM stock_prices;")
-            total_candles = cur.fetchone()[0]
+                    cur.execute("SELECT COUNT(*) FROM stock_prices;")
+                    total_candles = cur.fetchone()[0]
 
-            cur.execute("SELECT exchange, COUNT(*) FROM stocks GROUP BY exchange;")
-            exch_rows = cur.fetchall()
-            exchanges = {r[0]: r[1] for r in exch_rows}
+                    cur.execute("SELECT exchange, COUNT(*) FROM stocks GROUP BY exchange;")
+                    exch_rows = cur.fetchall()
+                    exchanges = {r[0]: r[1] for r in exch_rows}
 
-            cur.execute("SELECT MIN(trading_date), MAX(trading_date) FROM stock_prices;")
-            min_d, max_d = cur.fetchone()
-            conn.close()
+                    cur.execute("SELECT MIN(trading_date), MAX(trading_date) FROM stock_prices;")
+                    min_d, max_d = cur.fetchone()
 
             res = {
                 "total_stocks": total_stocks,
@@ -101,17 +100,16 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             from backend.db.postgres import PostgresDBManager
             db = PostgresDBManager()
-            conn = db.get_connection()
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT trading_date, open_price, high_price, low_price, close_price, volume, rsi_14, ma20, ma50
-                FROM stock_prices
-                WHERE symbol = %s
-                ORDER BY trading_date DESC
-                LIMIT %s;
-            """, (symbol, limit))
-            rows = cur.fetchall()
-            conn.close()
+            with db.get_connection_ctx() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT trading_date, open_price, high_price, low_price, close_price, volume, rsi_14, ma20, ma50
+                        FROM stock_prices
+                        WHERE symbol = %s
+                        ORDER BY trading_date DESC
+                        LIMIT %s;
+                    """, (symbol, limit))
+                    rows = cur.fetchall()
 
             data = [
                 {
@@ -135,15 +133,67 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def handle_api_data_sync(self, symbol: str):
         try:
+            import requests, datetime
+            import numpy as np
             from backend.db.postgres import PostgresDBManager
+            from backend.utils.metrics import calculate_rsi
+
             db = PostgresDBManager()
-            conn = db.get_connection()
-            cur = conn.cursor()
-            cur.execute("SELECT COUNT(*), MAX(trading_date) FROM stock_prices WHERE symbol = %s;", (symbol,))
-            row = cur.fetchone()
-            count = row[0] if row else 0
-            latest_d = row[1].strftime("%Y-%m-%d") if row and row[1] else "2026-08-28"
-            conn.close()
+            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+            url = f'https://api-finfo.vndirect.com.vn/v4/stock_prices?sort=date&q=code:{symbol}~date:gte:2021-01-01&size=2000'
+            
+            try:
+                r = requests.get(url, headers=headers, timeout=12)
+                if r.status_code == 200:
+                    data = r.json().get('data', [])
+                    if data:
+                        data = sorted(data, key=lambda x: x['date'])
+                        closes = [float(row['close']) * 1000 for row in data]
+                        opens = [float(row.get('open') or row.get('basicPrice') or row['close']) * 1000 for row in data]
+                        highs = [float(row.get('high') or row['close']) * 1000 for row in data]
+                        lows = [float(row.get('low') or row['close']) * 1000 for row in data]
+                        vols = [float(row.get('nmVolume') or row.get('volume') or 0) for row in data]
+
+                        prices = []
+                        for i, row in enumerate(data):
+                            d_str = row['date']
+                            sub_c = closes[:i+1]
+                            rsi_val = calculate_rsi(sub_c)
+                            ma20_val = float(np.mean(sub_c[-20:])) if len(sub_c) >= 20 else None
+                            ma50_val = float(np.mean(sub_c[-50:])) if len(sub_c) >= 50 else None
+                            prices.append({
+                                'date': d_str,
+                                'open': opens[i],
+                                'high': highs[i],
+                                'low': lows[i],
+                                'close': closes[i],
+                                'volume': vols[i],
+                                'rsi_14': rsi_val,
+                                'ma20': round(ma20_val, 2) if ma20_val else None,
+                                'ma50': round(ma50_val, 2) if ma50_val else None
+                            })
+                        db.upsert_prices(symbol, prices)
+                        latest_d = prices[-1]['date']
+                        latest_c = closes[-1]
+                        res = {
+                            "status": "SUCCESS",
+                            "symbol": symbol,
+                            "message": f"Đã đồng bộ {len(prices):,} nến giá BẢNG ĐIỆN THẬT từ VNDirect (Giá hôm nay: {latest_c:,.0f} đ, ngày {latest_d}).",
+                            "synced_bars": len(prices),
+                            "latest_date": latest_d,
+                            "sync_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                        }
+                        self.send_json_response(res)
+                        return
+            except Exception as net_err:
+                print(f"⚠️ Live VNDirect Finfo sync failed ({net_err}), querying existing DB bars...")
+
+            with db.get_connection_ctx() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*), MAX(trading_date) FROM stock_prices WHERE symbol = %s;", (symbol,))
+                    row = cur.fetchone()
+                    count = row[0] if row else 0
+                    latest_d = row[1].strftime("%Y-%m-%d") if row and row[1] else "2026-08-28"
 
             res = {
                 "status": "SUCCESS",
@@ -163,16 +213,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             from backend.db.postgres import PostgresDBManager
             db = PostgresDBManager()
-            conn = db.get_connection()
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT symbol, company_name, exchange, sector 
-                FROM stocks 
-                ORDER BY CASE WHEN symbol IN ('TCH', 'FPT', 'TCB', 'SSI', 'HPG', 'VNM', 'MBB', 'MWG', 'VCB', 'VIC', 'VHM') THEN 0 ELSE 1 END, symbol ASC
-                LIMIT 500;
-            """)
-            rows = cur.fetchall()
-            conn.close()
+            with db.get_connection_ctx() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT symbol, company_name, exchange, sector 
+                        FROM stocks 
+                        ORDER BY CASE WHEN symbol IN ('TCH', 'FPT', 'TCB', 'SSI', 'HPG', 'VNM', 'MBB', 'MWG', 'VCB', 'VIC', 'VHM') THEN 0 ELSE 1 END, symbol ASC;
+                    """)
+                    rows = cur.fetchall()
 
             if not rows:
                 self.send_json_response({"error": "Bảng 'stocks' trong PostgreSQL đang rỗng. Cần chạy fetch_vn_stocks_history.py để nạp dữ liệu."}, status_code=404)
@@ -192,29 +240,24 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             from backend.db.postgres import PostgresDBManager
             db = PostgresDBManager()
-            conn = db.get_connection()
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT trading_date, open_price, high_price, low_price, close_price, volume, rsi_14, ma20, ma50
-                FROM stock_prices
-                WHERE symbol = %s AND trading_date >= %s
-                ORDER BY trading_date ASC;
-            """, (symbol, start_date))
-            rows = cur.fetchall()
-            conn.close()
+            with db.get_connection_ctx() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT trading_date, open_price, high_price, low_price, close_price, volume, rsi_14, ma20, ma50
+                        FROM stock_prices
+                        WHERE symbol = %s AND trading_date >= %s
+                        ORDER BY trading_date ASC;
+                    """, (symbol, start_date))
+                    rows = cur.fetchall()
 
-            if not rows:
-                # If no data starting from start_date, query latest available bars
-                conn = db.get_connection()
-                cur = conn.cursor()
-                cur.execute("""
-                    SELECT trading_date, open_price, high_price, low_price, close_price, volume, rsi_14, ma20, ma50
-                    FROM stock_prices
-                    WHERE symbol = %s
-                    ORDER BY trading_date ASC;
-                """, (symbol,))
-                rows = cur.fetchall()
-                conn.close()
+                    if not rows:
+                        cur.execute("""
+                            SELECT trading_date, open_price, high_price, low_price, close_price, volume, rsi_14, ma20, ma50
+                            FROM stock_prices
+                            WHERE symbol = %s
+                            ORDER BY trading_date ASC;
+                        """, (symbol,))
+                        rows = cur.fetchall()
 
             if not rows:
                 self.send_json_response({
@@ -362,10 +405,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def handle_api_simulation(self, symbol: str, count: int = 10000):
         try:
             from backend.agents.simulator import BehavioralSimulationEngine
-            from backend.agents.data_agent import DataCollectionAgent
+            from backend.agents.data_agent import DataCollectorAgent
             from backend.agents.market_agent import MarketAnalyzerAgent
             
-            data_agent = DataCollectionAgent()
+            data_agent = DataCollectorAgent()
             market_agent = MarketAnalyzerAgent()
             sim_engine = BehavioralSimulationEngine()
 

@@ -3,6 +3,8 @@ from psycopg2 import pool as pg_pool
 from psycopg2.extras import execute_values
 from typing import List, Dict, Any, Optional
 
+from contextlib import contextmanager
+
 class PostgresDBManager:
     _pool: Optional[pg_pool.ThreadedConnectionPool] = None  # class-level shared pool
 
@@ -17,7 +19,7 @@ class PostgresDBManager:
         if PostgresDBManager._pool is None:
             try:
                 PostgresDBManager._pool = pg_pool.ThreadedConnectionPool(
-                    minconn=1, maxconn=5, **self.config
+                    minconn=2, maxconn=50, **self.config
                 )
             except Exception as e:
                 print(f"⚠️ Connection pool init failed ({e}), will use direct connections.")
@@ -31,9 +33,21 @@ class PostgresDBManager:
         """Return connection to pool or close if pool unavailable."""
         if conn is None:
             return
-        if PostgresDBManager._pool:
-            PostgresDBManager._pool.putconn(conn)
-        else:
+        try:
+            if PostgresDBManager._pool:
+                PostgresDBManager._pool.putconn(conn)
+            else:
+                conn.close()
+        except Exception:
+            pass
+
+    @contextmanager
+    def get_connection_ctx(self):
+        """Context manager đảm bảo connection luôn được trả về pool an toàn"""
+        conn = self.get_connection()
+        try:
+            yield conn
+        finally:
             self._release(conn)
 
     def init_schema(self):
