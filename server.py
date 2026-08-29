@@ -11,6 +11,8 @@ HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", 8000))
 DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
 
+_SHARED_TELEGRAM_ANALYZER = None
+
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
@@ -75,6 +77,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     cur.execute("SELECT COUNT(*) FROM stock_prices;")
                     total_candles = cur.fetchone()[0]
 
+                    cur.execute("SELECT COUNT(DISTINCT symbol) FROM stock_prices;")
+                    symbols_with_prices = cur.fetchone()[0]
+
                     cur.execute("SELECT exchange, COUNT(*) FROM stocks GROUP BY exchange;")
                     exch_rows = cur.fetchall()
                     exchanges = {r[0]: r[1] for r in exch_rows}
@@ -84,6 +89,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
             res = {
                 "total_stocks": total_stocks,
+                "symbols_with_prices": symbols_with_prices,
                 "total_candles": total_candles,
                 "exchanges": exchanges,
                 "date_range": f"{min_d} ➔ {max_d}" if min_d and max_d else "Chưa có dữ liệu",
@@ -133,58 +139,28 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def handle_api_data_sync(self, symbol: str):
         try:
-            import requests, datetime
-            import numpy as np
             from backend.db.postgres import PostgresDBManager
-            from backend.utils.metrics import calculate_rsi
+            from backend.utils.price_ingest import fetch_price_history
 
             db = PostgresDBManager()
-            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
-            url = f'https://api-finfo.vndirect.com.vn/v4/stock_prices?sort=date&q=code:{symbol}~date:gte:2021-01-01&size=2000'
-            
-            try:
-                r = requests.get(url, headers=headers, timeout=12)
-                if r.status_code == 200:
-                    data = r.json().get('data', [])
-                    if data:
-                        data = sorted(data, key=lambda x: x['date'])
-                        closes = [float(row['close']) * 1000 for row in data]
-                        opens = [float(row.get('open') or row.get('basicPrice') or row['close']) * 1000 for row in data]
-                        highs = [float(row.get('high') or row['close']) * 1000 for row in data]
-                        lows = [float(row.get('low') or row['close']) * 1000 for row in data]
-                        vols = [float(row.get('nmVolume') or row.get('volume') or 0) for row in data]
 
-                        prices = []
-                        for i, row in enumerate(data):
-                            d_str = row['date']
-                            sub_c = closes[:i+1]
-                            rsi_val = calculate_rsi(sub_c)
-                            ma20_val = float(np.mean(sub_c[-20:])) if len(sub_c) >= 20 else None
-                            ma50_val = float(np.mean(sub_c[-50:])) if len(sub_c) >= 50 else None
-                            prices.append({
-                                'date': d_str,
-                                'open': opens[i],
-                                'high': highs[i],
-                                'low': lows[i],
-                                'close': closes[i],
-                                'volume': vols[i],
-                                'rsi_14': rsi_val,
-                                'ma20': round(ma20_val, 2) if ma20_val else None,
-                                'ma50': round(ma50_val, 2) if ma50_val else None
-                            })
-                        db.upsert_prices(symbol, prices)
-                        latest_d = prices[-1]['date']
-                        latest_c = closes[-1]
-                        res = {
-                            "status": "SUCCESS",
-                            "symbol": symbol,
-                            "message": f"Đã đồng bộ {len(prices):,} nến giá BẢNG ĐIỆN THẬT từ VNDirect (Giá hôm nay: {latest_c:,.0f} đ, ngày {latest_d}).",
-                            "synced_bars": len(prices),
-                            "latest_date": latest_d,
-                            "sync_time": time.strftime("%Y-%m-%d %H:%M:%S")
-                        }
-                        self.send_json_response(res)
-                        return
+            try:
+                # Cùng một helper với script backfill -> lịch sử không bao giờ lệch nguồn.
+                prices = fetch_price_history(symbol, adjusted=True)
+                if prices:
+                    db.upsert_prices(symbol, prices)
+                    latest_d = prices[-1]['date']
+                    latest_c = prices[-1]['close']
+                    res = {
+                        "status": "SUCCESS",
+                        "symbol": symbol,
+                        "message": f"Đã đồng bộ {len(prices):,} nến giá đã điều chỉnh từ VNDirect (Giá mới nhất: {latest_c:,.0f} đ, ngày {latest_d}).",
+                        "synced_bars": len(prices),
+                        "latest_date": latest_d,
+                        "sync_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                    self.send_json_response(res)
+                    return
             except Exception as net_err:
                 print(f"⚠️ Live VNDirect Finfo sync failed ({net_err}), querying existing DB bars...")
 
@@ -426,18 +402,25 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def handle_api_telegram_sentiment(self, symbol: Optional[str] = None):
         try:
-            from backend.utils.telegram_analyzer import TelegramSentimentAnalyzer
-            analyzer = TelegramSentimentAnalyzer()
-            market_sent = analyzer.analyze_market_sentiment()
+            global _SHARED_TELEGRAM_ANALYZER
+            if _SHARED_TELEGRAM_ANALYZER is None:
+                from backend.utils.telegram_analyzer import TelegramSentimentAnalyzer
+                _SHARED_TELEGRAM_ANALYZER = TelegramSentimentAnalyzer()
+
+            if symbol:
+                market_sent = _SHARED_TELEGRAM_ANALYZER.analyze_stock_sentiment(symbol)
+            else:
+                market_sent = _SHARED_TELEGRAM_ANALYZER.analyze_market_sentiment()
 
             res = {
+                "symbol": symbol or "VN-INDEX",
                 "sentiment_score": market_sent.get("sentiment_score", 0.0),
                 "sentiment_label": market_sent.get("sentiment_label", "TRUNG TÍNH"),
-                "euphoria_percentage": market_sent.get("euphoria_index", 40.0),
-                "panic_percentage": 100.0 - market_sent.get("euphoria_index", 40.0),
+                "euphoria_percentage": market_sent.get("euphoria_percentage") or market_sent.get("euphoria_index", 40.0),
+                "panic_percentage": market_sent.get("panic_percentage", 60.0),
                 "total_messages": market_sent.get("total_messages", 0),
-                "risk_assessment": market_sent.get("risk_level", "BÌNH THƯỜNG"),
-                "summary": f"Dữ liệu sentiment cộng đồng Telegram cho {symbol or 'Thị trường chung'}."
+                "risk_assessment": market_sent.get("risk_assessment") or market_sent.get("risk_level", "BÌNH THƯỜNG"),
+                "summary": market_sent.get("summary") or f"Dữ liệu sentiment cộng đồng Telegram cho {symbol or 'Thị trường chung'}."
             }
             self.send_json_response(res)
         except Exception as e:

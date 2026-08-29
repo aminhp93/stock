@@ -36,9 +36,9 @@ Repository này chứa hệ thống **Multi-Agent Đầu tư Chứng khoán Chuy
 │   ├── README.md             # Hướng dẫn lưu trữ prompt history
 │   └── 01_vite_rewrite.md    # Nhật ký phiên viết lại ứng dụng bằng Vite 3 trang
 ├── scripts/
-│   ├── fetch_vn_stocks_2025.py
-│   ├── fetch_vn_stocks_2026.py
-│   └── fetch_vn_stocks_history.py
+│   ├── fetch_vn_stocks_2025.py   # DEPRECATED shim -> fetch_vn_stocks_history
+│   ├── fetch_vn_stocks_2026.py   # DEPRECATED shim -> fetch_vn_stocks_history
+│   └── fetch_vn_stocks_history.py # Backfill toàn bộ giá (adjusted) qua backend/utils/price_ingest.py
 └── src/
     ├── main.tsx              # React Entry Point
     ├── App.tsx               # Client Routing (/data, /chart, /dashboard)

@@ -20,7 +20,7 @@ class TelegramChannelReader:
         url = f"https://t.me/s/{clean_username}"
 
         try:
-            r = requests.get(url, headers=self.headers, timeout=10)
+            r = requests.get(url, headers=self.headers, timeout=2.0)
             if r.status_code != 200:
                 print(f"⚠️ Không thể truy cập Telegram Kênh @{clean_username} (HTTP Status {r.status_code})")
                 return []

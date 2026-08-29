@@ -42,6 +42,7 @@ export interface RawPricesResponse {
 
 export interface DataStats {
   total_stocks: number;
+  symbols_with_prices?: number;
   total_candles: number;
   exchanges: Record<string, number>;
   date_range: string;

@@ -166,11 +166,44 @@ class PostgresDBManager:
         except Exception as e:
             print(f"⚠️ Lỗi upsert stocks: {e}")
 
+    @staticmethod
+    def _sanitize_price_rows(prices_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Loại bỏ các nến giá không hợp lệ trước khi ghi vào DB.
+
+        Đây là hàng rào cuối cùng chống dữ liệu rác (nến ngày lễ giá bịa,
+        OHLC sai logic, giá <= 0, volume âm, ngày cuối tuần). Mọi đường ghi
+        giá đều đi qua đây.
+        """
+        import datetime as _dt
+        clean: List[Dict[str, Any]] = []
+        for p in prices_data:
+            try:
+                o = float(p["open"]); h = float(p["high"])
+                lo = float(p["low"]); c = float(p["close"])
+                v = float(p.get("volume") or 0.0)
+                d = str(p["date"])
+                if _dt.date.fromisoformat(d).weekday() >= 5:
+                    continue
+            except (KeyError, TypeError, ValueError):
+                continue
+            if min(o, h, lo, c) <= 0 or h < lo or v < 0:
+                continue
+            # cho phép sai số 1đ do làm tròn
+            if not (lo - 1 <= o <= h + 1) or not (lo - 1 <= c <= h + 1):
+                continue
+            # Giá cổ phiếu VN luôn là số nguyên đồng (bước giá >= 10đ). Giá có phần
+            # thập phân = dữ liệu tính toán/bịa (đây là dấu hiệu của "nến ma" ngày lễ).
+            if any(abs(x - round(x)) > 1e-6 for x in (o, h, lo, c)):
+                continue
+            clean.append(p)
+        return clean
+
     def upsert_prices(self, symbol: str, prices_data: List[Dict[str, Any]]):
         """Chèn / Cập nhật dữ liệu giá lịch sử của 1 mã cổ phiếu"""
+        prices_data = self._sanitize_price_rows(prices_data or [])
         if not prices_data:
             return
-        
+
         query = """
             INSERT INTO stock_prices (symbol, trading_date, open_price, high_price, low_price, close_price, volume, rsi_14, ma20, ma50)
             VALUES %s
@@ -211,8 +244,11 @@ class PostgresDBManager:
         except Exception as e:
             print(f"⚠️ Lỗi upsert prices: {e}")
 
-    def get_financial_metrics(self, symbol: str, year: int = 2025, quarter: int = 4) -> Optional[Dict[str, Any]]:
+    def get_financial_metrics(self, symbol: str, year: Optional[int] = None, quarter: int = 4) -> Optional[Dict[str, Any]]:
         """Truy vấn động chỉ số tài chính Point-In-Time theo symbol, year, quarter từ CSDL"""
+        if year is None:
+            import datetime as _dt
+            year = _dt.date.today().year
         try:
             conn = self.get_connection()
             try:

@@ -52,21 +52,27 @@ export const ChartPage: React.FC = () => {
       startDate = '2021-01-01';
     }
 
-    try {
-      const [cRes, sRes, tgRes] = await Promise.all([
-        fetchChartData(sym, startDate).catch(() => ({ symbol: sym, data: [] })),
-        fetchStockSummary(sym).catch(() => null),
-        fetchTelegramSentiment(sym).catch(() => null),
-      ]);
+    // 1. Tải nến giá TradingView NGAY LẬP TỨC (Không chờ Telegram hay Summary)
+    fetchChartData(sym, startDate)
+      .then((cRes) => {
+        setChartData(cRes.data || []);
+      })
+      .catch((err) => {
+        console.error("Lỗi nến chart:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
-      setChartData(cRes.data || []);
-      setSummary(sRes);
-      setTelegramData(tgRes);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    // 2. Tải tóm tắt AI Gatekeeper & MoS chạy nền bất đồng bộ
+    fetchStockSummary(sym)
+      .then(setSummary)
+      .catch((err) => console.error("Lỗi summary:", err));
+
+    // 3. Tải Telegram Sentiment chạy nền độc lập
+    fetchTelegramSentiment(sym)
+      .then(setTelegramData)
+      .catch((err) => console.error("Lỗi telegram sentiment:", err));
   };
 
   useEffect(() => {
