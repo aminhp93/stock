@@ -6,7 +6,15 @@ import { DataPage } from "./pages/DataPage";
 import { ChartPage } from "./pages/ChartPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { TestAgentPage } from "./pages/TestAgentPage";
-import { FinancePage } from "./pages/FinancePage";
+import { ObservationPage } from "./pages/ObservationPage";
+import { PersonalLayout } from "./pages/PersonalLayout";
+import {
+  ToolTab,
+  RawDataTab,
+  VisualizeTab,
+  AssessmentTab,
+  RecommendationTab,
+} from "./pages/FinancePage";
 
 export const App: React.FC = () => {
   return (
@@ -16,15 +24,34 @@ export const App: React.FC = () => {
         <Routes>
           <Route
             path="/"
-            element={<Navigate to="/finance/personal" replace />}
+            element={<Navigate to="/finance/personal/tool" replace />}
           />
+          {/* ── Stock Subroutes ── */}
           <Route path="/finance/stock" element={<StockLayout />}>
             <Route index element={<Navigate to="data" replace />} />
             <Route path="data" element={<DataPage />} />
             <Route path="chart" element={<ChartPage />} />
             <Route path="analysis" element={<DashboardPage />} />
             <Route path="test-agent" element={<TestAgentPage />} />
+            <Route path="observation" element={<ObservationPage />} />
           </Route>
+
+          {/* ── Personal Finance Subroutes ── */}
+          <Route path="/finance/personal" element={<PersonalLayout />}>
+            <Route index element={<Navigate to="tool" replace />} />
+            <Route path="tool" element={<ToolTab />} />
+            <Route path="raw" element={<RawDataTab />} />
+            <Route path="visual" element={<VisualizeTab />} />
+            <Route path="assess" element={<AssessmentTab />} />
+            <Route path="recommend" element={<RecommendationTab />} />
+            {/* aliases */}
+            <Route path="tools" element={<Navigate to="tool" replace />} />
+            <Route path="data" element={<Navigate to="raw" replace />} />
+            <Route path="charts" element={<Navigate to="visual" replace />} />
+            <Route path="assessment" element={<Navigate to="assess" replace />} />
+            <Route path="recommendation" element={<Navigate to="recommend" replace />} />
+          </Route>
+
           {/* legacy redirects */}
           <Route
             path="/finance/data"
@@ -38,10 +65,9 @@ export const App: React.FC = () => {
             path="/finance/dashboard"
             element={<Navigate to="/finance/stock/analysis" replace />}
           />
-          <Route path="/finance/personal" element={<FinancePage />} />
           <Route
             path="*"
-            element={<Navigate to="/finance/personal" replace />}
+            element={<Navigate to="/finance/personal/tool" replace />}
           />
         </Routes>
       </div>

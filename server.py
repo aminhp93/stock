@@ -53,6 +53,24 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/api/data/full-resync":
             symbol = query.get("symbol", ["TCH"])[0].upper()
             self.handle_api_full_resync(symbol)
+        elif path == "/api/observation/status":
+            self.handle_observation_status()
+        elif path == "/api/observation/videos":
+            self.handle_observation_videos()
+        elif path == "/api/observation/stats":
+            self.handle_observation_stats()
+        elif path == "/api/observation/daily-metrics":
+            self.handle_observation_daily_metrics()
+        elif path == "/api/observation/ticker-mentions":
+            self.handle_observation_ticker_mentions()
+        elif path == "/api/observation/divergence":
+            self.handle_observation_divergence()
+        elif path == "/api/observation/backtest":
+            self.handle_observation_backtest()
+        elif path == "/api/observation/comments":
+            ticker = query.get("ticker", [None])[0]
+            limit = int(query.get("limit", [50])[0])
+            self.handle_observation_comments(ticker, limit)
         else:
             # SPA fallback: if file does not exist, serve index.html
             local_path = self.translate_path(self.path)
@@ -68,6 +86,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/data/sync":
             symbol = query.get("symbol", ["TCH"])[0].upper()
             self.handle_api_data_sync(symbol)
+        elif path == "/api/observation/collect":
+            self.handle_observation_collect()
+        elif path == "/api/observation/seed-sample":
+            self.handle_observation_seed_sample()
         else:
             self.send_json_response({"status": "OK"})
 
@@ -500,6 +522,441 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
+
+    # ─── Observation API ──────────────────────────────────────────────────────
+    def handle_observation_status(self):
+        """Return collection log: phase/task/status/items_count."""
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT phase, task, status, detail, items_count,
+                           started_at, finished_at
+                    FROM yt_collection_log
+                    ORDER BY phase, id
+                """)
+                rows = cur.fetchall()
+            conn.close()
+            data = [{"phase": r[0], "task": r[1], "status": r[2], "detail": r[3] or "",
+                     "items": r[4] or 0,
+                     "started_at": r[5].isoformat() if r[5] else None,
+                     "finished_at": r[6].isoformat() if r[6] else None} for r in rows]
+            self.send_json_response({"tasks": data})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_observation_videos(self):
+        """Return list of collected videos."""
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT video_id, title, published_at, start_time, end_time,
+                           duration_sec, views, likes, comments, snapshot_at
+                    FROM yt_videos
+                    ORDER BY published_at DESC
+                """)
+                rows = cur.fetchall()
+            conn.close()
+            data = [{"video_id": r[0], "title": r[1],
+                     "published_at": r[2].isoformat() if r[2] else None,
+                     "start_time": r[3].isoformat() if r[3] else None,
+                     "end_time": r[4].isoformat() if r[4] else None,
+                     "duration_sec": r[5], "views": r[6], "likes": r[7],
+                     "comments": r[8],
+                     "snapshot_at": r[9].isoformat() if r[9] else None} for r in rows]
+            self.send_json_response({"videos": data, "total": len(data)})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_observation_stats(self):
+        """Aggregate stats: total videos/comments/transcript segments."""
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM yt_videos")
+                n_videos = cur.fetchone()[0]
+                cur.execute("SELECT COUNT(*) FROM yt_comments")
+                n_comments = cur.fetchone()[0]
+                cur.execute("SELECT COUNT(*) FROM yt_transcripts")
+                n_segments = cur.fetchone()[0]
+                cur.execute("SELECT COUNT(*) FROM yt_comment_classifications")
+                n_clf = cur.fetchone()[0]
+                cur.execute("SELECT COUNT(*) FROM yt_ticker_mentions")
+                n_tickers = cur.fetchone()[0]
+            conn.close()
+            self.send_json_response({
+                "videos": n_videos,
+                "comments": n_comments,
+                "transcript_segments": n_segments,
+                "classifications": n_clf,
+                "ticker_mention_rows": n_tickers,
+            })
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_observation_collect(self):
+        """Trigger Phase 1 collection in background subprocess."""
+        import subprocess
+        import sys
+        api_key = os.environ.get("YOUTUBE_API_KEY", "")
+        if not api_key:
+            self.send_json_response({"error": "YOUTUBE_API_KEY not set. Run: export YOUTUBE_API_KEY='AIza...'"}, 400)
+            return
+        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts", "collect_cfa99_phase1.py")
+        subprocess.Popen([sys.executable, script], env={**os.environ})
+        self.send_json_response({"status": "started", "message": "Phase 1 collection running in background. Poll /api/observation/status for progress."})
+
+    def handle_observation_daily_metrics(self):
+        """Return daily metrics for timeseries and sentiment charts."""
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT date, total_views, view_ratio, total_comments, comment_intensity, comment_velocity,
+                           total_questions, question_intensity, bullish_count, bearish_count, neutral_count,
+                           bullish_pct, bearish_pct,
+                           fomo_raw, fomo_mean_30d, fomo_std_30d, fomo_z,
+                           fear_raw, fear_mean_30d, fear_std_30d, fear_z,
+                           uncertainty_raw, uncertainty_mean_30d, uncertainty_std_30d, uncertainty_z,
+                           vnindex_open, vnindex_high, vnindex_low, vnindex_close,
+                           vnindex_change_pct, vnindex_volume, breadth_adv, breadth_dec, breadth_unch,
+                           foreign_buy, foreign_sell, foreign_net,
+                           vnindex_ret_1d, vnindex_ret_3d, vnindex_ret_5d, vnindex_ret_10d
+                    FROM yt_daily_metrics
+                    ORDER BY date ASC
+                """)
+                rows = cur.fetchall()
+            conn.close()
+            metrics = []
+            for r in rows:
+                metrics.append({
+                    "date": str(r[0]),
+                    "total_views": r[1] or 0,
+                    "view_ratio": float(r[2] or 1.0),
+                    "total_comments": r[3] or 0,
+                    "comment_intensity": float(r[4] or 0.0),
+                    "comment_velocity": float(r[5] or 0.0),
+                    "total_questions": r[6] or 0,
+                    "question_intensity": float(r[7] or 0.0),
+                    "bullish_count": r[8] or 0,
+                    "bearish_count": r[9] or 0,
+                    "neutral_count": r[10] or 0,
+                    "bullish_pct": float(r[11] or 0.0),
+                    "bearish_pct": float(r[12] or 0.0),
+                    "fomo_raw": r[13] or 0,
+                    "fomo_mean_30d": float(r[14] or 0.0),
+                    "fomo_std_30d": float(r[15] or 1.0),
+                    "fomo_z": float(r[16] or 0.0),
+                    "fear_raw": r[17] or 0,
+                    "fear_mean_30d": float(r[18] or 0.0),
+                    "fear_std_30d": float(r[19] or 1.0),
+                    "fear_z": float(r[20] or 0.0),
+                    "uncertainty_raw": r[21] or 0,
+                    "uncertainty_mean_30d": float(r[22] or 0.0),
+                    "uncertainty_std_30d": float(r[23] or 1.0),
+                    "uncertainty_z": float(r[24] or 0.0),
+                    "vnindex_open": float(r[25] or 0.0),
+                    "vnindex_high": float(r[26] or 0.0),
+                    "vnindex_low": float(r[27] or 0.0),
+                    "vnindex_close": float(r[28] or 0.0),
+                    "vnindex_change_pct": float(r[29] or 0.0),
+                    "vnindex_volume": int(r[30] or 0),
+                    "breadth_adv": r[31] or 0,
+                    "breadth_dec": r[32] or 0,
+                    "breadth_unch": r[33] or 0,
+                    "foreign_buy": float(r[34] or 0.0),
+                    "foreign_sell": float(r[35] or 0.0),
+                    "foreign_net": float(r[36] or 0.0),
+                    "vnindex_ret_1d": float(r[37] or 0.0),
+                    "vnindex_ret_3d": float(r[38] or 0.0),
+                    "vnindex_ret_5d": float(r[39] or 0.0),
+                    "vnindex_ret_10d": float(r[40] or 0.0),
+                })
+            self.send_json_response({"metrics": metrics, "total": len(metrics)})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_observation_ticker_mentions(self):
+        """Return aggregated stock mentions, questions, sentiment & delta attention."""
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                cur.execute("""
+                    WITH ticker_totals AS (
+                        SELECT 
+                            ticker,
+                            SUM(mentions) as mentions,
+                            SUM(questions) as questions,
+                            SUM(bullish_count) as bullish,
+                            SUM(bearish_count) as bearish,
+                            SUM(fomo_count) as fomo,
+                            SUM(fear_count) as fear,
+                            SUM(neutral_count) as neutral,
+                            COUNT(DISTINCT date) as days_active
+                        FROM yt_ticker_mentions
+                        GROUP BY ticker
+                    ),
+                    recent_attn AS (
+                        SELECT 
+                            ticker,
+                            AVG(mentions) FILTER (WHERE date >= (SELECT MAX(date) - INTERVAL '7 days' FROM yt_ticker_mentions)) as recent_avg,
+                            AVG(mentions) as overall_avg
+                        FROM yt_ticker_mentions
+                        GROUP BY ticker
+                    )
+                    SELECT 
+                        t.ticker, t.mentions, t.questions, t.bullish, t.bearish, t.fomo, t.fear,
+                        ROUND((t.bullish - t.bearish)::numeric / NULLIF(t.mentions, 0) * 100, 1) as sentiment_score,
+                        COALESCE(ROUND(((r.recent_avg - r.overall_avg) / NULLIF(r.overall_avg, 0) * 100)::numeric, 1), 0.0) as delta_attn,
+                        ROUND(r.overall_avg::numeric, 1) as avg_mentions
+                    FROM ticker_totals t
+                    LEFT JOIN recent_attn r ON t.ticker = r.ticker
+                    ORDER BY t.mentions DESC
+                """)
+                rows = cur.fetchall()
+            conn.close()
+            tickers = []
+            for r in rows:
+                tickers.append({
+                    "ticker": r[0],
+                    "mentions": int(r[1] or 0),
+                    "questions": int(r[2] or 0),
+                    "bullish_count": int(r[3] or 0),
+                    "bearish_count": int(r[4] or 0),
+                    "fomo_count": int(r[5] or 0),
+                    "fear_count": int(r[6] or 0),
+                    "sentiment": float(r[7] or 0.0),
+                    "delta_attn": float(r[8] or 0.0),
+                    "avg_mentions": float(r[9] or 0.0),
+                })
+            self.send_json_response({"tickers": tickers, "total": len(tickers)})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_observation_divergence(self):
+        """Return Creator Sentiment vs Audience Sentiment per top ticker."""
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                # Get creator sentiment from transcript classifications
+                cur.execute("""
+                    WITH creator_scores AS (
+                        SELECT 
+                            t.ticker,
+                            COUNT(*) as segments_count,
+                            SUM(CASE WHEN tc.analyst_sentiment = 'BULLISH' THEN 100 
+                                     WHEN tc.analyst_sentiment = 'BEARISH' THEN -100 
+                                     ELSE 0 END) / COUNT(*) as creator_sent,
+                            MODE() WITHIN GROUP (ORDER BY tc.recommendation) as rec
+                        FROM yt_transcript_classifications tc
+                        CROSS JOIN LATERAL unnest(tc.tickers) as t(ticker)
+                        GROUP BY t.ticker
+                    ),
+                    audience_scores AS (
+                        SELECT 
+                            t.ticker,
+                            SUM(mentions) as mentions,
+                            ROUND((SUM(bullish_count) - SUM(bearish_count))::numeric / NULLIF(SUM(mentions), 0) * 100, 1) as audience_sent
+                        FROM yt_ticker_mentions t
+                        GROUP BY t.ticker
+                    )
+                    SELECT 
+                        c.ticker,
+                        c.creator_sent,
+                        c.rec,
+                        COALESCE(a.audience_sent, 0) as audience_sent,
+                        COALESCE(a.mentions, 0) as mentions
+                    FROM creator_scores c
+                    LEFT JOIN audience_scores a ON c.ticker = a.ticker
+                    WHERE COALESCE(a.mentions, 0) > 0
+                    ORDER BY a.mentions DESC
+                    LIMIT 10
+                """)
+                rows = cur.fetchall()
+            conn.close()
+            divergences = []
+            for r in rows:
+                c_sent = int(r[1] or 0)
+                rec = r[2] or "WATCH"
+                a_sent = float(r[3] or 0.0)
+                diff = abs(c_sent - a_sent)
+                
+                # Determine consensus vs divergence
+                if (c_sent > 20 and a_sent > 20):
+                    consensus = "consensus_bullish"
+                    summary = "Cả chuyên gia và cộng đồng đều lạc quan"
+                elif (c_sent < -20 and a_sent < -20):
+                    consensus = "consensus_bearish"
+                    summary = "Cả chuyên gia và cộng đồng đều bi quan"
+                elif (c_sent < 0 and a_sent > 30):
+                    consensus = "contrarian_creator_bear"
+                    summary = "Cộng đồng FOMO nhưng chuyên gia cảnh báo rủi ro"
+                elif (c_sent > 30 and a_sent < 0):
+                    consensus = "contrarian_creator_bull"
+                    summary = "Chuyên gia đánh giá cao nhưng cộng đồng sợ hãi (Cơ hội tích sản)"
+                else:
+                    consensus = "neutral"
+                    summary = "Quan điểm trung lập hoặc phân hóa nhẹ"
+
+                divergences.append({
+                    "ticker": r[0],
+                    "creator": c_sent,
+                    "recommendation": rec,
+                    "audience": a_sent,
+                    "divergence": round(diff, 1),
+                    "consensus": consensus,
+                    "summary": summary,
+                    "mentions": int(r[4] or 0),
+                })
+            self.send_json_response({"divergence": divergences})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_observation_backtest(self):
+        """Calculate forward return stats grouped by sentiment/attention signals."""
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT 
+                        'High Attention (View Ratio > 1.2x)' as signal,
+                        'Độ chú ý của cộng đồng tăng vọt đột biến' as desc,
+                        COUNT(*) as n_obs,
+                        ROUND(AVG(vnindex_ret_1d)::numeric, 2) as r1d,
+                        ROUND(AVG(vnindex_ret_3d)::numeric, 2) as r3d,
+                        ROUND(AVG(vnindex_ret_5d)::numeric, 2) as r5d,
+                        ROUND(AVG(vnindex_ret_10d)::numeric, 2) as r10d,
+                        ROUND(COUNT(*) FILTER (WHERE vnindex_ret_5d > 0)::numeric / NULLIF(COUNT(*), 0) * 100, 1) as win_rate
+                    FROM yt_daily_metrics WHERE view_ratio >= 1.2
+                    UNION ALL
+                    SELECT 
+                        'Extreme FOMO (Z > +1.5σ)',
+                        'Tâm lý hưng phấn tột độ, tranh mua giá cao',
+                        COUNT(*),
+                        ROUND(AVG(vnindex_ret_1d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_3d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_5d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_10d)::numeric, 2),
+                        ROUND(COUNT(*) FILTER (WHERE vnindex_ret_5d > 0)::numeric / NULLIF(COUNT(*), 0) * 100, 1)
+                    FROM yt_daily_metrics WHERE fomo_z >= 1.5
+                    UNION ALL
+                    SELECT 
+                        'Extreme Fear (Z > +1.5σ)',
+                        'Tâm lý hoảng loạn bán tháo, cắt lỗ diện rộng',
+                        COUNT(*),
+                        ROUND(AVG(vnindex_ret_1d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_3d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_5d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_10d)::numeric, 2),
+                        ROUND(COUNT(*) FILTER (WHERE vnindex_ret_5d > 0)::numeric / NULLIF(COUNT(*), 0) * 100, 1)
+                    FROM yt_daily_metrics WHERE fear_z >= 1.5
+                    UNION ALL
+                    SELECT 
+                        'High Bullish Sentiment (> 55%)',
+                        'Tỷ lệ bình luận lạc quan chiếm ưu thế áp đảo',
+                        COUNT(*),
+                        ROUND(AVG(vnindex_ret_1d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_3d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_5d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_10d)::numeric, 2),
+                        ROUND(COUNT(*) FILTER (WHERE vnindex_ret_5d > 0)::numeric / NULLIF(COUNT(*), 0) * 100, 1)
+                    FROM yt_daily_metrics WHERE bullish_pct >= 55.0
+                    UNION ALL
+                    SELECT 
+                        'High Bearish Sentiment (> 25%)',
+                        'Tỷ lệ bình luận bi quan cảnh báo rủi ro tăng cao',
+                        COUNT(*),
+                        ROUND(AVG(vnindex_ret_1d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_3d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_5d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_10d)::numeric, 2),
+                        ROUND(COUNT(*) FILTER (WHERE vnindex_ret_5d > 0)::numeric / NULLIF(COUNT(*), 0) * 100, 1)
+                    FROM yt_daily_metrics WHERE bearish_pct >= 25.0
+                    UNION ALL
+                    SELECT 
+                        'High Uncertainty (Z > +1.5σ)',
+                        'Nhà đầu tư hoang mang đặt nhiều câu hỏi nghi ngờ',
+                        COUNT(*),
+                        ROUND(AVG(vnindex_ret_1d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_3d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_5d)::numeric, 2),
+                        ROUND(AVG(vnindex_ret_10d)::numeric, 2),
+                        ROUND(COUNT(*) FILTER (WHERE vnindex_ret_5d > 0)::numeric / NULLIF(COUNT(*), 0) * 100, 1)
+                    FROM yt_daily_metrics WHERE uncertainty_z >= 1.5
+                """)
+                rows = cur.fetchall()
+            conn.close()
+            signals = []
+            for r in rows:
+                signals.append({
+                    "signal": r[0],
+                    "desc": r[1],
+                    "n_obs": int(r[2] or 0),
+                    "r1d": float(r[3] or 0.0),
+                    "r3d": float(r[4] or 0.0),
+                    "r5d": float(r[5] or 0.0),
+                    "r10d": float(r[6] or 0.0),
+                    "win_rate": float(r[7] or 50.0),
+                })
+            self.send_json_response({"signals": signals})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_observation_comments(self, ticker=None, limit=50):
+        """Return sample raw comments with classifications."""
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                if ticker:
+                    cur.execute("""
+                        SELECT c.comment_id, c.video_id, c.published_at, c.text_original, c.like_count,
+                               cl.sentiment, cl.emotion, cl.intent, cl.tickers
+                        FROM yt_comments c
+                        JOIN yt_comment_classifications cl ON c.comment_id = cl.comment_id
+                        WHERE %s = ANY(cl.tickers)
+                        ORDER BY c.like_count DESC, c.published_at DESC
+                        LIMIT %s
+                    """, (ticker, limit))
+                else:
+                    cur.execute("""
+                        SELECT c.comment_id, c.video_id, c.published_at, c.text_original, c.like_count,
+                               cl.sentiment, cl.emotion, cl.intent, cl.tickers
+                        FROM yt_comments c
+                        JOIN yt_comment_classifications cl ON c.comment_id = cl.comment_id
+                        ORDER BY c.like_count DESC, c.published_at DESC
+                        LIMIT %s
+                    """, (limit,))
+                rows = cur.fetchall()
+            conn.close()
+            comments = []
+            for r in rows:
+                comments.append({
+                    "comment_id": r[0],
+                    "video_id": r[1],
+                    "published_at": r[2].isoformat() if r[2] else None,
+                    "text": r[3],
+                    "likes": r[4] or 0,
+                    "sentiment": r[5],
+                    "emotion": r[6],
+                    "intent": r[7],
+                    "tickers": r[8] or [],
+                })
+            self.send_json_response({"comments": comments, "total": len(comments)})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_observation_seed_sample(self):
+        """Regenerate sample 60-day CFA99 benchmark dataset."""
+        try:
+            import subprocess
+            import sys
+            script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts", "seed_cfa99_sample.py")
+            subprocess.run([sys.executable, script], check=True)
+            self.send_json_response({"status": "success", "message": "Đã tạo xong dữ liệu mẫu 60 ngày CFA99!"})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
 
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True

@@ -10,7 +10,17 @@ import {
   Trash2,
   TrendingUp,
   TrendingDown,
+  Building2,
+  Award,
+  Calendar,
+  CheckCircle2,
+  HelpCircle,
+  FileText,
 } from "lucide-react";
+import {
+  INSURANCE_RAW_DATA,
+  getInsuranceCalculations,
+} from "../data/insurance_raw";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface FinanceRow {
@@ -144,832 +154,771 @@ const fmtVND = (n: number) =>
   }).format(n);
 
 // ─── Raw Data Tab ─────────────────────────────────────────────────────────────
-const RawDataTab: React.FC = () => {
-  const [rows, setRows] = useState<FinanceRow[]>(() =>
-    load("finance_rows", defaultRows),
-  );
-  const [ckHoldings, setCkHoldings] = useState<CKHolding[]>(() =>
-    load("finance_ck", defaultCK),
-  );
-  const [tietKiem, setTietKiem] = useState<TietKiemDetail[]>(() =>
-    load("finance_tietkiem", defaultTietKiem),
-  );
-  const [vay, setVay] = useState<VayDetail[]>(() =>
-    load("finance_vay", defaultVay),
-  );
+// ─── Raw Data Tab (View Only) ──────────────────────────────────────────────────
+export const RawDataTab: React.FC = () => {
+  const rows = load<FinanceRow[]>("finance_rows", defaultRows);
+  const ckHoldings = load<CKHolding[]>("finance_ck", defaultCK);
+  const tietKiem = load<TietKiemDetail[]>("finance_tietkiem", defaultTietKiem);
+  const vay = load<VayDetail[]>("finance_vay", defaultVay);
 
-  // Main log helpers
-  const updateRow = (id: string, field: keyof FinanceRow, val: string) => {
-    const u = rows.map((r) =>
-      r.id === id
-        ? {
-            ...r,
-            [field]: field === "date" || field === "id" ? val : Number(val),
-          }
-        : r,
-    );
-    setRows(u);
-    save("finance_rows", u);
-  };
-  const addRow = () => {
-    const u = [
-      ...rows,
-      {
-        id: Date.now().toString(),
-        date: new Date().toISOString().slice(0, 10),
-        vang_so_luong: 0,
-        vang_gia: 0,
-        ck: 0,
-        tiet_kiem_vcb: 0,
-        tiet_kiem_tcb: 0,
-        cash_vcb: 0,
-        cash_tcb: 0,
-        cash_tpb: 0,
-        credit_tcb_spent: 0,
-        credit_tcb_instal: 0,
-        vay_vcb: 0,
-      },
-    ];
-    setRows(u);
-    save("finance_rows", u);
-  };
-  const delRow = (id: string) => {
-    const u = rows.filter((r) => r.id !== id);
-    setRows(u);
-    save("finance_rows", u);
-  };
+  // Latest snapshot metrics
+  const latest = rows.length > 0 ? rows[rows.length - 1] : null;
+  const vangTotal = latest ? latest.vang_so_luong * latest.vang_gia : 0;
+  const ckTotal = latest ? latest.ck : 0;
+  const tkTotal = latest ? latest.tiet_kiem_vcb + latest.tiet_kiem_tcb : 0;
+  const cashTotal = latest ? latest.cash_vcb + latest.cash_tcb + latest.cash_tpb : 0;
+  const grossAssets = vangTotal + ckTotal + tkTotal + cashTotal;
+  const debtTotal = latest ? latest.credit_tcb_spent + latest.credit_tcb_instal + latest.vay_vcb : 0;
+  const netWorth = grossAssets - debtTotal;
 
-  // CK helpers
-  const updateCK = (id: string, field: keyof CKHolding, val: string) => {
-    const u = ckHoldings.map((r) =>
-      r.id === id
-        ? {
-            ...r,
-            [field]: field === "symbol" || field === "id" ? val : Number(val),
-          }
-        : r,
-    );
-    setCkHoldings(u);
-    save("finance_ck", u);
-  };
-  const addCK = () => {
-    const u = [
-      ...ckHoldings,
-      {
-        id: Date.now().toString(),
-        symbol: "",
-        tong_sl: 0,
-        gia_von: 0,
-        gia_tt: 0,
-      },
-    ];
-    setCkHoldings(u);
-    save("finance_ck", u);
-  };
-  const delCK = (id: string) => {
-    const u = ckHoldings.filter((r) => r.id !== id);
-    setCkHoldings(u);
-    save("finance_ck", u);
-  };
-
-  // Tiet kiem helpers
-  const updateTK = (id: string, field: keyof TietKiemDetail, val: string) => {
-    const u = tietKiem.map((r) =>
-      r.id === id
-        ? {
-            ...r,
-            [field]: ["id", "bank", "start_date", "end_date"].includes(field)
-              ? val
-              : Number(val),
-          }
-        : r,
-    );
-    setTietKiem(u);
-    save("finance_tietkiem", u);
-  };
-  const addTK = () => {
-    const u = [
-      ...tietKiem,
-      {
-        id: Date.now().toString(),
-        bank: "",
-        amount: 0,
-        rate: 0,
-        start_date: "",
-        end_date: "",
-      },
-    ];
-    setTietKiem(u);
-    save("finance_tietkiem", u);
-  };
-  const delTK = (id: string) => {
-    const u = tietKiem.filter((r) => r.id !== id);
-    setTietKiem(u);
-    save("finance_tietkiem", u);
-  };
-
-  // Vay helpers
-  const updateVay = (id: string, field: keyof VayDetail, val: string) => {
-    const u = vay.map((r) =>
-      r.id === id
-        ? { ...r, [field]: field === "so_tien" ? Number(val) : val }
-        : r,
-    );
-    setVay(u);
-    save("finance_vay", u);
-  };
-  const addVay = () => {
-    const u = [
-      ...vay,
-      {
-        id: Date.now().toString(),
-        bank: "",
-        so_tien: 0,
-        thoi_gian: "",
-        lai_suat: "",
-      },
-    ];
-    setVay(u);
-    save("finance_vay", u);
-  };
-  const delVay = (id: string) => {
-    const u = vay.filter((r) => r.id !== id);
-    setVay(u);
-    save("finance_vay", u);
-  };
-
-  const hcell = (label: string, span = 1, bg = "#e2e8f0") => (
+  const hcell = (label: string, span = 1, bg = "#f1f5f9", align: "left" | "center" | "right" = "center") => (
     <th
       colSpan={span}
       style={{
         background: bg,
-        padding: "6px 8px",
+        padding: "8px 10px",
         fontSize: "11px",
         fontWeight: 700,
-        textAlign: "center",
+        textAlign: align,
         borderRight: "1px solid #cbd5e1",
+        color: "#334155",
         whiteSpace: "nowrap",
       }}
     >
       {label}
     </th>
   );
-  const numInput = (
-    val: number,
-    onChange: (v: string) => void,
-    bg = "white",
-  ) => (
-    <input
-      type="number"
-      value={val}
-      onChange={(e) => onChange(e.target.value)}
-      style={{
-        width: "100%",
-        border: "none",
-        background: "transparent",
-        textAlign: "right",
-        fontSize: "12px",
-        fontFamily: "monospace",
-        color: "var(--text-main)",
-        outline: "none",
-      }}
-    />
-  );
-  const textInput = (val: string, onChange: (v: string) => void) => (
-    <input
-      type="text"
-      value={val}
-      onChange={(e) => onChange(e.target.value)}
-      style={{
-        width: "100%",
-        border: "none",
-        background: "transparent",
-        fontSize: "12px",
-        fontFamily: "monospace",
-        color: "var(--text-main)",
-        outline: "none",
-      }}
-    />
-  );
 
-  const sectionHeader = (
-    title: string,
-    onAdd: () => void,
-    addLabel = "Thêm",
-  ) => (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "10px",
-        marginTop: "24px",
-      }}
-    >
-      <h3
-        style={{ fontSize: "14px", fontWeight: 800, color: "var(--text-main)" }}
-      >
-        {title}
-      </h3>
-      <button
-        onClick={onAdd}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "5px",
-          background: "var(--bull-green)",
-          color: "#fff",
-          border: "none",
-          padding: "5px 10px",
-          borderRadius: "5px",
-          fontSize: "11px",
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        <Plus size={11} /> {addLabel}
-      </button>
+  const sectionHeader = (title: string, subtitle?: string, icon?: React.ReactNode) => (
+    <div style={{ marginBottom: "12px", marginTop: "24px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {icon}
+        <h3 style={{ fontSize: "14px", fontWeight: 800, color: "#1e293b", margin: 0 }}>
+          {title}
+        </h3>
+        <span
+          style={{
+            fontSize: "10.5px",
+            fontWeight: 700,
+            padding: "2px 8px",
+            borderRadius: "4px",
+            background: "#f1f5f9",
+            color: "#64748b",
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          Chế độ xem (View Only)
+        </span>
+      </div>
+      {subtitle && <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "2px" }}>{subtitle}</div>}
     </div>
   );
 
-  const delBtn = (id: string, fn: (id: string) => void) => (
-    <td style={{ padding: "4px 8px", textAlign: "center" }}>
-      <button
-        onClick={() => fn(id)}
-        style={{
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          color: "#ef4444",
-        }}
-      >
-        <Trash2 size={12} />
-      </button>
-    </td>
-  );
-
   return (
-    <div style={{ overflowX: "auto" }}>
-      {/* ── Section 1: Main Log ── */}
-      {sectionHeader("📋 Nhật Ký Tài Chính Theo Ngày", addRow, "Thêm Dòng")}
-      <table
-        style={{
-          borderCollapse: "collapse",
-          width: "100%",
-          fontSize: "12px",
-          border: "1px solid #cbd5e1",
-        }}
-      >
-        <thead>
-          <tr>
-            {hcell("Ngày", 1, "#f1f5f9")}
-            {hcell("Vàng (triệu)", 3, "#fef9c3")}
-            {hcell("CK", 1, "#dcfce7")}
-            {hcell("Tiết Kiệm", 2, "#dbeafe")}
-            {hcell("Cash", 3, "#fef9c3")}
-            {hcell("Credit", 2, "#fee2e2")}
-            {hcell("Vay", 1, "#fecaca")}
-            {hcell("", 1, "#f1f5f9")}
-          </tr>
-          <tr>
-            {hcell("", 1, "#f1f5f9")}
-            {hcell("SL (cây)", 1, "#fef9c3")}
-            {hcell("Giá (nghìn)", 1, "#fef9c3")}
-            {hcell("Tổng", 1, "#fef9c3")}
-            {hcell("(tr)", 1, "#dcfce7")}
-            {hcell("VCB", 1, "#dbeafe")}
-            {hcell("TCB", 1, "#dbeafe")}
-            {hcell("VCB", 1, "#fef9c3")}
-            {hcell("TCB", 1, "#fef9c3")}
-            {hcell("TPB", 1, "#fef9c3")}
-            {hcell("TCB spent", 1, "#fee2e2")}
-            {hcell("TCB instal", 1, "#fee2e2")}
-            {hcell("VCB", 1, "#fecaca")}
-            {hcell("Xóa", 1, "#f1f5f9")}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => {
-            const bg = i % 2 === 0 ? "#fff" : "#f8fafc";
-            return (
-              <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                <td
-                  style={{
-                    background: bg,
-                    padding: "4px 6px",
-                    minWidth: "108px",
-                  }}
-                >
-                  <input
-                    type="date"
-                    value={r.date}
-                    onChange={(e) => updateRow(r.id, "date", e.target.value)}
-                    style={{
-                      border: "none",
-                      background: "transparent",
-                      fontSize: "12px",
-                      color: "var(--text-main)",
-                      outline: "none",
-                    }}
-                  />
-                </td>
-                <td
-                  style={{
-                    background: "#fffde7",
-                    padding: "4px 6px",
-                    minWidth: "64px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(
-                    r.vang_so_luong,
-                    (v) => updateRow(r.id, "vang_so_luong", v),
-                    "#fffde7",
-                  )}
-                </td>
-                <td
-                  style={{
-                    background: "#fffde7",
-                    padding: "4px 6px",
-                    minWidth: "64px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.vang_gia, (v) => updateRow(r.id, "vang_gia", v))}
-                </td>
-                <td
-                  style={{
-                    background: "#fffde7",
-                    padding: "4px 8px",
-                    textAlign: "right",
-                    fontFamily: "monospace",
-                    fontWeight: 700,
-                    color: "#b45309",
-                    minWidth: "64px",
-                  }}
-                >
-                  {fmt(r.vang_so_luong * r.vang_gia)}
-                </td>
-                <td
-                  style={{
-                    background: "#f0fdf4",
-                    padding: "4px 6px",
-                    minWidth: "64px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.ck, (v) => updateRow(r.id, "ck", v))}
-                </td>
-                <td
-                  style={{
-                    background: "#eff6ff",
-                    padding: "4px 6px",
-                    minWidth: "56px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.tiet_kiem_vcb, (v) =>
-                    updateRow(r.id, "tiet_kiem_vcb", v),
-                  )}
-                </td>
-                <td
-                  style={{
-                    background: "#eff6ff",
-                    padding: "4px 6px",
-                    minWidth: "56px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.tiet_kiem_tcb, (v) =>
-                    updateRow(r.id, "tiet_kiem_tcb", v),
-                  )}
-                </td>
-                <td
-                  style={{
-                    background: "#fffde7",
-                    padding: "4px 6px",
-                    minWidth: "56px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.cash_vcb, (v) => updateRow(r.id, "cash_vcb", v))}
-                </td>
-                <td
-                  style={{
-                    background: "#fffde7",
-                    padding: "4px 6px",
-                    minWidth: "56px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.cash_tcb, (v) => updateRow(r.id, "cash_tcb", v))}
-                </td>
-                <td
-                  style={{
-                    background: "#fffde7",
-                    padding: "4px 6px",
-                    minWidth: "56px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.cash_tpb, (v) => updateRow(r.id, "cash_tpb", v))}
-                </td>
-                <td
-                  style={{
-                    background: "#fff1f2",
-                    padding: "4px 6px",
-                    minWidth: "72px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.credit_tcb_spent, (v) =>
-                    updateRow(r.id, "credit_tcb_spent", v),
-                  )}
-                </td>
-                <td
-                  style={{
-                    background: "#fff1f2",
-                    padding: "4px 6px",
-                    minWidth: "72px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.credit_tcb_instal, (v) =>
-                    updateRow(r.id, "credit_tcb_instal", v),
-                  )}
-                </td>
-                <td
-                  style={{
-                    background: "#fee2e2",
-                    padding: "4px 6px",
-                    minWidth: "64px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.vay_vcb, (v) => updateRow(r.id, "vay_vcb", v))}
-                </td>
-                {delBtn(r.id, delRow)}
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* ── Summary Snapshot Cards ── */}
+      {latest && (
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <div
+            style={{
+              flex: "1 1 200px",
+              background: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "10px",
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+              🏦 Tài Sản Ròng (Net Worth)
+            </span>
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: 900,
+                color: netWorth >= 0 ? "#059669" : "#dc2626",
+                fontFamily: "monospace",
+              }}
+            >
+              {netWorth >= 0 ? "+" : ""}{fmt(netWorth)} tr
+            </div>
+            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+              Tổng TS: {fmt(grossAssets)} tr · Tổng Nợ: {fmt(debtTotal)} tr
+            </span>
+          </div>
+
+          <div
+            style={{
+              flex: "1 1 180px",
+              background: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "10px",
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+              🟡 Vàng ({latest.vang_so_luong} cây)
+            </span>
+            <div style={{ fontSize: "20px", fontWeight: 900, color: "#b45309", fontFamily: "monospace" }}>
+              {fmt(vangTotal)} tr
+            </div>
+            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+              Giá: {latest.vang_gia} tr/lượng
+            </span>
+          </div>
+
+          <div
+            style={{
+              flex: "1 1 180px",
+              background: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "10px",
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+              📈 Chứng Khoán ({ckHoldings.length} mã)
+            </span>
+            <div style={{ fontSize: "20px", fontWeight: 900, color: "#2563eb", fontFamily: "monospace" }}>
+              {fmt(ckTotal)} tr
+            </div>
+            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+              Giá trị danh mục cổ phiếu
+            </span>
+          </div>
+
+          <div
+            style={{
+              flex: "1 1 180px",
+              background: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "10px",
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+              💵 Tiền Mặt & Tiết Kiệm
+            </span>
+            <div style={{ fontSize: "20px", fontWeight: 900, color: "#0891b2", fontFamily: "monospace" }}>
+              {fmt(cashTotal + tkTotal)} tr
+            </div>
+            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+              Cash: {fmt(cashTotal)} tr · TK: {fmt(tkTotal)} tr
+            </span>
+          </div>
+
+          <div
+            style={{
+              flex: "1 1 180px",
+              background: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "10px",
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+              💳 Tổng Dư Nợ & Vay
+            </span>
+            <div style={{ fontSize: "20px", fontWeight: 900, color: "#dc2626", fontFamily: "monospace" }}>
+              {fmt(debtTotal)} tr
+            </div>
+            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+              Vay VCB: {fmt(latest.vay_vcb)} tr · Thẻ: {fmt(latest.credit_tcb_spent + latest.credit_tcb_instal)} tr
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 1: Main Log (View Only) ── */}
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
+        {sectionHeader("📋 Nhật Ký Tài Chính Theo Ngày", "Lịch sử ghi nhận biến động giá trị tài sản và dư nợ theo từng mốc thời gian")}
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              borderCollapse: "collapse",
+              width: "100%",
+              fontSize: "12px",
+              border: "1px solid #cbd5e1",
+            }}
+          >
+            <thead>
+              <tr>
+                {hcell("Ngày", 1, "#f1f5f9")}
+                {hcell("Vàng (triệu)", 3, "#fef9c3")}
+                {hcell("CK", 1, "#dcfce7")}
+                {hcell("Tiết Kiệm", 2, "#dbeafe")}
+                {hcell("Tiền Mặt (Cash)", 3, "#fef9c3")}
+                {hcell("Thẻ Tín Dụng", 2, "#fee2e2")}
+                {hcell("Vay", 1, "#fecaca")}
+                {hcell("Tổng TS", 1, "#dcfce7")}
+                {hcell("Tổng Nợ", 1, "#fee2e2")}
+                {hcell("Tài Sản Ròng", 1, "#eff6ff")}
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {/* ── Section 2: CK Holdings ── */}
-      {sectionHeader("📊 Danh Mục Cổ Phiếu (CK Holdings)", addCK, "Thêm Mã")}
-      <table
-        style={{
-          borderCollapse: "collapse",
-          width: "100%",
-          fontSize: "12px",
-          border: "1px solid #cbd5e1",
-        }}
-      >
-        <thead>
-          <tr>
-            {hcell("Mã CK", 1, "#dcfce7")}
-            {hcell("Tổng SL", 1, "#dcfce7")}
-            {hcell("Giá Vốn (đ)", 1, "#fef9c3")}
-            {hcell("Giá TT (đ)", 1, "#dbeafe")}
-            {hcell("Giá Trị Vốn (tr)", 1, "#fef9c3")}
-            {hcell("Giá Trị TT (tr)", 1, "#dbeafe")}
-            {hcell("Lãi/Lỗ (tr)", 1, "#f1f5f9")}
-            {hcell("% Lãi/Lỗ", 1, "#f1f5f9")}
-            {hcell("Xóa", 1, "#f1f5f9")}
-          </tr>
-        </thead>
-        <tbody>
-          {ckHoldings.map((r, i) => {
-            const gtvon = (r.tong_sl * r.gia_von) / 1000000;
-            const gttt = (r.tong_sl * r.gia_tt) / 1000000;
-            const laiLo = gttt - gtvon;
-            const pct = gtvon > 0 ? (laiLo / gtvon) * 100 : 0;
-            const bg = i % 2 === 0 ? "#fff" : "#f8fafc";
-            const lc = laiLo >= 0 ? "var(--bull-green)" : "#ef4444";
-            return (
-              <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                <td
-                  style={{
-                    background: "#f0fdf4",
-                    padding: "4px 8px",
-                    minWidth: "60px",
-                    fontWeight: 700,
-                  }}
-                >
-                  {textInput(r.symbol, (v) => updateCK(r.id, "symbol", v))}
-                </td>
-                <td
-                  style={{
-                    background: bg,
-                    padding: "4px 6px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.tong_sl, (v) => updateCK(r.id, "tong_sl", v))}
-                </td>
-                <td
-                  style={{
-                    background: "#fffde7",
-                    padding: "4px 6px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.gia_von, (v) => updateCK(r.id, "gia_von", v))}
-                </td>
-                <td
-                  style={{
-                    background: "#eff6ff",
-                    padding: "4px 6px",
-                    textAlign: "right",
-                  }}
-                >
-                  {numInput(r.gia_tt, (v) => updateCK(r.id, "gia_tt", v))}
-                </td>
-                <td
-                  style={{
-                    background: "#fffde7",
-                    padding: "4px 8px",
-                    textAlign: "right",
-                    fontFamily: "monospace",
-                    color: "#92400e",
-                  }}
-                >
-                  {fmt(gtvon, 3)}
-                </td>
-                <td
-                  style={{
-                    background: "#eff6ff",
-                    padding: "4px 8px",
-                    textAlign: "right",
-                    fontFamily: "monospace",
-                    color: "#1e40af",
-                  }}
-                >
-                  {fmt(gttt, 3)}
-                </td>
-                <td
-                  style={{
-                    background: bg,
-                    padding: "4px 8px",
-                    textAlign: "right",
-                    fontFamily: "monospace",
-                    fontWeight: 700,
-                    color: lc,
-                  }}
-                >
-                  {laiLo >= 0 ? "+" : ""}
-                  {fmt(laiLo, 3)}
-                </td>
-                <td
-                  style={{
-                    background: bg,
-                    padding: "4px 8px",
-                    textAlign: "right",
-                    fontFamily: "monospace",
-                    fontWeight: 700,
-                    color: lc,
-                  }}
-                >
-                  {pct >= 0 ? "+" : ""}
-                  {pct.toFixed(2)}%
-                </td>
-                {delBtn(r.id, delCK)}
+              <tr>
+                {hcell("", 1, "#f1f5f9")}
+                {hcell("SL (cây)", 1, "#fef9c3")}
+                {hcell("Giá (tr)", 1, "#fef9c3")}
+                {hcell("Tổng (tr)", 1, "#fef9c3")}
+                {hcell("CK (tr)", 1, "#dcfce7")}
+                {hcell("VCB (tr)", 1, "#dbeafe")}
+                {hcell("TCB (tr)", 1, "#dbeafe")}
+                {hcell("VCB (tr)", 1, "#fef9c3")}
+                {hcell("TCB (tr)", 1, "#fef9c3")}
+                {hcell("TPB (tr)", 1, "#fef9c3")}
+                {hcell("Đã Tiêu", 1, "#fee2e2")}
+                {hcell("Trả Góp", 1, "#fee2e2")}
+                {hcell("VCB (tr)", 1, "#fecaca")}
+                {hcell("(tr)", 1, "#dcfce7")}
+                {hcell("(tr)", 1, "#fee2e2")}
+                {hcell("Net Worth", 1, "#eff6ff")}
               </tr>
-            );
-          })}
-        </tbody>
-        <tfoot>
-          <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
-            <td
-              colSpan={4}
-              style={{
-                padding: "6px 8px",
-                fontSize: "11px",
-                fontWeight: 700,
-                color: "var(--text-muted)",
-              }}
-            >
-              TỔNG
-            </td>
-            {(() => {
-              const totalVon = ckHoldings.reduce(
-                (s, r) => s + (r.tong_sl * r.gia_von) / 1000000,
-                0,
-              );
-              const totalTT = ckHoldings.reduce(
-                (s, r) => s + (r.tong_sl * r.gia_tt) / 1000000,
-                0,
-              );
-              const ll = totalTT - totalVon;
-              const pct = totalVon > 0 ? (ll / totalVon) * 100 : 0;
-              const c = ll >= 0 ? "var(--bull-green)" : "#ef4444";
-              return (
-                <>
-                  <td
-                    style={{
-                      padding: "6px 8px",
-                      textAlign: "right",
-                      fontFamily: "monospace",
-                      fontWeight: 800,
-                      color: "#92400e",
-                    }}
-                  >
-                    {fmt(totalVon, 3)}
-                  </td>
-                  <td
-                    style={{
-                      padding: "6px 8px",
-                      textAlign: "right",
-                      fontFamily: "monospace",
-                      fontWeight: 800,
-                      color: "#1e40af",
-                    }}
-                  >
-                    {fmt(totalTT, 3)}
-                  </td>
-                  <td
-                    style={{
-                      padding: "6px 8px",
-                      textAlign: "right",
-                      fontFamily: "monospace",
-                      fontWeight: 800,
-                      color: c,
-                    }}
-                  >
-                    {ll >= 0 ? "+" : ""}
-                    {fmt(ll, 3)}
-                  </td>
-                  <td
-                    style={{
-                      padding: "6px 8px",
-                      textAlign: "right",
-                      fontFamily: "monospace",
-                      fontWeight: 800,
-                      color: c,
-                    }}
-                  >
-                    {pct >= 0 ? "+" : ""}
-                    {pct.toFixed(2)}%
-                  </td>
-                  <td />
-                </>
-              );
-            })()}
-          </tr>
-        </tfoot>
-      </table>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => {
+                const bg = i % 2 === 0 ? "#fff" : "#f8fafc";
+                const rowVang = r.vang_so_luong * r.vang_gia;
+                const rowTS = rowVang + r.ck + r.tiet_kiem_vcb + r.tiet_kiem_tcb + r.cash_vcb + r.cash_tcb + r.cash_tpb;
+                const rowNo = r.credit_tcb_spent + r.credit_tcb_instal + r.vay_vcb;
+                const rowNet = rowTS - rowNo;
+                return (
+                  <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <td style={{ background: bg, padding: "8px 10px", fontFamily: "monospace", fontWeight: 700, color: "#1e293b", whiteSpace: "nowrap" }}>
+                      {r.date}
+                    </td>
+                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                      {r.vang_so_luong}
+                    </td>
+                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                      {fmt(r.vang_gia)}
+                    </td>
+                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#b45309" }}>
+                      {fmt(rowVang)}
+                    </td>
+                    <td style={{ background: "#f0fdf4", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#15803d" }}>
+                      {fmt(r.ck)}
+                    </td>
+                    <td style={{ background: "#eff6ff", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                      {fmt(r.tiet_kiem_vcb)}
+                    </td>
+                    <td style={{ background: "#eff6ff", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                      {fmt(r.tiet_kiem_tcb)}
+                    </td>
+                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                      {fmt(r.cash_vcb)}
+                    </td>
+                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                      {fmt(r.cash_tcb)}
+                    </td>
+                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                      {fmt(r.cash_tpb)}
+                    </td>
+                    <td style={{ background: "#fff1f2", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", color: "#b91c1c" }}>
+                      {fmt(r.credit_tcb_spent)}
+                    </td>
+                    <td style={{ background: "#fff1f2", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", color: "#b91c1c" }}>
+                      {fmt(r.credit_tcb_instal)}
+                    </td>
+                    <td style={{ background: "#fee2e2", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#b91c1c" }}>
+                      {fmt(r.vay_vcb)}
+                    </td>
+                    <td style={{ background: "#f0fdf4", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#15803d" }}>
+                      {fmt(rowTS)}
+                    </td>
+                    <td style={{ background: "#fee2e2", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#b91c1c" }}>
+                      {fmt(rowNo)}
+                    </td>
+                    <td style={{ background: "#eff6ff", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: rowNet >= 0 ? "#059669" : "#dc2626" }}>
+                      {rowNet >= 0 ? "+" : ""}{fmt(rowNet)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      {/* ── Section 3: Tiet Kiem ── */}
-      {sectionHeader("🏦 Tiết Kiệm", addTK, "Thêm")}
-      <table
-        style={{
-          borderCollapse: "collapse",
-          width: "100%",
-          fontSize: "12px",
-          border: "1px solid #cbd5e1",
-        }}
-      >
-        <thead>
-          <tr>
-            {hcell("Ngân Hàng", 1, "#dbeafe")}
-            {hcell("Số Tiền (tr)", 1, "#dbeafe")}
-            {hcell("Lãi Suất (%/năm)", 1, "#dbeafe")}
-            {hcell("Ngày Mở", 1, "#f1f5f9")}
-            {hcell("Ngày Đến Hạn", 1, "#f1f5f9")}
-            {hcell("Xóa", 1, "#f1f5f9")}
-          </tr>
-        </thead>
-        <tbody>
-          {tietKiem.map((r, i) => (
-            <tr
-              key={r.id}
-              style={{
-                borderBottom: "1px solid #e2e8f0",
-                background: i % 2 === 0 ? "#fff" : "#f8fafc",
-              }}
-            >
-              <td
-                style={{
-                  background: "#eff6ff",
-                  padding: "4px 8px",
-                  fontWeight: 700,
-                }}
-              >
-                {textInput(r.bank, (v) => updateTK(r.id, "bank", v))}
-              </td>
-              <td
-                style={{
-                  background: "#eff6ff",
-                  padding: "4px 6px",
-                  textAlign: "right",
-                }}
-              >
-                {numInput(r.amount, (v) => updateTK(r.id, "amount", v))}
-              </td>
-              <td
-                style={{
-                  background: "#eff6ff",
-                  padding: "4px 6px",
-                  textAlign: "right",
-                }}
-              >
-                {numInput(r.rate, (v) => updateTK(r.id, "rate", v))}
-              </td>
-              <td style={{ padding: "4px 8px" }}>
-                <input
-                  type="date"
-                  value={r.start_date}
-                  onChange={(e) => updateTK(r.id, "start_date", e.target.value)}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    fontSize: "12px",
-                    outline: "none",
-                  }}
-                />
-              </td>
-              <td style={{ padding: "4px 8px" }}>
-                <input
-                  type="date"
-                  value={r.end_date}
-                  onChange={(e) => updateTK(r.id, "end_date", e.target.value)}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    fontSize: "12px",
-                    outline: "none",
-                  }}
-                />
-              </td>
-              {delBtn(r.id, delTK)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* ── Section 2: CK Holdings (View Only) ── */}
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
+        {sectionHeader("📊 Danh Mục Cổ Phiếu Nắm Giữ", "Bảng thống kê chi tiết khối lượng, giá vốn và tỷ suất sinh lời từng mã cổ phiếu")}
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              borderCollapse: "collapse",
+              width: "100%",
+              fontSize: "12px",
+              border: "1px solid #cbd5e1",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                {hcell("Mã CK", 1, "#dcfce7", "left")}
+                {hcell("Tổng Khối Lượng", 1, "#dcfce7", "right")}
+                {hcell("Giá Vốn (đ)", 1, "#fef9c3", "right")}
+                {hcell("Giá Thị Trường (đ)", 1, "#dbeafe", "right")}
+                {hcell("Giá Trị Vốn (tr)", 1, "#fef9c3", "right")}
+                {hcell("Giá Trị TT (tr)", 1, "#dbeafe", "right")}
+                {hcell("Lãi/Lỗ (tr)", 1, "#f1f5f9", "right")}
+                {hcell("% Lãi/Lỗ", 1, "#f1f5f9", "right")}
+              </tr>
+            </thead>
+            <tbody>
+              {ckHoldings.map((r, i) => {
+                const gtvon = (r.tong_sl * r.gia_von) / 1000000;
+                const gttt = (r.tong_sl * r.gia_tt) / 1000000;
+                const laiLo = gttt - gtvon;
+                const pct = gtvon > 0 ? (laiLo / gtvon) * 100 : 0;
+                const bg = i % 2 === 0 ? "#fff" : "#f8fafc";
+                const isProfitable = laiLo >= 0;
+                return (
+                  <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <td style={{ background: "#f0fdf4", padding: "8px 12px" }}>
+                      <span
+                        style={{
+                          fontFamily: "monospace",
+                          fontWeight: 900,
+                          fontSize: "13px",
+                          color: "#166534",
+                          background: "#dcfce7",
+                          padding: "2px 8px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {r.symbol}
+                      </span>
+                    </td>
+                    <td style={{ background: bg, padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700 }}>
+                      {r.tong_sl.toLocaleString()}
+                    </td>
+                    <td style={{ background: "#fffde7", padding: "8px 12px", textAlign: "right", fontFamily: "monospace" }}>
+                      {r.gia_von.toLocaleString()} đ
+                    </td>
+                    <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: "#1e40af" }}>
+                      {r.gia_tt.toLocaleString()} đ
+                    </td>
+                    <td style={{ background: "#fffde7", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", color: "#92400e" }}>
+                      {fmt(gtvon, 3)} tr
+                    </td>
+                    <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: "#1e40af" }}>
+                      {fmt(gttt, 3)} tr
+                    </td>
+                    <td style={{ background: bg, padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: isProfitable ? "#15803d" : "#dc2626" }}>
+                      {isProfitable ? "+" : ""}{fmt(laiLo, 3)} tr
+                    </td>
+                    <td style={{ background: bg, padding: "8px 12px", textAlign: "right" }}>
+                      <span
+                        style={{
+                          fontFamily: "monospace",
+                          fontWeight: 800,
+                          fontSize: "11.5px",
+                          padding: "2px 7px",
+                          borderRadius: "4px",
+                          background: isProfitable ? "#f0fdf4" : "#fef2f2",
+                          color: isProfitable ? "#15803d" : "#dc2626",
+                        }}
+                      >
+                        {isProfitable ? "+" : ""}{pct.toFixed(2)}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
+                <td colSpan={4} style={{ padding: "10px 12px", fontSize: "12px", fontWeight: 800, color: "#334155" }}>
+                  TỔNG DANH MỤC CỔ PHIẾU
+                </td>
+                {(() => {
+                  const totalVon = ckHoldings.reduce((s, r) => s + (r.tong_sl * r.gia_von) / 1000000, 0);
+                  const totalTT = ckHoldings.reduce((s, r) => s + (r.tong_sl * r.gia_tt) / 1000000, 0);
+                  const ll = totalTT - totalVon;
+                  const pct = totalVon > 0 ? (ll / totalVon) * 100 : 0;
+                  const isPos = ll >= 0;
+                  return (
+                    <>
+                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#92400e" }}>
+                        {fmt(totalVon, 3)} tr
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#1e40af" }}>
+                        {fmt(totalTT, 3)} tr
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: isPos ? "#15803d" : "#dc2626" }}>
+                        {isPos ? "+" : ""}{fmt(ll, 3)} tr
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: isPos ? "#15803d" : "#dc2626" }}>
+                        {isPos ? "+" : ""}{pct.toFixed(2)}%
+                      </td>
+                    </>
+                  );
+                })()}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
 
-      {/* ── Section 4: Vay ── */}
-      {sectionHeader("🏠 Vay", addVay, "Thêm")}
-      <table
-        style={{
-          borderCollapse: "collapse",
-          width: "100%",
-          fontSize: "12px",
-          border: "1px solid #cbd5e1",
-        }}
-      >
-        <thead>
-          <tr>
-            {hcell("Ngân Hàng", 1, "#fecaca")}
-            {hcell("Số Tiền (tr)", 1, "#fecaca")}
-            {hcell("Thời Gian", 1, "#f1f5f9")}
-            {hcell("Lãi Suất", 1, "#f1f5f9")}
-            {hcell("Xóa", 1, "#f1f5f9")}
-          </tr>
-        </thead>
-        <tbody>
-          {vay.map((r, i) => (
-            <tr
-              key={r.id}
-              style={{
-                borderBottom: "1px solid #e2e8f0",
-                background: i % 2 === 0 ? "#fff" : "#f8fafc",
-              }}
-            >
-              <td
+      {/* ── Section 3: Tiet Kiem (View Only) ── */}
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
+        {sectionHeader("🏦 Sổ Tiết Kiệm Ngân Hàng", "Chi tiết các khoản tiền gửi kỳ hạn và lãi suất dự kiến")}
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              borderCollapse: "collapse",
+              width: "100%",
+              fontSize: "12px",
+              border: "1px solid #cbd5e1",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                {hcell("Ngân Hàng", 1, "#dbeafe", "left")}
+                {hcell("Số Tiền Gửi (tr)", 1, "#dbeafe", "right")}
+                {hcell("Lãi Suất (%/năm)", 1, "#dbeafe", "right")}
+                {hcell("Ngày Mở Sổ", 1, "#f1f5f9")}
+                {hcell("Ngày Đến Hạn", 1, "#f1f5f9")}
+                {hcell("Tiền Lãi Dự Kiến (tr)", 1, "#f0fdf4", "right")}
+              </tr>
+            </thead>
+            <tbody>
+              {tietKiem.map((r, i) => {
+                const interest = (r.amount * r.rate) / 100;
+                return (
+                  <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0", background: i % 2 === 0 ? "#fff" : "#f8fafc" }}>
+                    <td style={{ background: "#eff6ff", padding: "8px 12px", fontWeight: 800, color: "#1e40af" }}>
+                      {r.bank}
+                    </td>
+                    <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800 }}>
+                      {fmt(r.amount)} tr
+                    </td>
+                    <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", color: "#2563eb" }}>
+                      {r.rate}%
+                    </td>
+                    <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: "monospace", color: "#64748b" }}>
+                      {r.start_date}
+                    </td>
+                    <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: "monospace", color: "#64748b" }}>
+                      {r.end_date}
+                    </td>
+                    <td style={{ background: "#f0fdf4", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#15803d" }}>
+                      +{fmt(interest, 2)} tr
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
+                <td style={{ padding: "10px 12px", fontSize: "12px", fontWeight: 800, color: "#334155" }}>
+                  TỔNG TIẾT KIỆM
+                </td>
+                <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#1e40af" }}>
+                  {fmt(tietKiem.reduce((s, r) => s + r.amount, 0))} tr
+                </td>
+                <td colSpan={3} />
+                <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#15803d" }}>
+                  +{fmt(tietKiem.reduce((s, r) => s + (r.amount * r.rate) / 100, 0), 2)} tr
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Section 4: Vay (View Only) ── */}
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
+        {sectionHeader("🏠 Dư Nợ Vay & Khoản Nợ Dài Hạn", "Bảng thống kê các khoản vay ngân hàng, kỳ hạn và lãi suất cam kết")}
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              borderCollapse: "collapse",
+              width: "100%",
+              fontSize: "12px",
+              border: "1px solid #cbd5e1",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                {hcell("Ngân Hàng", 1, "#fecaca", "left")}
+                {hcell("Dư Nợ Gốc (tr)", 1, "#fecaca", "right")}
+                {hcell("Thời Gian Vay", 1, "#f1f5f9")}
+                {hcell("Lãi Suất & Ghi Chú", 1, "#f1f5f9")}
+                {hcell("Ước Tính Lãi/Tháng (tr)", 1, "#fee2e2", "right")}
+              </tr>
+            </thead>
+            <tbody>
+              {vay.map((r, i) => {
+                // Approximate monthly interest (5.5% annual rate)
+                const monthlyInterest = (r.so_tien * 0.055) / 12;
+                return (
+                  <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0", background: i % 2 === 0 ? "#fff" : "#f8fafc" }}>
+                    <td style={{ background: "#fff1f2", padding: "8px 12px", fontWeight: 800, color: "#b91c1c" }}>
+                      {r.bank}
+                    </td>
+                    <td style={{ background: "#fff1f2", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#b91c1c" }}>
+                      {fmt(r.so_tien)} tr
+                    </td>
+                    <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: "monospace", color: "#475569" }}>
+                      {r.thoi_gian}
+                    </td>
+                    <td style={{ padding: "8px 12px", color: "#475569" }}>
+                      {r.lai_suat}
+                    </td>
+                    <td style={{ background: "#fee2e2", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#b91c1c" }}>
+                      ~{fmt(monthlyInterest, 2)} tr/tháng
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
+                <td style={{ padding: "10px 12px", fontSize: "12px", fontWeight: 800, color: "#334155" }}>
+                  TỔNG DƯ NỢ VAY
+                </td>
+                <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#b91c1c" }}>
+                  {fmt(vay.reduce((s, r) => s + r.so_tien, 0))} tr
+                </td>
+                <td colSpan={2} />
+                <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#b91c1c" }}>
+                  ~{fmt(vay.reduce((s, r) => s + (r.so_tien * 0.055) / 12, 0), 2)} tr/tháng
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Section 5: Luong, BHXH, BHTN (Dữ liệu VssID) ── */}
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
+        {sectionHeader("💼 Quá Trình Đóng BHXH, BHTN & Lịch Sử Thu Nhập Lương", "Dữ liệu đối chiếu từ ứng dụng VssID - Bảo hiểm Xã hội Việt Nam")}
+        
+        {/* Profile metadata bar */}
+        {(() => {
+          const calc = getInsuranceCalculations(INSURANCE_RAW_DATA);
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div
                 style={{
-                  background: "#fff1f2",
-                  padding: "4px 8px",
-                  fontWeight: 700,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  padding: "12px 16px",
+                  fontSize: "12px",
                 }}
               >
-                {textInput(r.bank, (v) => updateVay(r.id, "bank", v))}
-              </td>
-              <td
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ color: "#64748b" }}>Người lao động:</span>
+                    <strong style={{ color: "#0f172a", fontSize: "13px" }}>{INSURANCE_RAW_DATA.employee_name}</strong>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ color: "#64748b" }}>Mã số BHXH:</span>
+                    <span style={{ fontFamily: "monospace", fontWeight: 800, color: "#2563eb", background: "#eff6ff", padding: "2px 6px", borderRadius: "4px" }}>
+                      {INSURANCE_RAW_DATA.social_insurance_code}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Building2 size={13} color="#64748b" />
+                    <span style={{ color: "#334155", fontWeight: 600 }}>{INSURANCE_RAW_DATA.company_name}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                  <span style={{ background: "#dcfce7", color: "#166534", padding: "3px 8px", borderRadius: "4px", fontWeight: 700, fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <CheckCircle2 size={12} /> {INSURANCE_RAW_DATA.total_formatted}
+                  </span>
+                  <span style={{ background: "#f1f5f9", color: "#475569", padding: "3px 8px", borderRadius: "4px", fontSize: "11px" }}>
+                    Chậm đóng: <strong>{INSURANCE_RAW_DATA.late_payment_months} tháng</strong>
+                  </span>
+                  <span style={{ color: "#94a3b8", fontSize: "11px" }}>
+                    Cập nhật: {INSURANCE_RAW_DATA.last_updated}
+                  </span>
+                </div>
+              </div>
+
+              {/* 4 KPI Summary Cards */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "14px 16px" }}>
+                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+                    💰 Tổng Thu Nhập Lương Đã Nhận
+                  </span>
+                  <div style={{ fontSize: "19px", fontWeight: 900, color: "#0f172a", fontFamily: "monospace", marginTop: "4px" }}>
+                    {fmtVND(calc.totalSalaryActual)}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                    Trung bình: <strong>{fmtVND(Math.round(calc.avgSalaryActual))}/tháng</strong>
+                  </div>
+                </div>
+
+                <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "8px", padding: "14px 16px" }}>
+                  <span style={{ fontSize: "11px", color: "#1e40af", fontWeight: 700 }}>
+                    🛡️ Tổng Quỹ BHXH + BHYT + BHTN (32%)
+                  </span>
+                  <div style={{ fontSize: "19px", fontWeight: 900, color: "#1e40af", fontFamily: "monospace", marginTop: "4px" }}>
+                    {fmtVND(calc.grandTotal)}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#3b82f6", marginTop: "2px" }}>
+                    Cá nhân (10.5%): {fmt(calc.totalEmployeeDeducted / 1000000, 1)} tr · Cty (21.5%): {fmt(calc.totalEmployerContributed / 1000000, 1)} tr
+                  </div>
+                </div>
+
+                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "14px 16px" }}>
+                  <span style={{ fontSize: "11px", color: "#166534", fontWeight: 700 }}>
+                    🎁 Ước Tính BHXH 1 Lần ({calc.bhxh1LanYears} Năm)
+                  </span>
+                  <div style={{ fontSize: "19px", fontWeight: 900, color: "#15803d", fontFamily: "monospace", marginTop: "4px" }}>
+                    ~{fmtVND(Math.round(calc.estimatedBHXH1Lan))}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#166534", marginTop: "2px" }}>
+                    2 tháng × {calc.bhxh1LanYears} năm × Mbq {fmt(calc.avgSalaryBHXH / 1000000, 1)} tr (Chưa nhân trượt giá CPI, thực tế ~350–355 tr)
+                  </div>
+                </div>
+
+                <div style={{ background: "#fefce8", border: "1px solid #fef08a", borderRadius: "8px", padding: "14px 16px" }}>
+                  <span style={{ fontSize: "11px", color: "#854d0e", fontWeight: 700 }}>
+                    🏖️ Trợ Cấp Thất Nghiệp (BHTN {calc.bhtnBenefitMonths} Tháng)
+                  </span>
+                  <div style={{ fontSize: "19px", fontWeight: 900, color: "#b45309", fontFamily: "monospace", marginTop: "4px" }}>
+                    {fmtVND(Math.round(calc.estimatedMonthlyBHTN))}/tháng
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#854d0e", marginTop: "2px" }}>
+                    Tổng nhận {calc.bhtnBenefitMonths} tháng: <strong>{fmtVND(Math.round(calc.estimatedTotalBHTN))}</strong> (Áp trần 5× LTTV vùng I 2026: 26.55 tr/tháng)
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Insurance Table */}
+              <div style={{ overflowX: "auto" }}>
+                <table
+                  style={{
+                    borderCollapse: "collapse",
+                    width: "100%",
+                    fontSize: "12px",
+                    border: "1px solid #cbd5e1",
+                  }}
+                >
+                  <thead>
+                    <tr style={{ background: "#f8fafc" }}>
+                      {hcell("Kỳ Đóng (Từ → Đến)", 1, "#f1f5f9", "left")}
+                      {hcell("Số Tháng", 1, "#f1f5f9", "center")}
+                      {hcell("Mức Lương Thực Tế (đ)", 1, "#dcfce7", "right")}
+                      {hcell("Lương Đóng BHXH (đ)", 1, "#dbeafe", "right")}
+                      {hcell("Lương Đóng BHTN (đ)", 1, "#fef9c3", "right")}
+                      {hcell("Ghi Chú Mức Trần Áp Dụng", 1, "#f8fafc", "left")}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {INSURANCE_RAW_DATA.records.map((r, i) => {
+                      const bg = i % 2 === 0 ? "#fff" : "#f8fafc";
+                      return (
+                        <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0", background: bg }}>
+                          <td style={{ padding: "8px 12px", fontFamily: "monospace", fontWeight: 700, color: "#1e293b" }}>
+                            {r.period_from} → {r.period_to}
+                          </td>
+                          <td style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: "#475569" }}>
+                            {r.months} tháng
+                          </td>
+                          <td style={{ background: "#f0fdf4", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#15803d" }}>
+                            {r.salary_actual.toLocaleString()} đ
+                          </td>
+                          <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: "#1e40af" }}>
+                            {r.salary_bhxh.toLocaleString()} đ
+                          </td>
+                          <td style={{ background: "#fffde7", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: "#92400e" }}>
+                            {r.salary_bhtn.toLocaleString()} đ
+                          </td>
+                          <td style={{ padding: "8px 12px", fontSize: "11px", color: "#64748b" }}>
+                            {r.base_salary_cap_note}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
+                      <td style={{ padding: "10px 12px", fontSize: "12px", fontWeight: 800, color: "#334155" }}>
+                        TỔNG CỘNG ({INSURANCE_RAW_DATA.total_months} THÁNG)
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "center", fontWeight: 900, color: "#15803d" }}>
+                        {INSURANCE_RAW_DATA.total_months} tháng
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#15803d" }}>
+                        {calc.totalSalaryActual.toLocaleString()} đ
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#1e40af" }}>
+                        {calc.totalSalaryBHXH.toLocaleString()} đ
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#92400e" }}>
+                        {calc.totalSalaryBHTN.toLocaleString()} đ
+                      </td>
+                      <td style={{ padding: "10px 12px", fontSize: "11px", color: "#15803d", fontWeight: 700 }}>
+                        Đã nạp đủ 100% không nợ đọng
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Policy note & explanation */}
+              <div
                 style={{
-                  background: "#fff1f2",
-                  padding: "4px 6px",
-                  textAlign: "right",
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  padding: "12px 16px",
+                  fontSize: "11.5px",
+                  color: "#475569",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
                 }}
               >
-                {numInput(r.so_tien, (v) => updateVay(r.id, "so_tien", v))}
-              </td>
-              <td style={{ padding: "4px 8px" }}>
-                {textInput(r.thoi_gian, (v) => updateVay(r.id, "thoi_gian", v))}
-              </td>
-              <td style={{ padding: "4px 8px" }}>
-                {textInput(r.lai_suat, (v) => updateVay(r.id, "lai_suat", v))}
-              </td>
-              {delBtn(r.id, delVay)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <div style={{ fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <HelpCircle size={13} color="#2563eb" /> Quy định về trần đóng, bảo hiểm 1 lần & trợ cấp thất nghiệp:
+                </div>
+                <div style={{ lineHeight: 1.6 }}>
+                  • <strong>Trần đóng BHXH & BHYT</strong>: Tối đa 20 lần mức lương cơ sở (Trước 07/2023: 29.8 tr; Từ 07/2023: 36.0 tr; Từ 07/2024: 46.8 tr). Do đó các mức lương 50tr, 70tr hay 80tr đều áp mức đóng trần 46.8 tr.
+                  <br />
+                  • <strong>Trợ cấp thất nghiệp (Áp trần 5× LTTV vùng I)</strong>: 60% bình quân 6 tháng gần nhất (60% × 70tr = 42tr) nhưng bị khống chế tối đa không quá 5 lần mức lương tối thiểu vùng I (<strong>5 × 5.310.000 = 26.550.000 đ/tháng</strong> theo Nghị định 293/2025/NĐ-CP). Với 49 tháng đóng, được hưởng <strong>4 tháng</strong> (3 tháng cho 36 tháng đầu + 1 tháng cho 12 tháng tiếp theo; 1 tháng lẻ bảo lưu), tổng nhận: <strong>106.200.000 đ</strong>.
+                  <br />
+                  • <strong>Ước tính BHXH 1 lần</strong>: 49 tháng đóng = 4.5 năm tính hưởng (lẻ 1-6 tháng tính nửa năm). Mức tối thiểu: 2 tháng × 4.5 năm × Mbq (38.33 tr) = <strong>344.957.143 đ</strong>. Khi tính thực tế có nhân hệ số trượt giá CPI từng năm ước đạt <strong>~350–355 triệu đồng</strong>.
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
     </div>
   );
 };
 
 // ─── Visualize Tab ────────────────────────────────────────────────────────────
-const VisualizeTab: React.FC = () => {
+export const VisualizeTab: React.FC = () => {
   const rows = load<FinanceRow[]>("finance_rows", defaultRows);
   const ckHoldings = load<CKHolding[]>("finance_ck", defaultCK);
   const tietKiem = load<TietKiemDetail[]>("finance_tietkiem", defaultTietKiem);
@@ -1819,7 +1768,7 @@ const VisualizeTab: React.FC = () => {
 };
 
 // ─── Tool Tab ─────────────────────────────────────────────────────────────────
-const ToolTab: React.FC = () => {
+export const ToolTab: React.FC = () => {
   const [monthlyExpense, setMonthlyExpense] = useState(20000000);
   const [riskTolerance, setRiskTolerance] = useState<
     "conservative" | "moderate" | "aggressive"
@@ -2169,7 +2118,7 @@ const ToolTab: React.FC = () => {
 };
 
 // ─── Recommendation Tab ──────────────────────────────────────────────────────
-const RecommendationTab: React.FC = () => {
+export const RecommendationTab: React.FC = () => {
   const ckRows = [
     {
       symbol: "TCH",
@@ -3000,7 +2949,7 @@ const RecommendationTab: React.FC = () => {
 };
 
 // ─── Assessment Tab ───────────────────────────────────────────────────────────
-const AssessmentTab: React.FC = () => {
+export const AssessmentTab: React.FC = () => {
   const channels = [
     {
       name: "Bất động sản",

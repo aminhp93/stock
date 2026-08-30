@@ -1,32 +1,36 @@
 import React from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Database, BarChart3, Bot, Zap, Youtube } from "lucide-react";
+import { NavLink, Outlet } from "react-router-dom";
+import { Wallet, Table2, BarChart2, TrendingUp, Target } from "lucide-react";
 
-const SUB_TABS = [
-  { to: "/finance/stock/data", label: "Dữ Liệu", icon: <Database size={13} /> },
+export const PERSONAL_SUB_TABS = [
   {
-    to: "/finance/stock/chart",
-    label: "Biểu Đồ",
-    icon: <BarChart3 size={13} />,
+    to: "/finance/personal/tool",
+    label: "1. Công Cụ Tài Chính",
+    icon: <Wallet size={13} />,
   },
   {
-    to: "/finance/stock/analysis",
-    label: "Phân Tích",
-    icon: <Bot size={13} />,
+    to: "/finance/personal/raw",
+    label: "2. Dữ Liệu Thô",
+    icon: <Table2 size={13} />,
   },
   {
-    to: "/finance/stock/test-agent",
-    label: "Test Agent",
-    icon: <Zap size={13} />,
+    to: "/finance/personal/visual",
+    label: "3. Trực Quan Hoá",
+    icon: <BarChart2 size={13} />,
   },
   {
-    to: "/finance/stock/observation",
-    label: "CFA99 Observation",
-    icon: <Youtube size={13} />,
+    to: "/finance/personal/assess",
+    label: "4. Đánh Giá Chung",
+    icon: <TrendingUp size={13} />,
+  },
+  {
+    to: "/finance/personal/recommend",
+    label: "5. Khuyến Nghị",
+    icon: <Target size={13} />,
   },
 ];
 
-export const StockLayout: React.FC = () => {
+export const PersonalLayout: React.FC = () => {
   return (
     <div
       style={{
@@ -36,7 +40,7 @@ export const StockLayout: React.FC = () => {
         overflow: "hidden",
       }}
     >
-      {/* Sub-tab bar — with left padding to avoid overlapping floating button */}
+      {/* Sub-tab bar — with left padding to avoid overlapping floating switch button */}
       <div
         style={{
           background: "#fff",
@@ -48,7 +52,7 @@ export const StockLayout: React.FC = () => {
           flexShrink: 0,
         }}
       >
-        {SUB_TABS.map((tab) => (
+        {PERSONAL_SUB_TABS.map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}
@@ -77,7 +81,16 @@ export const StockLayout: React.FC = () => {
       </div>
       {/* Page content */}
       <div style={{ flex: 1, overflow: "auto" }}>
-        <Outlet />
+        <div
+          className="page-wrapper animate-fade-in"
+          style={{
+            padding: "24px 32px 48px",
+            maxWidth: "1440px",
+            margin: "0 auto",
+          }}
+        >
+          <Outlet />
+        </div>
       </div>
     </div>
   );

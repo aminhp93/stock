@@ -118,10 +118,18 @@ flowchart LR
    - Bộ kích hoạt Monte-Carlo 10.000 Agents on-demand.
    - 3 Kịch bản Bull/Base/Bear, Quản trị rủi ro Half-Kelly, và Checklist 7 tiêu chuẩn Gatekeeper.
 
-4. **💰 `/finance` - [4. Tài Chính Cá Nhân & Kế Hoạch Đầu Tư (Personal Finance Hub)](file:///Users/aminhp93/personal/githubcoffee/stock/src/pages/FinancePage.tsx)**:
-   - **Mô phỏng Lãi Kép 500 Triệu**: So sánh trực quan giữa Tiết Kiệm Ngân Hàng, Đầu Tư Một Lần (Lump Sum) và Tích Sản Định Kỳ (DCA).
-   - **Mục Tiêu Tự Do Tài Chính (FIRE Planner)**: Quy tắc 4% tính toán cột mốc tài sản tự do tài chính dựa trên chi tiêu tháng.
-   - **Quỹ An Toàn & Phân Bổ Danh Mục**: Tính toán quỹ khẩn cấp 6 tháng và tỷ trọng phân bổ (Cổ phiếu, ETF, Tiền mặt, Vàng) theo hồ sơ rủi ro.
+4. **💰 `/finance/personal` - [4. Tài Chính Cá Nhân (Personal Finance Hub)](file:///Users/aminhp93/personal/githubcoffee/stock/src/pages/PersonalLayout.tsx)**:
+   - **`/finance/personal/tool` (1. Công Cụ)**: FIRE Planner (Quy tắc 4%), Quỹ An Toàn Khẩn Cấp, Phân bổ danh mục rủi ro, Mô phỏng Lãi Kép 500 Triệu (Tiết kiệm vs Lump Sum vs DCA).
+   - **`/finance/personal/raw` (2. Dữ Liệu Thô)**: Bảng ghi chép tài sản chi tiết (Vàng, Chứng khoán, Sổ tiết kiệm ngân hàng, Tiền mặt các ví/tài khoản, Thẻ tín dụng, Dư nợ vay).
+   - **`/finance/personal/visual` (3. Trực Quan Hoá)**: Biểu đồ biến động tài sản ròng (Net Worth), tỷ trọng danh mục (Asset Allocation), cơ cấu nợ vs tài sản.
+   - **`/finance/personal/assess` (4. Đánh Giá Chung)**: Ma trận so sánh các kênh đầu tư (Bất động sản, Vàng, Chứng khoán, Tiết kiệm, Trái phiếu), ma trận rủi ro vs lợi nhuận.
+   - **`/finance/personal/recommend` (5. Khuyến Nghị)**: Khuyến nghị cơ cấu lại danh mục cổ phiếu, kế hoạch trả nợ vay ngân hàng và lộ trình tích sản tối ưu.
+
+5. **📹 `/finance/stock/observation` - [5. Quan Sát Tâm Lý Livestream CFA99 (CFA99 Observation Monitor)](file:///Users/aminhp93/personal/githubcoffee/stock/src/pages/ObservationPage.tsx)**:
+   - **Kiến trúc 3 Tầng**: Raw Data (Livestream & Comments & Transcripts) → Sentiment Metrics (Bullish, Bearish, FOMO/Fear Z-Scores) → Market Relationship (Attention & Sentiment vs VN-Index & Forward Returns).
+   - **Phân kỳ Creator vs Audience**: So sánh quan điểm chuyên gia (CFA99) vs tâm lý đám đông (Audience Comments).
+   - **Bảng Heatmap & Top Movers**: Theo dõi $\Delta$ Attention % và bình luận phân loại theo từng mã cổ phiếu.
+   - **Kiểm định Tín Hiệu (Signal Backtest)**: Thống kê tỷ suất sinh lời kỳ vọng 1D, 3D, 5D, 10D sau các cú sốc tâm lý.
 
 ---
 
@@ -137,6 +145,16 @@ flowchart LR
 | `/api/summary` | GET | `symbol` | Kết quả toàn diện pipeline 5 bước, 10 Personas, 7 checklist, DCF MoS |
 | `/api/simulation` | GET | `symbol`, `count` | Kích hoạt chạy Monte-Carlo $N$ agents (mặc định 10.000) |
 | `/api/telegram-sentiment` | GET | `symbol` (tùy chọn) | Phân tích cảm xúc cộng đồng Telegram, tỷ lệ hưng phấn (Euphoria %) |
+| `/api/observation/status` | GET | Không | Tiến độ thu thập livestream CFA99 các Phase |
+| `/api/observation/videos` | GET | Không | Danh sách videos, views, likes, comments, duration |
+| `/api/observation/stats` | GET | Không | Tổng số videos, comments, classifications, ticker mentions |
+| `/api/observation/daily-metrics` | GET | Không | Chuỗi thời gian Views, Attention Ratio, Bullish %, FOMO/Fear Z, VN-Index |
+| `/api/observation/ticker-mentions` | GET | Không | Bảng tổng hợp mentions, questions, sentiment score, $\Delta$ attention |
+| `/api/observation/divergence` | GET | Không | Ma trận phân kỳ CFA99 Creator vs Audience Sentiment |
+| `/api/observation/backtest` | GET | Không | Thống kê hiệu suất tín hiệu (High Attention, Extreme FOMO, Extreme Fear...) |
+| `/api/observation/comments` | GET | `ticker`, `limit` | Danh sách bình luận thô kèm nhãn phân loại AI |
+| `/api/observation/collect` | POST | Không | Kích hoạt script thu thập dữ liệu live qua YouTube Data API |
+| `/api/observation/seed-sample` | POST | Không | Tái tạo bộ dữ liệu mẫu 60 ngày benchmark đồng bộ với DB |
 
 ---
 
