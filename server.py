@@ -40,6 +40,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_api_telegram_sentiment(symbol)
         elif path == "/api/data/stats":
             self.handle_api_data_stats()
+        elif path == "/api/nav-history":
+            product_id = int(query.get("productId", [48])[0])
+            self.handle_nav_history(product_id)
         elif path == "/api/data/raw-prices":
             symbol = query.get("symbol", ["TCH"])[0].upper()
             limit = int(query.get("limit", [100])[0])
@@ -47,6 +50,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/api/data/sync":
             symbol = query.get("symbol", ["TCH"])[0].upper()
             self.handle_api_data_sync(symbol)
+        elif path == "/api/data/full-resync":
+            symbol = query.get("symbol", ["TCH"])[0].upper()
+            self.handle_api_full_resync(symbol)
         else:
             # SPA fallback: if file does not exist, serve index.html
             local_path = self.translate_path(self.path)
@@ -434,6 +440,55 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
         self.end_headers()
+
+    def handle_api_full_resync(self, symbol: str):
+        """Xóa toàn bộ dữ liệu cũ của symbol rồi fetch lại từ VNDirect.
+        Cần thiết sau khi cổ phiếu chia cổ tức/thưởng để anchor điều chỉnh được reset đúng."""
+        try:
+            from backend.db.postgres import PostgresDBManager
+            from backend.utils.price_ingest import fetch_price_history
+
+            db = PostgresDBManager()
+            prices = fetch_price_history(symbol, adjusted=True)
+            if not prices:
+                self.send_json_response({"error": f"Không lấy được dữ liệu từ VNDirect cho {symbol}"}, status_code=503)
+                return
+
+            with db.get_connection_ctx() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM stock_prices WHERE symbol = %s", (symbol,))
+                    deleted = cur.rowcount
+                conn.commit()
+
+            db.upsert_prices(symbol, prices)
+            latest = prices[-1]
+            self.send_json_response({
+                "status": "FULL_RESYNC_OK",
+                "symbol": symbol,
+                "deleted_bars": deleted,
+                "inserted_bars": len(prices),
+                "latest_date": latest["date"],
+                "latest_close": latest["close"],
+                "message": f"Đã xóa {deleted:,} nến cũ và nạp lại {len(prices):,} nến đã điều chỉnh dividend cho {symbol}."
+            })
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, status_code=500)
+
+    def handle_nav_history(self, product_id: int):
+        try:
+            import urllib.request
+            url = "https://api.fmarket.vn/res/product/get-nav-history"
+            payload = json.dumps({"isAllData": 1, "productId": product_id}).encode("utf-8")
+            req = urllib.request.Request(
+                url, data=payload,
+                headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            self.send_json_response(data)
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, status_code=500)
 
     def send_json_response(self, data: Any, status_code: int = 200):
         content = json.dumps(data, ensure_ascii=False).encode("utf-8")

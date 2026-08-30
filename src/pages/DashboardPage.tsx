@@ -1,49 +1,646 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { PersonaGrid } from '../components/PersonaGrid';
-import { MonteCarloSim } from '../components/MonteCarloSim';
-import { VerifierChecklist } from '../components/VerifierChecklist';
-import { fetchStockSummary, fetchTelegramSentiment } from '../services/api';
-import { StockSummary, TelegramSentimentResult } from '../types';
-import { Bot, ShieldCheck, Sparkles, TrendingUp, DollarSign, Activity, AlertTriangle, Newspaper, Target, Users, Zap, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { fetchChartData } from "../services/api";
+import { ChartDataPoint } from "../types";
+import { Bot, BarChart2 } from "lucide-react";
 
-const PRESET_SYMBOLS = ['TCH', 'FPT', 'TCB', 'SSI', 'HPG', 'VNM', 'MBB', 'MWG', 'VIC', 'VHM'];
+const WATCHLIST_WATCHING = {
+  name: "watching",
+  symbols: ["HPG", "MBS", "TCH", "VIC", "HDG", "PDR", "DXG", "HHS"],
+};
+
+const WATCHLIST_THANH_KHOAN_VUA = {
+  name: "thanh_khoan_vua",
+  symbols: [
+    "AAA",
+    "AAS",
+    "ACB",
+    "ACV",
+    "AGR",
+    "ANV",
+    "BAF",
+    "BCM",
+    "BID",
+    "BMI",
+    "BSR",
+    "BVB",
+    "BVH",
+    "CEO",
+    "CII",
+    "CSV",
+    "CTD",
+    "CTG",
+    "CTI",
+    "CTR",
+    "CTS",
+    "DBC",
+    "DCM",
+    "DDV",
+    "DGC",
+    "DGW",
+    "DIG",
+    "DPG",
+    "DPM",
+    "DPR",
+    "DXG",
+    "DXS",
+    "E1VFVN30",
+    "EIB",
+    "ELC",
+    "EVF",
+    "EVG",
+    "FCN",
+    "FPT",
+    "FTS",
+    "GAS",
+    "GEL",
+    "GEX",
+    "GMD",
+    "GVR",
+    "HAG",
+    "HAH",
+    "HBC",
+    "HCM",
+    "HDB",
+    "HDC",
+    "HDG",
+    "HHP",
+    "HHS",
+    "HHV",
+    "HPG",
+    "HPX",
+    "HQC",
+    "HSG",
+    "HT1",
+    "HUT",
+    "HVN",
+    "IDC",
+    "IDI",
+    "IJC",
+    "KBC",
+    "KDH",
+    "KHG",
+    "KSB",
+    "LAS",
+    "LCG",
+    "LPB",
+    "MBB",
+    "MBS",
+    "MSB",
+    "MSN",
+    "MSR",
+    "MWG",
+    "NAB",
+    "NKG",
+    "NLG",
+    "NT2",
+    "NVL",
+    "OCB",
+    "OIL",
+    "ORS",
+    "PAN",
+    "PC1",
+    "PDR",
+    "PET",
+    "PLC",
+    "PLX",
+    "PNJ",
+    "POW",
+    "PVC",
+    "PVD",
+    "PVP",
+    "PVS",
+    "PVT",
+    "SAB",
+    "SCR",
+    "SHB",
+    "SHI",
+    "SHS",
+    "SSB",
+    "SSI",
+    "STB",
+    "SZC",
+    "TCB",
+    "TCH",
+    "TCM",
+    "TCX",
+    "TNG",
+    "TPB",
+    "TTF",
+    "TV2",
+    "TVN",
+    "VCB",
+    "VCG",
+    "VCI",
+    "VCK",
+    "VDS",
+    "VEA",
+    "VFS",
+    "VGC",
+    "VGI",
+    "VGS",
+    "VGT",
+    "VHC",
+    "VHM",
+    "VIB",
+    "VIC",
+    "VIX",
+    "VJC",
+    "VND",
+    "VNM",
+    "VOS",
+    "VPB",
+    "VPI",
+    "VPX",
+    "VRE",
+    "VSC",
+    "VTP",
+    "VTZ",
+    "YEG",
+  ],
+};
+
+const PRESET_SYMBOLS = WATCHLIST_WATCHING.symbols;
+
+// ─── Watchlist S/R Analysis Card ─────────────────────────────────────────────
+const WIN = 5;
+function calcSR(data: ChartDataPoint[]) {
+  if (data.length < WIN * 2 + 1) return null;
+  const cur = data[data.length - 1].close;
+  const highs: number[] = [],
+    lows: number[] = [];
+  for (let i = WIN; i < data.length - WIN; i++) {
+    let isH = true,
+      isL = true;
+    for (let j = i - WIN; j <= i + WIN; j++) {
+      if (j === i) continue;
+      if (data[j].high >= data[i].high) isH = false;
+      if (data[j].low <= data[i].low) isL = false;
+    }
+    if (isH) highs.push(data[i].high);
+    if (isL) lows.push(data[i].low);
+  }
+  const cluster = (arr: number[]) => {
+    const s = [...arr].sort((a, b) => a - b);
+    const m: number[] = [];
+    for (const v of s) {
+      const last = m[m.length - 1];
+      if (last && Math.abs(v - last) / last < 0.015)
+        m[m.length - 1] = (last + v) / 2;
+      else m.push(v);
+    }
+    return m;
+  };
+  const rs = cluster(highs)
+    .filter((v) => v > cur)
+    .sort((a, b) => a - b);
+  const ss = cluster(lows)
+    .filter((v) => v < cur)
+    .sort((a, b) => b - a);
+  const pct = (p: number) => ((p - cur) / cur) * 100;
+  // Signal: if S1 is within -5% and R1 is >8% away → near support → BUY
+  // if R1 is within +5% → near resistance → SELL / HOLD
+  const s1pct = ss[0] ? pct(ss[0]) : null;
+  const r1pct = rs[0] ? pct(rs[0]) : null;
+  let signal: "BUY" | "SELL" | "HOLD" | "WATCH" = "WATCH";
+  let reason = "";
+  if (s1pct !== null && r1pct !== null) {
+    const rr = Math.abs(r1pct) / Math.abs(s1pct); // reward/risk ratio
+    if (s1pct > -6 && rr >= 2) {
+      signal = "BUY";
+      reason = `Gần S1 (${s1pct.toFixed(1)}%), R/R=${rr.toFixed(1)}x`;
+    } else if (r1pct < 5) {
+      signal = "SELL";
+      reason = `Gần R1 (+${r1pct.toFixed(1)}%), cản mạnh`;
+    } else if (r1pct < 10 && Math.abs(s1pct) > 8) {
+      signal = "HOLD";
+      reason = `Giữa vùng, chờ tín hiệu`;
+    } else {
+      signal = "WATCH";
+      reason = `R/R chưa rõ`;
+    }
+  } else {
+    reason = "Không đủ dữ liệu swing";
+  }
+  return {
+    close: cur,
+    r1: rs[0] ?? null,
+    r2: rs[1] ?? null,
+    s1: ss[0] ?? null,
+    s2: ss[1] ?? null,
+    r1pct,
+    s1pct,
+    signal,
+    reason,
+  };
+}
+
+interface WatchRow {
+  symbol: string;
+  data: ReturnType<typeof calcSR>;
+  loading: boolean;
+}
+
+const SIGNAL_STYLE: Record<
+  string,
+  { bg: string; color: string; border: string }
+> = {
+  BUY: { bg: "#f0fdf4", color: "#059669", border: "#bbf7d0" },
+  SELL: { bg: "#fef2f2", color: "#dc2626", border: "#fecaca" },
+  HOLD: { bg: "#fff7ed", color: "#d97706", border: "#fed7aa" },
+  WATCH: { bg: "#f8fafc", color: "#64748b", border: "#e2e8f0" },
+};
+
+const WatchlistAnalysisCard: React.FC<{
+  title?: string;
+  symbols: string[];
+  activeSymbol: string;
+  onSelect: (s: string) => void;
+}> = ({ title = "watching", symbols, activeSymbol, onSelect }) => {
+  const PAGE_SIZE = 10;
+  const [rows, setRows] = useState<WatchRow[]>(
+    symbols.map((s) => ({ symbol: s, data: null, loading: true })),
+  );
+  const [filterSignal, setFilterSignal] = useState<string>("ALL");
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    setRows(symbols.map((s) => ({ symbol: s, data: null, loading: true })));
+    setPage(0);
+    const now = new Date();
+    const d = new Date(now);
+    d.setFullYear(d.getFullYear() - 1);
+    const start = d.toISOString().split("T")[0];
+    symbols.forEach((sym) => {
+      fetchChartData(sym, start)
+        .then((res) => {
+          const sr = calcSR(res.data || []);
+          setRows((prev) =>
+            prev.map((r) =>
+              r.symbol === sym ? { ...r, data: sr, loading: false } : r,
+            ),
+          );
+        })
+        .catch(() =>
+          setRows((prev) =>
+            prev.map((r) => (r.symbol === sym ? { ...r, loading: false } : r)),
+          ),
+        );
+    });
+  }, [symbols.join(",")]);
+
+  useEffect(() => { setPage(0); }, [filterSignal]);
+
+  const fmt = (n: number) => n.toLocaleString("vi-VN");
+  const fmtP = (n: number | null) =>
+    n == null ? "—" : (n >= 0 ? "+" : "") + n.toFixed(1) + "%";
+
+  const SIGNALS = ["ALL", "BUY", "SELL", "HOLD", "WATCH"] as const;
+  const FILTER_STYLE: Record<string, { active: string; bg: string }> = {
+    ALL:   { active: "#2563eb", bg: "#eff6ff" },
+    BUY:   { active: "#059669", bg: "#f0fdf4" },
+    SELL:  { active: "#dc2626", bg: "#fef2f2" },
+    HOLD:  { active: "#d97706", bg: "#fff7ed" },
+    WATCH: { active: "#64748b", bg: "#f8fafc" },
+  };
+
+  const counts = rows.reduce<Record<string, number>>((acc, r) => {
+    if (!r.loading && r.data?.signal) {
+      acc[r.data.signal] = (acc[r.data.signal] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  const filteredRows = filterSignal === "ALL"
+    ? rows
+    : rows.filter((r) => !r.loading && r.data?.signal === filterSignal);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const pageRows = filteredRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  return (
+    <div className="card" style={{ background: "#fff", padding: "20px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+        <BarChart2 size={16} color="var(--accent-blue)" />
+        <span style={{ fontWeight: 800, fontSize: "14px", color: "var(--text-main)" }}>
+          Đánh Giá Watchlist "{title}" — Hỗ Trợ & Kháng Cự (1 năm)
+        </span>
+        <span style={{ fontSize: "11px", color: "#94a3b8", marginLeft: "auto" }}>
+          thuật toán swing pivot ±5 nến, cluster 1.5%
+        </span>
+      </div>
+      {/* Filter bar */}
+      <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap", alignItems: "center" }}>
+        <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600, marginRight: "4px" }}>Lọc tín hiệu:</span>
+        {SIGNALS.map((sig) => {
+          const isActive = filterSignal === sig;
+          const fs = FILTER_STYLE[sig];
+          const count = sig === "ALL" ? rows.filter((r) => !r.loading).length : (counts[sig] || 0);
+          return (
+            <button
+              key={sig}
+              onClick={() => setFilterSignal(sig)}
+              style={{
+                padding: "3px 10px", fontSize: "11.5px", fontWeight: 700,
+                border: `1px solid ${isActive ? fs.active : "#e2e8f0"}`,
+                borderRadius: "6px",
+                background: isActive ? fs.bg : "#fff",
+                color: isActive ? fs.active : "#64748b",
+                cursor: "pointer", display: "flex", alignItems: "center", gap: "5px",
+              }}
+            >
+              {sig}
+              <span style={{
+                background: isActive ? fs.active : "#e2e8f0",
+                color: isActive ? "#fff" : "#64748b",
+                borderRadius: "999px", padding: "0 5px",
+                fontSize: "10px", fontWeight: 800, minWidth: "16px", textAlign: "center",
+              }}>{count}</span>
+            </button>
+          );
+        })}
+        <span style={{ marginLeft: "auto", fontSize: "11px", color: "#94a3b8" }}>
+          {filteredRows.length} mã · trang {page + 1}/{totalPages}
+        </span>
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            fontSize: "12.5px",
+          }}
+        >
+          <thead>
+            <tr
+              style={{
+                background: "#f8fafc",
+                borderBottom: "2px solid #e2e8f0",
+              }}
+            >
+              {[
+                "Mã",
+                "Giá hiện tại",
+                "S2",
+                "S1 (gần nhất)",
+                "R1 (gần nhất)",
+                "R2",
+                "Tín hiệu",
+                "Lý do",
+              ].map((h) => (
+                <th
+                  key={h}
+                  style={{
+                    padding: "8px 12px",
+                    textAlign: "left",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.map((row) => {
+              const d = row.data;
+              const isActive = row.symbol === activeSymbol;
+              const sig = d?.signal ?? "WATCH";
+              const ss = SIGNAL_STYLE[sig];
+              return (
+                <tr
+                  key={row.symbol}
+                  onClick={() => onSelect(row.symbol)}
+                  style={{
+                    borderBottom: "1px solid #f1f5f9",
+                    background: isActive ? "#eff6ff" : "#fff",
+                    cursor: "pointer",
+                    transition: "background 0.1s",
+                  }}
+                >
+                  <td style={{ padding: "9px 12px" }}>
+                    <span
+                      style={{
+                        fontFamily: "monospace",
+                        fontWeight: 800,
+                        color: isActive ? "#2563eb" : "#1e293b",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {row.symbol}
+                    </span>
+                  </td>
+                  <td
+                    style={{
+                      padding: "9px 12px",
+                      fontFamily: "monospace",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    {row.loading ? "⏳" : d ? fmt(d.close) : "—"}
+                  </td>
+                  <td
+                    style={{
+                      padding: "9px 12px",
+                      color: "#16a34a",
+                      fontFamily: "monospace",
+                      fontSize: "11.5px",
+                    }}
+                  >
+                    {row.loading ? (
+                      ""
+                    ) : d?.s2 ? (
+                      <>
+                        <div style={{ color: "#94a3b8" }}>
+                          {fmtP(
+                            d.s1pct != null && d.s2
+                              ? ((d.s2 - d.close) / d.close) * 100
+                              : null,
+                          )}
+                        </div>
+                        <div>{fmt(d.s2)}</div>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td style={{ padding: "9px 12px" }}>
+                    {row.loading ? (
+                      ""
+                    ) : d?.s1 ? (
+                      <div
+                        style={{
+                          background: "#f0fdf4",
+                          border: "1px solid #bbf7d0",
+                          borderRadius: "5px",
+                          padding: "3px 7px",
+                          display: "inline-block",
+                        }}
+                      >
+                        <div
+                          style={{
+                            color: "#059669",
+                            fontWeight: 700,
+                            fontSize: "11px",
+                          }}
+                        >
+                          {fmtP(d.s1pct)}
+                        </div>
+                        <div
+                          style={{ fontFamily: "monospace", color: "#065f46" }}
+                        >
+                          {fmt(d.s1)}
+                        </div>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td style={{ padding: "9px 12px" }}>
+                    {row.loading ? (
+                      ""
+                    ) : d?.r1 ? (
+                      <div
+                        style={{
+                          background: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          borderRadius: "5px",
+                          padding: "3px 7px",
+                          display: "inline-block",
+                        }}
+                      >
+                        <div
+                          style={{
+                            color: "#dc2626",
+                            fontWeight: 700,
+                            fontSize: "11px",
+                          }}
+                        >
+                          {fmtP(d.r1pct)}
+                        </div>
+                        <div
+                          style={{ fontFamily: "monospace", color: "#7f1d1d" }}
+                        >
+                          {fmt(d.r1)}
+                        </div>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td
+                    style={{
+                      padding: "9px 12px",
+                      color: "#dc2626",
+                      fontFamily: "monospace",
+                      fontSize: "11.5px",
+                    }}
+                  >
+                    {row.loading ? (
+                      ""
+                    ) : d?.r2 ? (
+                      <>
+                        <div style={{ color: "#94a3b8" }}>
+                          {fmtP(
+                            d.r2 ? ((d.r2 - d.close) / d.close) * 100 : null,
+                          )}
+                        </div>
+                        <div>{fmt(d.r2)}</div>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td style={{ padding: "9px 12px" }}>
+                    {row.loading ? (
+                      <span style={{ color: "#94a3b8" }}>⏳</span>
+                    ) : (
+                      <span
+                        style={{
+                          background: ss.bg,
+                          color: ss.color,
+                          border: `1px solid ${ss.border}`,
+                          borderRadius: "5px",
+                          padding: "3px 10px",
+                          fontWeight: 800,
+                          fontSize: "12px",
+                        }}
+                      >
+                        {sig}
+                      </span>
+                    )}
+                  </td>
+                  <td
+                    style={{
+                      padding: "9px 12px",
+                      color: "#64748b",
+                      fontSize: "11.5px",
+                      maxWidth: "180px",
+                    }}
+                  >
+                    {row.loading ? "" : (d?.reason ?? "—")}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginTop: "12px" }}>
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 700, border: "1px solid #e2e8f0", borderRadius: "6px", background: page === 0 ? "#f8fafc" : "#fff", color: page === 0 ? "#cbd5e1" : "#374151", cursor: page === 0 ? "default" : "pointer" }}
+          >← Trước</button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button key={i} onClick={() => setPage(i)}
+              style={{ padding: "4px 10px", fontSize: "12px", fontWeight: i === page ? 800 : 500, border: `1px solid ${i === page ? "#2563eb" : "#e2e8f0"}`, borderRadius: "6px", background: i === page ? "#eff6ff" : "#fff", color: i === page ? "#2563eb" : "#374151", cursor: "pointer", minWidth: "32px" }}
+            >{i + 1}</button>
+          ))}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page === totalPages - 1}
+            style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 700, border: "1px solid #e2e8f0", borderRadius: "6px", background: page === totalPages - 1 ? "#f8fafc" : "#fff", color: page === totalPages - 1 ? "#cbd5e1" : "#374151", cursor: page === totalPages - 1 ? "default" : "pointer" }}
+          >Sau →</button>
+        </div>
+      )}
+      <div
+        style={{
+          marginTop: "12px",
+          padding: "10px 12px",
+          background: "#f8fafc",
+          borderRadius: "7px",
+          fontSize: "11px",
+          color: "#64748b",
+          lineHeight: "1.6",
+        }}
+      >
+        <strong>Phương pháp:</strong> Tìm swing high/low (cửa sổ ±5 nến),
+        cluster mức gần nhau (1,5%), chọn S1/R1 gần giá nhất. Tín hiệu{" "}
+        <strong style={{ color: "#059669" }}>BUY</strong>: cách S1 &lt;6% + R/R
+        ≥ 2x. <strong style={{ color: "#dc2626" }}>SELL</strong>: cách R1
+        &lt;5%. Chỉ mang tính tham khảo kỹ thuật, không phải khuyến nghị đầu tư.
+      </div>
+    </div>
+  );
+};
 
 export const DashboardPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const symbolParam = (searchParams.get('symbol') || 'TCH').toUpperCase();
+  const symbolParam = (searchParams.get("symbol") || "TCH").toUpperCase();
 
   const [symbol, setSymbol] = useState<string>(symbolParam);
-  const [summary, setSummary] = useState<StockSummary | null>(null);
-  const [telegramData, setTelegramData] = useState<TelegramSentimentResult | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Sync symbol with URL param
   useEffect(() => {
-    if (symbolParam !== symbol) {
-      setSymbol(symbolParam);
-    }
+    if (symbolParam !== symbol) setSymbol(symbolParam);
   }, [symbolParam]);
-
-  const loadData = async (sym: string) => {
-    setLoading(true);
-    try {
-      const [sRes, tgRes] = await Promise.all([
-        fetchStockSummary(sym).catch(() => null),
-        fetchTelegramSentiment(sym).catch(() => null)
-      ]);
-      setSummary(sRes);
-      setTelegramData(tgRes);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData(symbol);
-  }, [symbol]);
 
   const handleSelectSymbol = (sym: string) => {
     setSymbol(sym);
@@ -51,52 +648,86 @@ export const DashboardPage: React.FC = () => {
   };
 
   const formatVND = (num?: number) => {
-    if (!num) return '--';
-    return new Intl.NumberFormat('vi-VN').format(num) + ' đ';
+    if (!num) return "--";
+    return new Intl.NumberFormat("vi-VN").format(num) + " đ";
   };
 
   return (
-    <div className="page-wrapper animate-fade-in" style={{ padding: '28px 32px', maxWidth: '1440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div
+      className="page-wrapper animate-fade-in"
+      style={{
+        padding: "28px 32px",
+        maxWidth: "1440px",
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "32px",
+      }}
+    >
       {/* Top Header & Symbol Bar */}
       <div
         style={{
-          background: '#ffffff',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '18px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px',
-          boxShadow: 'var(--shadow-sm)'
+          background: "#ffffff",
+          border: "1px solid var(--border-color)",
+          borderRadius: "var(--radius-lg)",
+          padding: "18px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "16px",
+          boxShadow: "var(--shadow-sm)",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-glow-blue)' }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "10px",
+              background:
+                "linear-gradient(135deg, var(--accent-blue), var(--accent-purple))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "var(--shadow-glow-blue)",
+            }}
+          >
             <Bot size={22} color="#fff" />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
-                Multi-Agent & 10-Investor Simulation Control Room
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h1
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 800,
+                  color: "var(--text-main)",
+                }}
+              >
+                Phân Tích & Đánh Giá Chuyên Sâu
               </h1>
               <span className="badge badge-info">Point-In-Time T</span>
             </div>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Đang phân tích chuyên sâu mã: <strong style={{ color: 'var(--text-main)' }}>{symbol}</strong> ({summary?.company_name || `CTCP ${symbol}`})
+            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              Watchlist S/R — mã đang chọn:{" "}
+              <strong style={{ color: "var(--text-main)" }}>{symbol}</strong>
             </span>
           </div>
         </div>
 
         {/* Preset Symbol Pills */}
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
           {PRESET_SYMBOLS.map((s) => (
             <button
               key={s}
               onClick={() => handleSelectSymbol(s)}
-              className={`btn ${s === symbol ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ padding: '6px 12px', fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}
+              className={`btn ${s === symbol ? "btn-primary" : "btn-secondary"}`}
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: 700,
+              }}
             >
               {s}
             </button>
@@ -104,240 +735,21 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Fundamental & Technical Stat Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        {/* Card 1: Giá & Vốn Hóa */}
-        <div className="card" style={{ background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>Giá Thị Trường Hiện Tại:</span>
-          <div className="mono" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
-            {formatVND(summary?.current_price)}
-          </div>
-          <span style={{ fontSize: '11.5px', color: 'var(--bull-green)', fontWeight: 600 }}>
-            {summary?.technical_trend || 'BULLISH (UPTREND)'}
-          </span>
-        </div>
+      {/* ── Watchlist: watching ── */}
+      <WatchlistAnalysisCard
+        title="watching"
+        symbols={WATCHLIST_WATCHING.symbols}
+        activeSymbol={symbol}
+        onSelect={handleSelectSymbol}
+      />
 
-        {/* Card 2: DCF Value & MoS */}
-        <div className="card" style={{ background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>Định Giá DCF & MoS:</span>
-          <div className="mono" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--bull-green)' }}>
-            {formatVND(summary?.financials?.intrinsic_value_dcf)}
-          </div>
-          <span className="mono" style={{ fontSize: '11.5px', color: 'var(--bull-green)', fontWeight: 700 }}>
-            Biên an toàn (MoS): +{summary?.margin_of_safety_pct || 18.5}%
-          </span>
-        </div>
-
-        {/* Card 3: P/E & P/B */}
-        <div className="card" style={{ background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>Chỉ Số Định Giá (P/E - P/B):</span>
-          <div className="mono" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--accent-blue)' }}>
-            {summary?.financials?.pe_ratio ? `${summary.financials.pe_ratio}x` : '17.8x'}{' '}
-            <span style={{ fontSize: '14px', color: 'var(--text-dim)' }}>/ {summary?.financials?.pb_ratio ? `${summary.financials.pb_ratio}x` : '4.1x'}</span>
-          </div>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-            EPS: <strong className="mono" style={{ color: 'var(--text-main)' }}>{summary?.financials?.eps ? formatVND(summary.financials.eps) : '7,580 đ'}</strong>
-          </span>
-        </div>
-
-        {/* Card 4: ROE & Biên LN */}
-        <div className="card" style={{ background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>Hiệu Quả Sinh Lời (ROE):</span>
-          <div className="mono" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--accent-yellow)' }}>
-            {summary?.financials?.roe ? `${summary.financials.roe}%` : '26.5%'}
-          </div>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-            Biên lợi nhuận ròng: <strong className="mono" style={{ color: 'var(--text-main)' }}>{summary?.financials?.profit_margin ? `${summary.financials.profit_margin}%` : '18.2%'}</strong>
-          </span>
-        </div>
-
-        {/* Card 5: Đồng Thuận 10 Personas */}
-        <div className="card" style={{ background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '6px', border: '1px solid var(--bull-green-border)' }}>
-          <span style={{ fontSize: '11.5px', color: 'var(--bull-green)' }}>Đồng Thuận 10 Personas:</span>
-          <div className="mono" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--bull-green)' }}>
-            {summary?.buy_pct || 80}% MUA
-          </div>
-          <span className="mono" style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-            Điểm tâm lý: <strong style={{ color: 'var(--bull-green)' }}>{summary?.sentiment_index ? `+${summary.sentiment_index}` : '+0.58'}</strong>
-          </span>
-        </div>
-      </div>
-
-      {/* Section 1: 10-Investor Behavioral Simulation Engine */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
-              Step 2B: Ma Trận Tâm Lý & Quyết Định 10 Nhà Đầu Tư Người Thật
-            </h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {summary?.consensus_summary || '8/10 Persona nhà đầu tư đồng thuận MUA hoặc FOMO MUA theo xu hướng tăng trưởng.'}
-            </p>
-          </div>
-          <span className="badge badge-purple">10 Personas Active</span>
-        </div>
-
-        {/* 10 Persona Cards */}
-        {summary?.individual_decisions && <PersonaGrid decisions={summary.individual_decisions} />}
-
-        {/* Vectorized Monte-Carlo 10k Engine */}
-        <MonteCarloSim symbol={symbol} />
-      </div>
-
-      {/* Section 2: 3-Scenario Matrix (Bull / Base / Bear) & Risk Assessment */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
-              Step 3 & 4: 3 Kịch Bản Đầu Tư & Kế Hoạch Quản Trị Rủi Ro (Half-Kelly)
-            </h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Phân bổ xác suất kịch bản và tính toán quy mô giải ngân bảo vệ an toàn vốn.
-            </p>
-          </div>
-        </div>
-
-        {/* Scenarios Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-          {summary?.scenarios?.map((sc, idx) => {
-            const isBull = sc.scenario === 'BULL';
-            const isBase = sc.scenario === 'BASE';
-            const isBear = sc.scenario === 'BEAR';
-            const color = isBull ? 'var(--bull-green)' : isBase ? 'var(--accent-blue)' : 'var(--bear-red)';
-
-            return (
-              <div
-                key={idx}
-                className="card"
-                style={{
-                  background: '#ffffff',
-                  borderLeft: `4px solid ${color}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Target size={16} color={color} />
-                    <span style={{ fontSize: '14px', fontWeight: 800, color }}>Kịch Bản {sc.scenario}</span>
-                  </div>
-                  <span className="badge" style={{ background: `${color}15`, color, border: `1px solid ${color}30` }}>
-                    Xác suất: {Math.round(sc.probability * 100)}%
-                  </span>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Mục Tiêu Giá:</span>
-                  <div className="mono" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
-                    {formatVND(sc.target_price)}
-                  </div>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '11.5px', color: 'var(--bull-green)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                    Động Lực Thúc Đẩy (Catalysts):
-                  </span>
-                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    {sc.catalysts.map((c, i) => (
-                      <li key={i} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        ✓ {c}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '11.5px', color: 'var(--bear-red)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                    Rủi Ro Cần Lưu Ý (Risks):
-                  </span>
-                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    {sc.risks.map((r, i) => (
-                      <li key={i} style={{ fontSize: '12px', color: 'var(--bear-red)' }}>
-                        ⚠️ {r}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Risk Assessment Box */}
-        <div style={{ background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', boxShadow: 'var(--shadow-sm)' }}>
-          <div>
-            <span style={{ fontSize: '11.5px', color: 'var(--text-dim)', display: 'block' }}>Vị Thế Khuyến Nghị (Half-Kelly):</span>
-            <div className="mono" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--bull-green)' }}>
-              {summary?.position_size_pct ? `${summary.position_size_pct}% Tài Khoản` : '15.0% Tài Khoản'}
-            </div>
-            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Giới hạn an toàn &le; 20% / mã</span>
-          </div>
-
-          <div>
-            <span style={{ fontSize: '11.5px', color: 'var(--text-dim)', display: 'block' }}>Tỷ Lệ Risk/Reward (RRR):</span>
-            <div className="mono" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
-              1 : {summary?.risk_reward_ratio || 2.77}
-            </div>
-            <span style={{ fontSize: '11.5px', color: 'var(--bull-green)' }}>Đạt chuẩn &ge; 1:2.5</span>
-          </div>
-
-          <div>
-            <span style={{ fontSize: '11.5px', color: 'var(--text-dim)', display: 'block' }}>Sụt Giảm Tối Đa Khi Cắt Lỗ:</span>
-            <div className="mono" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--bear-red)' }}>
-              -{summary?.potential_loss_pct || 7.04}%
-            </div>
-            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Tác động Portfolio: -{summary?.stress_test_drawdown_impact_pct || 1.06}%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Section 3: Gatekeeper 7 Standards Independent Verification Checklist */}
-      <div>
-        <div style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
-            Step 5: Hội Đồng Xác Thực 7 Tiêu Chuẩn Gatekeeper (Investment Committee)
-          </h2>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Đảm bảo tính kỷ luật và bảo vệ vốn tối cao trước khi xuất Lệnh Giải Ngân Thực Tế.
-          </p>
-        </div>
-
-        <VerifierChecklist
-          checklist={summary?.checklist}
-          verdict={summary?.verdict || 'APPROVED'}
-          score={summary?.verifier_score ?? 100}
-          notes={summary?.verifier_notes || 'Đạt trọn vẹn 7/7 tiêu chuẩn kỷ luật đầu tư chuyên nghiệp.'}
-          recommendations={summary?.recommendations}
-          approved={summary?.approved}
-        />
-      </div>
-
-      {/* Section 4: News & Telegram Sentiment Feed */}
-      {summary?.news_events && summary.news_events.length > 0 && (
-        <div className="card" style={{ background: '#ffffff' }}>
-          <div className="card-header">
-            <div className="card-title">
-              <Newspaper size={18} color="var(--accent-blue)" />
-              <span>Dòng Sự Kiện & Tin Tức Point-In-Time T</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {summary.news_events.map((n, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span className="badge badge-info">{n.category}</span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>{n.headline}</span>
-                </div>
-                <span className="mono" style={{ fontSize: '12px', color: n.sentiment_score > 0 ? 'var(--bull-green)' : 'var(--bear-red)', fontWeight: 700 }}>
-                  Sentiment: {n.sentiment_score > 0 ? `+${n.sentiment_score}` : n.sentiment_score}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* ── Watchlist: thanh_khoan_vua ── */}
+      <WatchlistAnalysisCard
+        title="thanh_khoan_vua"
+        symbols={WATCHLIST_THANH_KHOAN_VUA.symbols}
+        activeSymbol={symbol}
+        onSelect={handleSelectSymbol}
+      />
     </div>
   );
 };
