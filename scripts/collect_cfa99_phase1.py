@@ -14,6 +14,8 @@ Tables populated:
     yt_videos, yt_comments, yt_transcripts, yt_collection_log
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import time
@@ -23,9 +25,11 @@ from psycopg2.extras import execute_values
 from googleapiclient.discovery import build
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
 
+_YTA = YouTubeTranscriptApi()  # youtube-transcript-api >= 1.0 uses instance .fetch()
+
 # ─── Config ──────────────────────────────────────────────────────────────────
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
-CFA99_CHANNEL_ID = "UCpP-7oBCw_e8vbJKQAVQiZA"   # CFA99 channel — verify before run
+CFA99_CHANNEL_ID = "UCYXsn0LBvnxYRjwNlwTILKQ"   # CFA99 — Vũ Viết Anh (verified 2026-08-30)
 DATE_START = "2026-06-30T00:00:00Z"
 DATE_END   = "2026-08-30T23:59:59Z"
 MAX_COMMENTS_PER_VIDEO = 2000   # YouTube quota: 1 unit/page, ~100 comments/page → 20 pages max per video
@@ -223,17 +227,12 @@ def save_comments(conn, comments: list[dict]) -> int:
 # ─── Transcripts ─────────────────────────────────────────────────────────────
 def fetch_transcript_for_video(video_id: str) -> list[dict]:
     try:
-        # Try Vietnamese first, then auto-generated
-        for lang in [["vi"], ["vi-VN"], None]:
-            try:
-                if lang:
-                    transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=lang)
-                else:
-                    transcript = YouTubeTranscriptApi.get_transcript(video_id)
-                return [{"video_id": video_id, "start_sec": t["start"], "duration_sec": t.get("duration", 0), "text": t["text"]} for t in transcript]
-            except Exception:
-                continue
-        return []
+        fetched = _YTA.fetch(video_id, languages=["vi", "vi-VN", "en"])
+        return [
+            {"video_id": video_id, "start_sec": s.start,
+             "duration_sec": s.duration, "text": s.text}
+            for s in fetched
+        ]
     except (NoTranscriptFound, TranscriptsDisabled):
         return []
     except Exception as e:
