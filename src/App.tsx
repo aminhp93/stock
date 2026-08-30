@@ -17,8 +17,11 @@ import {
 } from "./pages/FinancePage";
 
 export const App: React.FC = () => {
+  // When running as microfrontend (base=/stock), BrowserRouter needs the basename
+  // so internal routes like /finance/stock resolve correctly under /stock/finance/stock
+  const basename = import.meta.env.BASE_URL;
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <div className="app-container">
         <Navbar />
         <Routes>
@@ -48,8 +51,14 @@ export const App: React.FC = () => {
             <Route path="tools" element={<Navigate to="tool" replace />} />
             <Route path="data" element={<Navigate to="raw" replace />} />
             <Route path="charts" element={<Navigate to="visual" replace />} />
-            <Route path="assessment" element={<Navigate to="assess" replace />} />
-            <Route path="recommendation" element={<Navigate to="recommend" replace />} />
+            <Route
+              path="assessment"
+              element={<Navigate to="assess" replace />}
+            />
+            <Route
+              path="recommendation"
+              element={<Navigate to="recommend" replace />}
+            />
           </Route>
 
           {/* legacy redirects */}
