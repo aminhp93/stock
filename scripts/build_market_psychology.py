@@ -34,7 +34,8 @@ from psycopg2.extras import execute_values
 DB_CONFIG = dict(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
 
 DDL = """
-CREATE TABLE IF NOT EXISTS market_psychology_daily (
+DROP TABLE IF EXISTS market_psychology_daily;
+CREATE TABLE market_psychology_daily (
     trading_date            DATE PRIMARY KEY,
     has_retail              BOOLEAN,
     vnindex_close           DOUBLE PRECISION,
@@ -63,6 +64,8 @@ CREATE TABLE IF NOT EXISTS market_psychology_daily (
     retail_fomo_raw         INTEGER,
     retail_fear_raw         INTEGER,
     n_tickers_mentioned     INTEGER,
+    gt_chung_khoan          INTEGER,
+    gt_co_phieu             INTEGER,
     idx_retail_attention    DOUBLE PRECISION,
     idx_retail_sentiment    DOUBLE PRECISION,
     idx_fomo                DOUBLE PRECISION,
@@ -148,6 +151,15 @@ def main():
             """)
             ntick = {r[0]: r[1] for r in cur.fetchall()}
 
+            # ── Google Trends (tuỳ chọn — bảng có thể chưa tồn tại) ─────────
+            gt = {}
+            try:
+                cur.execute("SELECT trading_date, kw_chung_khoan, kw_co_phieu FROM google_trends")
+                gt = {r[0]: (r[1], r[2]) for r in cur.fetchall()}
+            except psycopg2.errors.UndefinedTable:
+                conn.rollback()
+                print("   (google_trends chưa có — bỏ qua tầng search interest)")
+
             # ── build per-day dicts ────────────────────────────────────────
             recs = []
             for i, d in enumerate(base):
@@ -164,6 +176,8 @@ def main():
                     bull=r[5] if r else None, bear=r[6] if r else None,
                     fomo=r[7] if r else None, fear=r[8] if r else None,
                     ntick=ntick.get(d[0]),
+                    gt_ck=gt.get(d[0], (None, None))[0],
+                    gt_cp=gt.get(d[0], (None, None))[1],
                 ))
 
             # ── 5 chỉ số retail (z-score trên các ngày CÓ retail) ──────────
@@ -174,9 +188,12 @@ def main():
             zfomo = zscores([x["fomo"] for x in recs])
             zfear = zscores([x["fear"] for x in recs])
             ztick = zscores([x["ntick"] for x in recs])
+            zgt_ck = zscores([x["gt_ck"] for x in recs])
+            zgt_cp = zscores([x["gt_cp"] for x in recs])
 
             for k, x in enumerate(recs):
-                att = [z for z in (zv[k], zc[k], zq[k]) if z is not None]
+                # Retail Attention = livestream (views/comments/questions) + Google search
+                att = [z for z in (zv[k], zc[k], zq[k], zgt_ck[k], zgt_cp[k]) if z is not None]
                 x["idx_attention"] = round(statistics.fmean(att), 2) if att else None
                 x["idx_sentiment"] = zsent[k]
                 x["idx_fomo"] = zfomo[k]
@@ -220,7 +237,7 @@ def main():
                     foreign_net_bn, foreign_net_5d_bn, foreign_net_20d_bn,
                     retail_views, retail_view_ratio, retail_comments, retail_questions,
                     retail_bull_pct, retail_bear_pct, retail_fomo_raw, retail_fear_raw,
-                    n_tickers_mentioned,
+                    n_tickers_mentioned, gt_chung_khoan, gt_co_phieu,
                     idx_retail_attention, idx_retail_sentiment, idx_fomo,
                     idx_fear_capitulation, idx_stock_attention,
                     psychology_composite_z, psychology_gauge, psychology_label
@@ -233,6 +250,7 @@ def main():
                 x["f_net"], x["f5"], x["f20"],
                 x["views"], x["view_ratio"], x["comments"], x["questions"],
                 x["bull"], x["bear"], x["fomo"], x["fear"], x["ntick"],
+                x["gt_ck"], x["gt_cp"],
                 x["idx_attention"], x["idx_sentiment"], x["idx_fomo"],
                 x["idx_fear"], x["idx_stock_attn"],
                 x["cz"], x["gauge"], x["label"],

@@ -24,6 +24,7 @@ ROOT = os.path.dirname(HERE)
 STEPS = [
     ("fetch_vnindex_history.py", []),
     ("fetch_foreign_flow.py", []),
+    ("fetch_google_trends.py", []),
     ("compute_market_internals.py", []),
     ("collect_cfa99_phase1.py", [], "collect"),
     ("classify_cfa99.py", []),

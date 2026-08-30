@@ -937,7 +937,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                            foreign_net_bn, foreign_net_5d_bn, foreign_net_20d_bn,
                            retail_views, retail_view_ratio, retail_comments, retail_questions,
                            retail_bull_pct, retail_bear_pct, retail_fomo_raw, retail_fear_raw,
-                           n_tickers_mentioned,
+                           n_tickers_mentioned, gt_chung_khoan, gt_co_phieu,
                            idx_retail_attention, idx_retail_sentiment, idx_fomo,
                            idx_fear_capitulation, idx_stock_attention,
                            psychology_composite_z, psychology_gauge, psychology_label
