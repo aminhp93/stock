@@ -328,6 +328,58 @@ export async function fetchObsSignalBacktest(): Promise<{
   return res.json();
 }
 
+export interface ObsPsychologyDay {
+  trading_date: string;
+  has_retail: boolean;
+  vnindex_close: number | null;
+  vnindex_ret_1d: number | null;
+  fwd_ret_1d: number | null;
+  fwd_ret_5d: number | null;
+  fwd_ret_10d: number | null;
+  realized_vol_20d: number | null;
+  drawdown_52w: number | null;
+  vol_ratio_20d: number | null;
+  pct_above_ma20: number | null;
+  pct_above_ma50: number | null;
+  pct_above_ma200: number | null;
+  adv_dec_ratio: number | null;
+  nh_nl_diff: number | null;
+  foreign_net_bn: number | null;
+  foreign_net_5d_bn: number | null;
+  foreign_net_20d_bn: number | null;
+  retail_views: number | null;
+  retail_view_ratio: number | null;
+  retail_comments: number | null;
+  retail_questions: number | null;
+  retail_bull_pct: number | null;
+  retail_bear_pct: number | null;
+  retail_fomo_raw: number | null;
+  retail_fear_raw: number | null;
+  n_tickers_mentioned: number | null;
+  gt_chung_khoan: number | null;
+  gt_co_phieu: number | null;
+  idx_retail_attention: number | null;
+  idx_retail_sentiment: number | null;
+  idx_fomo: number | null;
+  idx_fear_capitulation: number | null;
+  idx_stock_attention: number | null;
+  psychology_composite_z: number | null;
+  psychology_gauge: number | null;
+  psychology_label: string | null;
+}
+
+export async function fetchObsPsychology(): Promise<{
+  series: ObsPsychologyDay[];
+  total: number;
+  latest: ObsPsychologyDay;
+  gauge: number | null;
+  label: string | null;
+  error?: string;
+}> {
+  const res = await fetch(`${API_BASE}/observation/psychology`);
+  return res.json();
+}
+
 export async function fetchObsComments(ticker?: string, limit = 50): Promise<{
   comments: ObsComment[];
   total: number;

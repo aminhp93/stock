@@ -40,6 +40,7 @@ import {
   fetchObsTickerMentions,
   fetchObsDivergence,
   fetchObsSignalBacktest,
+  fetchObsPsychology,
   fetchObsComments,
   triggerObsCollect,
   triggerObsSeedSample,
@@ -50,6 +51,7 @@ import {
   ObsTickerMention,
   ObsDivergence,
   ObsSignalStat,
+  ObsPsychologyDay,
   ObsComment,
 } from "../services/api";
 
@@ -543,6 +545,159 @@ const ZScoreChart: React.FC<{ data: ObsDailyMetric[] }> = ({ data }) => {
   );
 };
 
+// ─── Vietnam Market Psychology Gauge ─────────────────────────────────────────
+const GAUGE_ZONES = [
+  { max: 20, label: "Extreme Fear", color: "#b91c1c" },
+  { max: 40, label: "Fear", color: "#ea580c" },
+  { max: 60, label: "Neutral", color: "#64748b" },
+  { max: 80, label: "Greed", color: "#16a34a" },
+  { max: 100, label: "Extreme Greed", color: "#15803d" },
+];
+const zoneColor = (g: number) => (GAUGE_ZONES.find((z) => g <= z.max) || GAUGE_ZONES[2]).color;
+
+const MiniZBar: React.FC<{ label: string; z: number | null }> = ({ label, z }) => {
+  const v = z ?? 0;
+  const pct = Math.max(-2, Math.min(2, v)) / 2; // -1..1
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "11.5px" }}>
+      <span style={{ minWidth: "140px", color: "#64748b", fontWeight: 700 }}>{label}</span>
+      <div style={{ flex: 1, height: "8px", background: "#f1f5f9", borderRadius: "4px", position: "relative" }}>
+        <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: "1px", background: "#cbd5e1" }} />
+        <div
+          style={{
+            position: "absolute",
+            left: pct >= 0 ? "50%" : `${50 + pct * 50}%`,
+            width: `${Math.abs(pct) * 50}%`,
+            top: 0,
+            bottom: 0,
+            background: v >= 0 ? "#16a34a" : "#ea580c",
+            borderRadius: "4px",
+          }}
+        />
+      </div>
+      <span style={{ minWidth: "42px", textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: v >= 0 ? "#16a34a" : "#ea580c" }}>
+        {z == null ? "—" : (v > 0 ? "+" : "") + v.toFixed(2)}
+      </span>
+    </div>
+  );
+};
+
+const MarketPsychologyPanel: React.FC<{ data: ObsPsychologyDay[] }> = ({ data }) => {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  if (!data || data.length === 0) {
+    return (
+      <div style={{ height: "200px", background: "#f8fafc", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: "12px" }}>
+        Chưa có dữ liệu — chạy scripts/build_market_psychology.py rồi restart server.
+      </div>
+    );
+  }
+  const view = data.slice(-45);
+  const active = hoverIdx != null ? view[hoverIdx] : view[view.length - 1];
+  const g = active.psychology_gauge ?? 50;
+
+  // semicircle gauge geometry
+  const cx = 130, cy = 130, r = 100;
+  const angForG = (val: number) => Math.PI - (val / 100) * Math.PI; // 100 -> 0rad (right), 0 -> PI (left)
+  const arc = (from: number, to: number) => {
+    const a0 = angForG(from), a1 = angForG(to);
+    const x0 = cx + r * Math.cos(a0), y0 = cy - r * Math.sin(a0);
+    const x1 = cx + r * Math.cos(a1), y1 = cy - r * Math.sin(a1);
+    return `M ${x0} ${y0} A ${r} ${r} 0 0 1 ${x1} ${y1}`;
+  };
+  const needleA = angForG(g);
+  const nx = cx + (r - 14) * Math.cos(needleA), ny = cy - (r - 14) * Math.sin(needleA);
+
+  // time-series chart
+  const W = 760, H = 190, pL = 44, pR = 48, pT = 14, pB = 26;
+  const plotW = W - pL - pR, plotH = H - pT - pB;
+  const gauges = view.map((d) => d.psychology_gauge ?? 50);
+  const vnis = view.map((d) => d.vnindex_close ?? 0);
+  const minV = Math.min(...vnis) * 0.998, maxV = Math.max(...vnis) * 1.002;
+  const gx = (i: number) => pL + (i / (view.length - 1)) * plotW;
+  const gyG = (v: number) => pT + plotH - (v / 100) * plotH;
+  const gyV = (v: number) => pT + plotH - ((v - minV) / (maxV - minV || 1)) * plotH;
+  const gaugeLine = view.map((d, i) => `${gx(i)},${gyG(d.psychology_gauge ?? 50)}`).join(" ");
+  const vniLine = view.map((d, i) => `${gx(i)},${gyV(d.vnindex_close ?? 0)}`).join(" ");
+
+  const fmtBn = (v: number | null) => (v == null ? "—" : `${v > 0 ? "+" : ""}${Math.round(v)} tỷ`);
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
+      <div style={{ fontSize: "13px", fontWeight: 800, color: "#1e293b", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
+        <Activity size={15} color="#2563eb" />
+        Vietnam Market Psychology Gauge — {active.trading_date}
+      </div>
+      <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "14px" }}>
+        Composite z-score: retail attention/sentiment/FOMO/fear (CFA99 + Google Trends) + breadth + realized vol + drawdown + foreign flow
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: "20px", alignItems: "center" }}>
+        {/* Gauge */}
+        <svg viewBox="0 0 260 160" style={{ width: "100%", maxWidth: "260px" }}>
+          {GAUGE_ZONES.map((z, i) => {
+            const from = i === 0 ? 0 : GAUGE_ZONES[i - 1].max;
+            return <path key={z.label} d={arc(from, z.max)} fill="none" stroke={z.color} strokeWidth="16" strokeLinecap="butt" opacity={0.85} />;
+          })}
+          <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
+          <circle cx={cx} cy={cy} r="6" fill="#0f172a" />
+          <text x={cx} y={cy - 26} textAnchor="middle" style={{ fontSize: "30px", fontWeight: 900, fill: zoneColor(g), fontFamily: "monospace" }}>{Math.round(g)}</text>
+          <text x={cx} y={cy + 2} textAnchor="middle" style={{ fontSize: "12px", fontWeight: 800, fill: "#475569" }}>
+            {(active.psychology_label || "").replace("_", " ")}
+          </text>
+        </svg>
+
+        {/* 5 retail indices */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+          <MiniZBar label="Retail Attention" z={active.idx_retail_attention} />
+          <MiniZBar label="Retail Sentiment" z={active.idx_retail_sentiment} />
+          <MiniZBar label="FOMO" z={active.idx_fomo} />
+          <MiniZBar label="Fear / Capitulation" z={active.idx_fear_capitulation} />
+          <MiniZBar label="Stock Attention" z={active.idx_stock_attention} />
+        </div>
+      </div>
+
+      {/* Internals strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px", margin: "14px 0 4px" }}>
+        {[
+          ["% mã > MA200", active.pct_above_ma200 == null ? "—" : `${active.pct_above_ma200.toFixed(0)}%`],
+          ["Adv/Decline", active.adv_dec_ratio == null ? "—" : active.adv_dec_ratio.toFixed(2)],
+          ["New H − L", active.nh_nl_diff == null ? "—" : String(active.nh_nl_diff)],
+          ["Realized Vol 20D", active.realized_vol_20d == null ? "—" : `${active.realized_vol_20d.toFixed(0)}%`],
+          ["Vol Ratio", active.vol_ratio_20d == null ? "—" : `${active.vol_ratio_20d.toFixed(2)}x`],
+          ["Foreign net 5D", fmtBn(active.foreign_net_5d_bn)],
+        ].map(([k, v]) => (
+          <div key={k} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 10px" }}>
+            <div style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700 }}>{k}</div>
+            <div style={{ fontSize: "14px", fontWeight: 800, color: "#1e293b", fontFamily: "monospace" }}>{v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* time-series */}
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", marginTop: "6px" }} onMouseLeave={() => setHoverIdx(null)}>
+        {[0, 20, 40, 60, 80, 100].map((t) => (
+          <line key={t} x1={pL} y1={gyG(t)} x2={W - pR} y2={gyG(t)} stroke="#f1f5f9" strokeWidth="1" />
+        ))}
+        <polyline points={gaugeLine} fill="none" stroke="#2563eb" strokeWidth="2" />
+        <polyline points={vniLine} fill="none" stroke="#f59e0b" strokeWidth="2" />
+        {view.map((d, i) => (
+          <rect key={i} x={gx(i) - plotW / view.length / 2} y={pT} width={plotW / view.length} height={plotH} fill="transparent" onMouseEnter={() => setHoverIdx(i)} />
+        ))}
+        {hoverIdx != null && <line x1={gx(hoverIdx)} y1={pT} x2={gx(hoverIdx)} y2={pT + plotH} stroke="#cbd5e1" strokeWidth="1" />}
+        <text x={pL} y={H - 8} style={{ fontSize: "9px", fill: "#94a3b8" }}>{view[0].trading_date}</text>
+        <text x={W - pR} y={H - 8} textAnchor="end" style={{ fontSize: "9px", fill: "#94a3b8" }}>{view[view.length - 1].trading_date}</text>
+        <text x={6} y={gyG(100) + 3} style={{ fontSize: "9px", fill: "#2563eb", fontWeight: 700 }}>100</text>
+        <text x={6} y={gyG(0) + 3} style={{ fontSize: "9px", fill: "#2563eb", fontWeight: 700 }}>0</text>
+      </svg>
+      <div style={{ display: "flex", gap: "16px", fontSize: "10.5px", color: "#64748b", marginTop: "2px" }}>
+        <span><span style={{ color: "#2563eb", fontWeight: 800 }}>■</span> Psychology Gauge</span>
+        <span><span style={{ color: "#f59e0b", fontWeight: 800 }}>■</span> VN-Index</span>
+        {!active.has_retail && <span style={{ color: "#ea580c" }}>· phiên này chưa có dữ liệu retail CFA99</span>}
+      </div>
+    </div>
+  );
+};
+
 // ─── Main Observation Page ───────────────────────────────────────────────────
 export const ObservationPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>("overview");
@@ -553,6 +708,7 @@ export const ObservationPage: React.FC = () => {
   const [tickers, setTickers] = useState<ObsTickerMention[]>([]);
   const [divergence, setDivergence] = useState<ObsDivergence[]>([]);
   const [signals, setSignals] = useState<ObsSignalStat[]>([]);
+  const [psychology, setPsychology] = useState<ObsPsychologyDay[]>([]);
   
   // Comments inspection modal
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
@@ -568,7 +724,7 @@ export const ObservationPage: React.FC = () => {
   const refreshAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, v, st, m, t, d, sig] = await Promise.all([
+      const [s, v, st, m, t, d, sig, p] = await Promise.all([
         fetchObsStatus().catch(() => ({ tasks: [] })),
         fetchObsVideos().catch(() => ({ videos: [], total: 0 })),
         fetchObsStats().catch(() => null),
@@ -576,6 +732,7 @@ export const ObservationPage: React.FC = () => {
         fetchObsTickerMentions().catch(() => ({ tickers: [], total: 0 })),
         fetchObsDivergence().catch(() => ({ divergence: [] })),
         fetchObsSignalBacktest().catch(() => ({ signals: [] })),
+        fetchObsPsychology().catch(() => ({ series: [] as ObsPsychologyDay[] })),
       ]);
       setTasks(s.tasks);
       setVideos(v.videos);
@@ -584,6 +741,7 @@ export const ObservationPage: React.FC = () => {
       setTickers(t.tickers);
       setDivergence(d.divergence);
       setSignals(sig.signals);
+      setPsychology((p as { series: ObsPsychologyDay[] }).series || []);
     } catch (e) {
       console.error("Error refreshing observation data:", e);
     } finally {
@@ -647,6 +805,7 @@ export const ObservationPage: React.FC = () => {
   const latest = dailyMetrics.length > 0 ? dailyMetrics[dailyMetrics.length - 1] : null;
 
   const SECTIONS = [
+    { id: "psychology", label: "0. Market Psychology Gauge", icon: <Activity size={13} /> },
     { id: "overview", label: "Tổng Quan 3 Tầng", icon: <Layers size={13} /> },
     { id: "attention", label: "1. Market Attention", icon: <Eye size={13} /> },
     { id: "sentiment", label: "2. Retail Sentiment", icon: <TrendingUp size={13} /> },
@@ -915,6 +1074,19 @@ export const ObservationPage: React.FC = () => {
           );
         })}
       </div>
+
+      {/* ══════════════════ TAB 0: MARKET PSYCHOLOGY GAUGE ══════════════════ */}
+      {activeSection === "psychology" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <MarketPsychologyPanel data={psychology} />
+          <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px 20px", fontSize: "12px", color: "#475569", lineHeight: "1.7" }}>
+            <div style={{ fontWeight: 800, color: "#1e293b", marginBottom: "6px" }}>Cách đọc</div>
+            <div>· <b>Extreme Fear</b> (gauge &lt; 40) trong lịch sử ngắn đi kèm return VN-Index 5 phiên sau cao hơn baseline (~+1,2%, win 71%) — vùng gần capitulation.</div>
+            <div>· <b>Greed</b> (gauge ≥ 60), nhất là khi đi cùng breadth yếu (&lt; 35% mã trên MA200), đi kèm return 5 phiên sau <b>âm</b> (~−1 đến −2%) — nhịp tăng hẹp.</div>
+            <div>· Nguồn dữ liệu retail (CFA99) chỉ ~42 phiên nên FOMO/Fear index còn mỏng — composite hiện dựa nhiều vào breadth + volatility + foreign flow.</div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════ TAB: OVERVIEW (3-Layer Architecture) ══════════════════ */}
       {activeSection === "overview" && (
