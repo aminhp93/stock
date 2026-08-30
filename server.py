@@ -67,6 +67,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_observation_divergence()
         elif path == "/api/observation/backtest":
             self.handle_observation_backtest()
+        elif path == "/api/observation/psychology":
+            self.handle_observation_psychology()
         elif path == "/api/observation/comments":
             ticker = query.get("ticker", [None])[0]
             limit = int(query.get("limit", [50])[0])
@@ -914,6 +916,55 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     "win_rate": float(r[7] or 50.0),
                 })
             self.send_json_response({"signals": signals})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_observation_psychology(self):
+        """Vietnam Market Psychology — chuỗi ngày hợp nhất từ market_psychology_daily.
+
+        Nguồn: scripts/build_market_psychology.py (retail CFA99 + market internals +
+        foreign flow + VN-Index). Trả series để vẽ + snapshot phiên gần nhất.
+        """
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT trading_date, has_retail, vnindex_close, vnindex_ret_1d,
+                           fwd_ret_1d, fwd_ret_3d, fwd_ret_5d, fwd_ret_10d,
+                           realized_vol_20d, drawdown_52w, vol_ratio_20d,
+                           pct_above_ma20, pct_above_ma50, pct_above_ma200,
+                           adv_dec_ratio, nh_nl_diff,
+                           foreign_net_bn, foreign_net_5d_bn, foreign_net_20d_bn,
+                           retail_views, retail_view_ratio, retail_comments, retail_questions,
+                           retail_bull_pct, retail_bear_pct, retail_fomo_raw, retail_fear_raw,
+                           n_tickers_mentioned,
+                           idx_retail_attention, idx_retail_sentiment, idx_fomo,
+                           idx_fear_capitulation, idx_stock_attention,
+                           psychology_composite_z, psychology_gauge, psychology_label
+                    FROM market_psychology_daily
+                    ORDER BY trading_date
+                """)
+                cols = [c[0] for c in cur.description]
+                rows = cur.fetchall()
+            conn.close()
+
+            def norm(v):
+                if isinstance(v, (int, float)) or v is None or isinstance(v, bool):
+                    return v
+                return str(v)
+
+            series = [{c: norm(v) for c, v in zip(cols, r)} for r in rows]
+            if not series:
+                self.send_json_response({"error": "market_psychology_daily rỗng — chạy scripts/build_market_psychology.py"}, 404)
+                return
+            latest = series[-1]
+            self.send_json_response({
+                "series": series,
+                "total": len(series),
+                "latest": latest,
+                "gauge": latest.get("psychology_gauge"),
+                "label": latest.get("psychology_label"),
+            })
         except Exception as e:
             self.send_json_response({"error": str(e)}, 500)
 
