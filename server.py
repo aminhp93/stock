@@ -499,11 +499,25 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def handle_nav_history(self, product_id: int):
         try:
             import urllib.request
+            from datetime import datetime, timedelta
             url = "https://api.fmarket.vn/res/product/get-nav-history"
-            payload = json.dumps({"isAllData": 1, "productId": product_id}).encode("utf-8")
+            today = datetime.now().strftime("%Y-%m-%d")
+            from_date = (datetime.now() - timedelta(days=365 * 10)).strftime("%Y-%m-%d")
+            payload = json.dumps({
+                "isAllData": 1,
+                "productId": product_id,
+                "fromDate": from_date,
+                "toDate": today,
+            }).encode("utf-8")
             req = urllib.request.Request(
                 url, data=payload,
-                headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept": "application/json, text/plain, */*",
+                    "Origin": "https://fmarket.vn",
+                    "Referer": "https://fmarket.vn/",
+                },
                 method="POST"
             )
             with urllib.request.urlopen(req, timeout=10) as resp:

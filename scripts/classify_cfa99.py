@@ -199,6 +199,13 @@ def aggregate_daily_metrics(cur) -> int:
         raise RuntimeError("Thiếu VN-Index: chạy python3 scripts/fetch_vnindex_history.py")
     vn_pos = {b["date"]: i for i, b in enumerate(vn)}
 
+    # Market internals THẬT (breadth) từ market_internals — chạy compute_market_internals.py trước
+    cur.execute("""
+        SELECT trading_date, advancers, decliners, unchanged
+        FROM market_internals
+    """)
+    internals = {r[0]: (r[1], r[2], r[3]) for r in cur.fetchall()}
+
     def fwd(i, n):
         if i is None or i + n >= len(vn):
             return None
@@ -233,6 +240,8 @@ def aggregate_daily_metrics(cur) -> int:
         vn_prev = vn[i_vn - 1]["close"] if (i_vn is not None and i_vn > 0) else (b["close"] if b else None)
         chg = round((b["close"] / vn_prev - 1) * 100, 2) if (b and vn_prev) else None
 
+        adv, dec, unch = internals.get(d, (None, None, None))
+
         rows.append((
             d, a["views"], view_ratio, s["total"], comm_intensity, comm_velocity,
             s["q"], q_intensity, s["bull"], s["bear"], s["neut"],
@@ -243,7 +252,7 @@ def aggregate_daily_metrics(cur) -> int:
             b["open"] if b else None, b["high"] if b else None,
             b["low"] if b else None, b["close"] if b else None,
             chg, b["volume"] if b else None,
-            None, None, None,          # breadth_adv/dec/unch — chưa có nguồn
+            adv, dec, unch,            # breadth THẬT từ market_internals (1.398 mã)
             None, None, None,          # foreign_buy/sell/net — chưa có nguồn
             fwd(i_vn, 1), fwd(i_vn, 3), fwd(i_vn, 5), fwd(i_vn, 10),
         ))
