@@ -81,6 +81,50 @@ export async function fetchChartData(
   return await res.json();
 }
 
+export interface TickerSignals {
+  symbol: string;
+  company_name: string | null;
+  sector: string | null;
+  as_of: string;
+  price: number;
+  reward_risk: {
+    support: number;
+    resistance_near: number;
+    resistance_far: number;
+    risk_pct: number | null;
+    reward_pct: number | null;
+    reward_far_pct: number | null;
+    rr: number | null;
+    rr_far: number | null;
+    valid: boolean;
+  };
+  technical: {
+    ma20: number | null; ma50: number | null; ma200: number | null;
+    above_ma20: boolean; above_ma50: boolean; above_ma200: boolean;
+    rsi_14: number | null;
+    high_52w: number; low_52w: number;
+    pct_from_high_52w: number | null; pct_from_low_52w: number | null;
+    dist_to_ma50_pct: number | null;
+  };
+  liquidity: { turnover_20d_bn: number };
+  cfa99: {
+    mentions_60d: number; questions_60d: number;
+    bullish_60d: number; bearish_60d: number;
+    fomo_60d: number; fear_60d: number;
+    net_bull_pct: number | null;
+  };
+  foreign: {
+    trading_date?: string; net_val_bn?: number; net_5d_bn?: number; room_left_pct?: number | null;
+  };
+  sentiment: { technical_score: number; composite_gauge: number; label: string };
+  error?: string;
+}
+
+export async function fetchTickerSignals(symbol: string): Promise<TickerSignals> {
+  const res = await fetch(`${API_BASE}/ticker-signals?symbol=${encodeURIComponent(symbol)}`);
+  return res.json();
+}
+
 export async function fetchStockSummary(symbol: string): Promise<StockSummary> {
   const res = await fetch(
     `${API_BASE}/summary?symbol=${encodeURIComponent(symbol)}`,

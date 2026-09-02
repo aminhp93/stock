@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { StockChart } from "../components/StockChart";
 import { TelegramModal } from "../components/TelegramModal";
-import { WatchlistSRPanel } from "../components/WatchlistSRPanel";
 import {
   fetchChartData,
   fetchStockSummary,
   fetchTelegramSentiment,
   fetchFullResync,
+  fetchTickerSignals,
+  TickerSignals,
 } from "../services/api";
 import {
   ChartDataPoint,
@@ -20,8 +21,6 @@ import {
   Users,
   Send,
   Search,
-  Sparkles,
-  AlertCircle,
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
@@ -32,7 +31,252 @@ const WATCHLIST = {
   symbols: ["HPG", "MBS", "TCH", "VIC", "HDG", "PDR", "DXG", "HHS"],
 };
 
-const PRESET_SYMBOLS = ["FPT", "TCB", "SSI", "VNM", "MBB", "MWG", "VHM"];
+const WATCHLIST_THANH_KHOAN_VUA = {
+  id: 4609911,
+  name: "thanh_khoan_vua",
+  symbols: [
+    "AAA",
+    "AAS",
+    "ACB",
+    "ACV",
+    "AGR",
+    "ANV",
+    "BAF",
+    "BCM",
+    "BID",
+    "BMI",
+    "BSR",
+    "BVB",
+    "BVH",
+    "CEO",
+    "CII",
+    "CSV",
+    "CTD",
+    "CTG",
+    "CTI",
+    "CTR",
+    "CTS",
+    "DBC",
+    "DCM",
+    "DDV",
+    "DGC",
+    "DGW",
+    "DIG",
+    "DPG",
+    "DPM",
+    "DPR",
+    "DXG",
+    "DXS",
+    "E1VFVN30",
+    "EIB",
+    "ELC",
+    "EVF",
+    "EVG",
+    "FCN",
+    "FPT",
+    "FTS",
+    "GAS",
+    "GEL",
+    "GEX",
+    "GMD",
+    "GVR",
+    "HAG",
+    "HAH",
+    "HBC",
+    "HCM",
+    "HDB",
+    "HDC",
+    "HDG",
+    "HHP",
+    "HHS",
+    "HHV",
+    "HPG",
+    "HPX",
+    "HQC",
+    "HSG",
+    "HT1",
+    "HUT",
+    "HVN",
+    "IDC",
+    "IDI",
+    "IJC",
+    "KBC",
+    "KDH",
+    "KHG",
+    "KSB",
+    "LAS",
+    "LCG",
+    "LPB",
+    "MBB",
+    "MBS",
+    "MSB",
+    "MSN",
+    "MSR",
+    "MWG",
+    "NAB",
+    "NKG",
+    "NLG",
+    "NT2",
+    "NVL",
+    "OCB",
+    "OIL",
+    "ORS",
+    "PAN",
+    "PC1",
+    "PDR",
+    "PET",
+    "PLC",
+    "PLX",
+    "PNJ",
+    "POW",
+    "PVC",
+    "PVD",
+    "PVP",
+    "PVS",
+    "PVT",
+    "SAB",
+    "SCR",
+    "SHB",
+    "SHI",
+    "SHS",
+    "SSB",
+    "SSI",
+    "STB",
+    "SZC",
+    "TCB",
+    "TCH",
+    "TCM",
+    "TCX",
+    "TNG",
+    "TPB",
+    "TTF",
+    "TV2",
+    "TVN",
+    "VCB",
+    "VCG",
+    "VCI",
+    "VCK",
+    "VDS",
+    "VEA",
+    "VFS",
+    "VGC",
+    "VGI",
+    "VGS",
+    "VGT",
+    "VHC",
+    "VHM",
+    "VIB",
+    "VIC",
+    "VIX",
+    "VJC",
+    "VND",
+    "VNM",
+    "VOS",
+    "VPB",
+    "VPI",
+    "VPX",
+    "VRE",
+    "VSC",
+    "VTP",
+    "VTZ",
+    "YEG",
+  ],
+};
+
+const GAUGE_C = (g: number) =>
+  g < 20 ? "#b91c1c" : g < 40 ? "#ea580c" : g < 60 ? "#64748b" : g < 80 ? "#16a34a" : "#15803d";
+const GAUGE_VN = (l: string) =>
+  ({ EXTREME_FEAR: "Sợ hãi tột độ", FEAR: "Sợ hãi", NEUTRAL: "Trung tính", GREED: "Tham lam", EXTREME_GREED: "Tham lam tột độ" } as Record<string, string>)[l] || l;
+const vnd = (n?: number | null) => (n == null ? "--" : n.toLocaleString("vi-VN"));
+
+// Dải Reward/Risk + Tâm lý theo mã — luôn cập nhật theo symbol đang chọn
+const SignalStrip: React.FC<{ s: TickerSignals | null }> = ({ s }) => {
+  if (!s) {
+    return (
+      <div style={{ padding: "8px 20px", fontSize: "11px", color: "var(--text-dim)", borderBottom: "1px solid var(--border-color)", background: "#fbfbfa" }}>
+        Đang tính reward/risk & tâm lý…
+      </div>
+    );
+  }
+  const rr = s.reward_risk, t = s.technical, se = s.sentiment;
+  // vị trí giá giữa hỗ trợ và kháng cự gần
+  const span = rr.resistance_near - rr.support;
+  const pos = span > 0 ? Math.max(0, Math.min(1, (s.price - rr.support) / span)) : 0.5;
+  const Badge: React.FC<{ ok: boolean; children: React.ReactNode }> = ({ ok, children }) => (
+    <span style={{ fontSize: "10.5px", fontWeight: 700, padding: "1px 6px", borderRadius: "4px", background: ok ? "var(--bull-green-bg)" : "#f1f5f9", color: ok ? "var(--bull-green)" : "#94a3b8" }}>{children}</span>
+  );
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap", padding: "9px 20px", borderBottom: "1px solid var(--border-color)", background: "#fbfbfa", fontFamily: "'Inter', sans-serif" }}>
+      {/* Tâm lý mã */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <span style={{ fontSize: "10px", color: "var(--text-dim)", fontWeight: 700 }}>TÂM LÝ MÃ</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "20px", fontWeight: 900, color: GAUGE_C(se.composite_gauge) }}>{Math.round(se.composite_gauge)}</span>
+        <span style={{ fontSize: "11px", fontWeight: 700, color: GAUGE_C(se.composite_gauge) }}>{GAUGE_VN(se.label)}</span>
+        <span style={{ fontSize: "10px", color: "var(--text-dim)" }}>(kỹ thuật {se.technical_score}{s.cfa99.mentions_60d >= 3 ? ` + CFA99 ${s.cfa99.net_bull_pct! > 0 ? "+" : ""}${s.cfa99.net_bull_pct}%` : ""})</span>
+      </div>
+      {/* R/R */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <span style={{ fontSize: "10px", color: "var(--text-dim)", fontWeight: 700 }}>R/R</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "16px", fontWeight: 800, color: rr.valid ? "var(--bull-green)" : "var(--bear-red)" }}>
+          1 : {rr.rr ?? "--"}
+        </span>
+        <span style={{ fontSize: "10.5px", color: "var(--text-dim)" }}>→ xa 1 : {rr.rr_far ?? "--"}</span>
+        <Badge ok={rr.valid}>{rr.valid ? "≥ 2 ✓" : "< 2"}</Badge>
+      </div>
+      {/* mini R/R bar */}
+      <div style={{ flex: "1 1 220px", minWidth: "180px" }}>
+        <div style={{ position: "relative", height: "8px", borderRadius: "4px", background: "linear-gradient(90deg,#fecaca,#e2e8f0,#bbf7d0)" }}>
+          <div style={{ position: "absolute", left: `${pos * 100}%`, top: "-3px", width: "2px", height: "14px", background: "#0f172a" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9.5px", color: "var(--text-dim)", marginTop: "2px", fontFamily: "'JetBrains Mono', monospace" }}>
+          <span>HT {vnd(rr.support)} (−{rr.risk_pct}%)</span>
+          <span>KC {vnd(rr.resistance_near)} (+{rr.reward_pct}%)</span>
+        </div>
+      </div>
+      {/* posture */}
+      <div style={{ display: "flex", gap: "4px" }}>
+        <Badge ok={t.above_ma20}>MA20</Badge>
+        <Badge ok={t.above_ma50}>MA50</Badge>
+        <Badge ok={t.above_ma200}>MA200</Badge>
+      </div>
+      <div style={{ fontSize: "10.5px", color: "var(--text-dim)" }}>
+        đỉnh 52T {t.pct_from_high_52w}% · GTGD {s.liquidity.turnover_20d_bn} tỷ
+        {s.foreign?.room_left_pct != null && ` · room NN ${s.foreign.room_left_pct}%`}
+        <span style={{ marginLeft: "6px", color: "#cbd5e1" }}>· {s.as_of}</span>
+      </div>
+    </div>
+  );
+};
+
+// nút "Chi tiết" cho từng thẻ + block liệt kê số liệu thô để review/verify
+const DetailToggle: React.FC<{ open: boolean; onClick: () => void }> = ({ open, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      fontSize: "10.5px", fontWeight: 700, padding: "2px 8px", borderRadius: "5px",
+      border: "1px solid var(--border-color)", background: open ? "#eef2ff" : "#fff",
+      color: open ? "#4338ca" : "var(--text-muted)", cursor: "pointer",
+    }}
+  >
+    {open ? "Ẩn ▲" : "Chi tiết ▾"}
+  </button>
+);
+
+const KV: React.FC<{ k: string; v: React.ReactNode; warn?: boolean }> = ({ k, v, warn }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: "1px dotted var(--border-color)", fontSize: "11.5px" }}>
+    <span style={{ color: "var(--text-muted)" }}>{k}</span>
+    <span className="mono" style={{ fontWeight: 700, color: warn ? "var(--bear-red)" : "var(--text-main)" }}>{v}</span>
+  </div>
+);
+
+const DetailBox: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div style={{ marginTop: "10px", padding: "10px 12px", background: "#f8fafc", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
+    <div style={{ fontSize: "10px", fontWeight: 800, color: "var(--text-dim)", marginBottom: "4px", letterSpacing: "0.04em" }}>
+      SỐ LIỆU THÔ ĐỂ ĐỐI CHIẾU
+    </div>
+    {children}
+  </div>
+);
 
 export const ChartPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -41,6 +285,8 @@ export const ChartPage: React.FC = () => {
   const [symbol, setSymbol] = useState<string>(symbolParam);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [summary, setSummary] = useState<StockSummary | null>(null);
+  const [signals, setSignals] = useState<TickerSignals | null>(null);
+  const [openCard, setOpenCard] = useState<string | null>(null);
   const [telegramData, setTelegramData] =
     useState<TelegramSentimentResult | null>(null);
   const [isTgModalOpen, setIsTgModalOpen] = useState(false);
@@ -51,6 +297,7 @@ export const ChartPage: React.FC = () => {
   const [showRSI, setShowRSI] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [resyncMsg, setResyncMsg] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState<string>("");
 
   const handleFullResync = async () => {
     setResyncing(true);
@@ -120,9 +367,16 @@ export const ChartPage: React.FC = () => {
       });
 
     // 2. Tải tóm tắt AI Gatekeeper & MoS chạy nền bất đồng bộ
+    setSummary(null);
     fetchStockSummary(sym)
       .then(setSummary)
       .catch((err) => console.error("Lỗi summary:", err));
+
+    // 2b. Reward/Risk + Tâm lý theo mã (dữ liệu thật) — cập nhật theo symbol
+    setSignals(null);
+    fetchTickerSignals(sym)
+      .then((s) => setSignals(s && !s.error ? s : null))
+      .catch((err) => console.error("Lỗi ticker-signals:", err));
 
     // 3. Tải Telegram Sentiment chạy nền độc lập
     fetchTelegramSentiment(sym)
@@ -137,7 +391,12 @@ export const ChartPage: React.FC = () => {
   const handleSelectSymbol = (sym: string) => {
     setSymbol(sym);
     setSearchParams({ symbol: sym });
+    setSearchInput(sym);
   };
+
+  const filteredThanhKhoanVua = WATCHLIST_THANH_KHOAN_VUA.symbols
+    .filter((s) => s.includes(searchInput.trim().toUpperCase()))
+    .slice(0, 18);
 
   const latestBar =
     chartData.length > 0 ? chartData[chartData.length - 1] : null;
@@ -177,7 +436,7 @@ export const ChartPage: React.FC = () => {
           gap: "12px",
         }}
       >
-        {/* Watchlist + Preset Symbols */}
+        {/* Watchlist + Search */}
         <div
           style={{
             display: "flex",
@@ -186,23 +445,8 @@ export const ChartPage: React.FC = () => {
             flexWrap: "wrap",
           }}
         >
-          {/* Watchlist */}
+          {/* Hardcode Watchlist (watching) */}
           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                color: "#7c3aed",
-                background: "#f5f3ff",
-                border: "1px solid #ddd6fe",
-                borderRadius: "4px",
-                padding: "2px 6px",
-                letterSpacing: "0.05em",
-                whiteSpace: "nowrap",
-              }}
-            >
-              ⭐ {WATCHLIST.name}
-            </span>
             {WATCHLIST.symbols.map((s) => (
               <button
                 key={s}
@@ -221,6 +465,100 @@ export const ChartPage: React.FC = () => {
                 {s}
               </button>
             ))}
+          </div>
+
+          {/* Search from watchlist thanh_khoan_vua */}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <div style={{ position: "relative" }}>
+              <Search
+                size={13}
+                color="#64748b"
+                style={{ position: "absolute", left: "8px", top: "7px" }}
+              />
+              <input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
+                onFocus={(e) => e.currentTarget.select()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && filteredThanhKhoanVua.length > 0) {
+                    handleSelectSymbol(filteredThanhKhoanVua[0]);
+                  }
+                }}
+                placeholder="Search mã... (VD: HPG)"
+                style={{
+                  width: "190px",
+                  height: "28px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "7px",
+                  padding: "0 10px 0 28px",
+                  fontSize: "12px",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  background: "#ffffff",
+                }}
+              />
+
+              {searchInput.trim() && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "32px",
+                    left: 0,
+                    width: "280px",
+                    maxHeight: "240px",
+                    overflowY: "auto",
+                    background: "#fff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    boxShadow: "0 8px 30px rgba(15, 23, 42, 0.12)",
+                    zIndex: 30,
+                    padding: "6px",
+                  }}
+                >
+                  {filteredThanhKhoanVua.length > 0 ? (
+                    filteredThanhKhoanVua.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => handleSelectSymbol(s)}
+                        style={{
+                          width: "100%",
+                          textAlign: "left",
+                          border: "none",
+                          background: s === symbol ? "#eff6ff" : "transparent",
+                          color: s === symbol ? "#2563eb" : "#0f172a",
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontWeight: 700,
+                          fontSize: "12px",
+                          padding: "7px 8px",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {s}
+                      </button>
+                    ))
+                  ) : (
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "#64748b",
+                        padding: "8px",
+                      }}
+                    >
+                      Không có mã phù hợp trong watchlist.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -455,6 +793,9 @@ export const ChartPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Reward/Risk + Tâm lý theo mã */}
+          <SignalStrip s={signals} />
+
           {/* Interactive Chart Canvas */}
           <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
             {/* Indicator toggles */}
@@ -533,11 +874,6 @@ export const ChartPage: React.FC = () => {
             gap: "14px",
           }}
         >
-          <WatchlistSRPanel
-            watchlistSymbols={WATCHLIST.symbols}
-            activeSymbol={symbol}
-            onSelectSymbol={handleSelectSymbol}
-          />
           {/* Card 1: Gatekeeper Verdict & Plan */}
           <div
             className="card"
@@ -548,11 +884,14 @@ export const ChartPage: React.FC = () => {
                 <ShieldCheck size={16} color="var(--accent-blue)" />
                 <span>Hội Đồng Xác Thực</span>
               </div>
-              <span
-                className={`badge ${summary?.approved !== false ? "badge-approved" : "badge-rejected"}`}
-              >
-                {summary?.verdict || "APPROVED"}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span
+                  className={`badge ${summary?.approved ? "badge-approved" : "badge-rejected"}`}
+                >
+                  {summary?.verdict || (summary ? "—" : "…")}
+                </span>
+                <DetailToggle open={openCard === "verdict"} onClick={() => setOpenCard(openCard === "verdict" ? null : "verdict")} />
+              </div>
             </div>
 
             <div
@@ -662,11 +1001,32 @@ export const ChartPage: React.FC = () => {
                 <span style={{ color: "var(--text-muted)" }}>
                   Tỷ Lệ Risk/Reward:
                 </span>
-                <strong className="mono" style={{ color: "var(--bull-green)" }}>
-                  1 : {summary?.risk_reward_ratio || 2.77}
+                <strong
+                  className="mono"
+                  style={{ color: (summary?.risk_reward_ratio ?? 0) >= 2 ? "var(--bull-green)" : "var(--bear-red)" }}
+                >
+                  1 : {summary?.risk_reward_ratio ?? "--"}
                 </strong>
               </div>
             </div>
+
+            {openCard === "verdict" && (
+              <DetailBox>
+                <KV k="Nguồn plan" v="strategy_agent · dữ liệu đến" />
+                <KV k="Ngày dữ liệu" v={signals?.as_of ?? summary?.timestamp ?? "--"} />
+                <KV k="Giá hiện tại" v={vnd(signals?.price ?? summary?.current_price)} />
+                <KV k="Hỗ trợ (đáy 20 phiên)" v={vnd(signals?.reward_risk.support)} />
+                <KV k="Kháng cự gần (đỉnh 60 phiên)" v={vnd(signals?.reward_risk.resistance_near)} />
+                <KV k="Kháng cự xa (đỉnh 120 phiên)" v={vnd(signals?.reward_risk.resistance_far)} />
+                <KV k="Risk %" v={signals?.reward_risk.risk_pct != null ? `−${signals.reward_risk.risk_pct}%` : "--"} warn />
+                <KV k="Reward % (gần / xa)" v={`+${signals?.reward_risk.reward_pct ?? "--"}% / +${signals?.reward_risk.reward_far_pct ?? "--"}%`} />
+                <KV k="R/R gần → xa" v={`1:${signals?.reward_risk.rr ?? "--"} → 1:${signals?.reward_risk.rr_far ?? "--"}`} warn={!signals?.reward_risk.valid} />
+                <KV k="Điểm kỷ luật" v={`${summary?.verifier_score ?? "--"} / 100`} />
+                {(summary?.checklist || []).map((c: any, i: number) => (
+                  <KV key={i} k={c.criterion} v={c.passed ? "OK" : "FAIL"} warn={!c.passed} />
+                ))}
+              </DetailBox>
+            )}
           </div>
 
           {/* Card 2: 10-Investor Sentiment Meter */}
@@ -679,18 +1039,21 @@ export const ChartPage: React.FC = () => {
                 <Users size={16} color="var(--accent-yellow)" />
                 <span>Đồng Thuận 10 Investor</span>
               </div>
-              <span
-                className="mono"
-                style={{
-                  fontSize: "11px",
-                  color: "var(--bull-green)",
-                  fontWeight: 700,
-                }}
-              >
-                {summary?.sentiment_index
-                  ? `+${summary.sentiment_index}`
-                  : "+0.58"}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span
+                  className="mono"
+                  style={{
+                    fontSize: "11px",
+                    color: (summary?.sentiment_index ?? 0) >= 0 ? "var(--bull-green)" : "var(--bear-red)",
+                    fontWeight: 700,
+                  }}
+                >
+                  {summary?.sentiment_index != null
+                    ? `${summary.sentiment_index > 0 ? "+" : ""}${summary.sentiment_index}`
+                    : "…"}
+                </span>
+                <DetailToggle open={openCard === "consensus"} onClick={() => setOpenCard(openCard === "consensus" ? null : "consensus")} />
+              </div>
             </div>
 
             <div
@@ -724,15 +1087,29 @@ export const ChartPage: React.FC = () => {
               }}
             >
               <span style={{ color: "var(--bull-green)" }}>
-                MUA: {summary?.buy_pct || 80}%
+                MUA: {summary?.buy_pct ?? "--"}%
               </span>
               <span style={{ color: "#d97706" }}>
-                GIỮ: {summary?.hold_pct || 20}%
+                GIỮ: {summary?.hold_pct ?? "--"}%
               </span>
               <span style={{ color: "var(--bear-red)" }}>
-                BÁN: {summary?.sell_pct || 0}%
+                BÁN: {summary?.sell_pct ?? "--"}%
               </span>
             </div>
+
+            {openCard === "consensus" && (
+              <DetailBox>
+                <KV k="Panic %" v={`${summary?.panic_pct ?? "--"}%`} warn={(summary?.panic_pct ?? 0) > 20} />
+                {(summary?.individual_decisions || []).map((d: any, i: number) => (
+                  <KV
+                    key={i}
+                    k={`${d.persona_name}`}
+                    v={`${d.action} · tin cậy ${d.confidence} · target ${d.expected_target_price ? vnd(d.expected_target_price) : "—"}`}
+                    warn={String(d.action).toUpperCase().includes("SELL") || String(d.action).toUpperCase().includes("BÁN")}
+                  />
+                ))}
+              </DetailBox>
+            )}
           </div>
 
           {/* Card 3: Technical & MoS */}
@@ -745,6 +1122,7 @@ export const ChartPage: React.FC = () => {
                 <TrendingUp size={16} color="var(--accent-orange)" />
                 <span>Kỹ Thuật & Định Giá DCF</span>
               </div>
+              <DetailToggle open={openCard === "tech"} onClick={() => setOpenCard(openCard === "tech" ? null : "tech")} />
             </div>
 
             <div
@@ -764,8 +1142,8 @@ export const ChartPage: React.FC = () => {
                 }}
               >
                 <span style={{ color: "var(--text-muted)" }}>Xu Hướng:</span>
-                <strong style={{ color: "var(--bull-green)" }}>
-                  {summary?.technical_trend || "BULLISH (UPTREND)"}
+                <strong style={{ color: summary?.is_uptrend ? "var(--bull-green)" : "var(--bear-red)" }}>
+                  {summary?.technical_trend || "…"}
                 </strong>
               </div>
               <div
@@ -779,8 +1157,13 @@ export const ChartPage: React.FC = () => {
                 <span style={{ color: "var(--text-muted)" }}>
                   Margin of Safety:
                 </span>
-                <strong className="mono" style={{ color: "var(--bull-green)" }}>
-                  +{summary?.margin_of_safety_pct || 18.5}% (Chiết Khấu)
+                <strong
+                  className="mono"
+                  style={{ color: (summary?.margin_of_safety_pct ?? 0) >= 0 ? "var(--bull-green)" : "var(--bear-red)" }}
+                >
+                  {summary?.margin_of_safety_pct != null
+                    ? `${summary.margin_of_safety_pct > 0 ? "+" : ""}${summary.margin_of_safety_pct}%`
+                    : "--"}
                 </strong>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -788,10 +1171,25 @@ export const ChartPage: React.FC = () => {
                   Trạng Thái RSI:
                 </span>
                 <strong className="mono" style={{ color: "var(--text-main)" }}>
-                  {summary?.rsi || 58.4} (Tích Cực)
+                  {signals?.technical.rsi_14 ?? summary?.rsi ?? "--"}
+                  {signals?.technical.rsi_14 != null &&
+                    ` (${signals.technical.rsi_14 > 70 ? "Quá mua" : signals.technical.rsi_14 < 30 ? "Quá bán" : "Trung tính"})`}
                 </strong>
               </div>
             </div>
+
+            {openCard === "tech" && (
+              <DetailBox>
+                <KV k="Giá / MA20 / MA50 / MA200" v={`${vnd(signals?.price)} / ${vnd(signals?.technical.ma20)} / ${vnd(signals?.technical.ma50)} / ${vnd(signals?.technical.ma200)}`} />
+                <KV k="Trên MA20 / 50 / 200" v={`${signals?.technical.above_ma20 ? "✓" : "✗"} / ${signals?.technical.above_ma50 ? "✓" : "✗"} / ${signals?.technical.above_ma200 ? "✓" : "✗"}`} warn={!signals?.technical.above_ma50} />
+                <KV k="Đỉnh / Đáy 52 tuần" v={`${vnd(signals?.technical.high_52w)} / ${vnd(signals?.technical.low_52w)}`} />
+                <KV k="Cách đỉnh / đáy 52T" v={`${signals?.technical.pct_from_high_52w ?? "--"}% / +${signals?.technical.pct_from_low_52w ?? "--"}%`} />
+                <KV k="P/E · P/B" v={`${summary?.financials?.pe_ratio ?? "--"} · ${summary?.financials?.pb_ratio ?? "--"}`} />
+                <KV k="ROE · Biên LN" v={`${summary?.financials?.roe ?? "--"} · ${summary?.financials?.profit_margin ?? "--"}`} />
+                <KV k="Giá trị nội tại DCF" v={vnd(summary?.financials?.intrinsic_value_dcf)} />
+                <KV k="Nợ / Vốn CSH" v={summary?.financials?.debt_to_equity ?? "--"} />
+              </DetailBox>
+            )}
           </div>
 
           {/* Card 4: Telegram Crowd Hype */}

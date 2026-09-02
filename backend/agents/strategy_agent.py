@@ -46,8 +46,15 @@ class StrategyAgent(BaseAgent):
             entry_min = round(current_price * 0.985, 0)
             entry_max = round(current_price * 1.00, 0)
 
-        take_profit_1 = round(current_price * 1.18, 0)
-        take_profit_2 = round(current_price * 1.30, 0)
+        # Take profit: kháng cự THẬT (đỉnh ~60 phiên gần nhất) thay vì cố định +18%,
+        # để tỷ lệ R/R phản ánh đúng dư địa tăng của từng mã.
+        bars = context.historical_bars or []
+        recent_high = max((b.high for b in bars[-60:]), default=current_price) if bars else current_price
+        if recent_high > current_price * 1.03:
+            take_profit_1 = round(recent_high, 0)
+        else:
+            take_profit_1 = round(current_price * 1.15, 0)
+        take_profit_2 = round(take_profit_1 * 1.10, 0)
 
         rrr = calculate_rrr(entry_max, stop_loss, take_profit_1)
 

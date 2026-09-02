@@ -69,6 +69,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_observation_backtest()
         elif path == "/api/observation/psychology":
             self.handle_observation_psychology()
+        elif path == "/api/ticker-signals":
+            symbol = query.get("symbol", ["HPG"])[0].upper()
+            self.handle_api_ticker_signals(symbol)
         elif path == "/api/observation/comments":
             ticker = query.get("ticker", [None])[0]
             limit = int(query.get("limit", [50])[0])
@@ -293,11 +296,31 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 "error": f"Lỗi truy vấn nến giá PostgreSQL cho biểu đồ {symbol}: {str(e)}"
             }, status_code=503)
 
+    def handle_api_ticker_signals(self, symbol: str):
+        """Reward/risk + tâm lý theo mã — tính từ dữ liệu thật (stock_prices,
+        yt_ticker_mentions, VNDirect foreigns). Dùng cho ChartPage header + thẻ chi tiết."""
+        try:
+            from backend.utils.ticker_signals import compute_ticker_signals
+            self.send_json_response(compute_ticker_signals(symbol))
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def _latest_trading_date(self) -> str:
+        try:
+            conn = psycopg2.connect(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
+            with conn.cursor() as cur:
+                cur.execute("SELECT MAX(trading_date) FROM stock_prices WHERE symbol <> 'VNINDEX'")
+                d = cur.fetchone()[0]
+            conn.close()
+            return d.isoformat() if d else "2026-08-18"
+        except Exception:
+            return "2026-08-18"
+
     def handle_api_summary(self, symbol: str):
         try:
             from backend.workflow.engine import InvestmentWorkflowEngine
             engine = InvestmentWorkflowEngine()
-            result = engine.run_pipeline(symbol=symbol, timestamp="2026-08-18", verbose=False)
+            result = engine.run_pipeline(symbol=symbol, timestamp=self._latest_trading_date(), verbose=False)
             
             ctx = result["market_context"]
             analysis = result["market_analysis"]
