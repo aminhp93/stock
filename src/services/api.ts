@@ -99,29 +99,49 @@ export interface TickerSignals {
     valid: boolean;
   };
   technical: {
-    ma20: number | null; ma50: number | null; ma200: number | null;
-    above_ma20: boolean; above_ma50: boolean; above_ma200: boolean;
+    ma20: number | null;
+    ma50: number | null;
+    ma200: number | null;
+    above_ma20: boolean;
+    above_ma50: boolean;
+    above_ma200: boolean;
     rsi_14: number | null;
-    high_52w: number; low_52w: number;
-    pct_from_high_52w: number | null; pct_from_low_52w: number | null;
+    high_52w: number;
+    low_52w: number;
+    pct_from_high_52w: number | null;
+    pct_from_low_52w: number | null;
     dist_to_ma50_pct: number | null;
   };
   liquidity: { turnover_20d_bn: number };
   cfa99: {
-    mentions_60d: number; questions_60d: number;
-    bullish_60d: number; bearish_60d: number;
-    fomo_60d: number; fear_60d: number;
+    mentions_60d: number;
+    questions_60d: number;
+    bullish_60d: number;
+    bearish_60d: number;
+    fomo_60d: number;
+    fear_60d: number;
     net_bull_pct: number | null;
   };
   foreign: {
-    trading_date?: string; net_val_bn?: number; net_5d_bn?: number; room_left_pct?: number | null;
+    trading_date?: string;
+    net_val_bn?: number;
+    net_5d_bn?: number;
+    room_left_pct?: number | null;
   };
-  sentiment: { technical_score: number; composite_gauge: number; label: string };
+  sentiment: {
+    technical_score: number;
+    composite_gauge: number;
+    label: string;
+  };
   error?: string;
 }
 
-export async function fetchTickerSignals(symbol: string): Promise<TickerSignals> {
-  const res = await fetch(`${API_BASE}/ticker-signals?symbol=${encodeURIComponent(symbol)}`);
+export async function fetchTickerSignals(
+  symbol: string,
+): Promise<TickerSignals> {
+  const res = await fetch(
+    `${API_BASE}/ticker-signals?symbol=${encodeURIComponent(symbol)}`,
+  );
   return res.json();
 }
 
@@ -180,7 +200,30 @@ export async function fetchNavHistory(
       .catch(() => ({ error: "Không thể tải NAV history." }));
     throw new Error(err.error || `HTTP ${res.status}`);
   }
-  return await res.json();
+  const payload = await res.json();
+  let rawHistories: any[] = [];
+
+  if (Array.isArray(payload?.navHistories)) {
+    rawHistories = payload.navHistories;
+  } else if (Array.isArray(payload?.data?.navHistories)) {
+    rawHistories = payload.data.navHistories;
+  } else if (Array.isArray(payload?.data)) {
+    rawHistories = payload.data;
+  } else if (Array.isArray(payload)) {
+    rawHistories = payload;
+  }
+
+  const navHistories = rawHistories
+    .filter((item: any) => item?.navDate && item?.nav != null)
+    .map((item: any) => ({
+      navDate: String(item.navDate),
+      nav: Number(item.nav),
+    }))
+    .filter((item: { navDate: string; nav: number }) =>
+      Number.isFinite(item.nav),
+    );
+
+  return { navHistories };
 }
 
 export async function fetchFullResync(symbol: string): Promise<{
@@ -424,11 +467,16 @@ export async function fetchObsPsychology(): Promise<{
   return res.json();
 }
 
-export async function fetchObsComments(ticker?: string, limit = 50): Promise<{
+export async function fetchObsComments(
+  ticker?: string,
+  limit = 50,
+): Promise<{
   comments: ObsComment[];
   total: number;
 }> {
-  const q = ticker ? `?ticker=${encodeURIComponent(ticker)}&limit=${limit}` : `?limit=${limit}`;
+  const q = ticker
+    ? `?ticker=${encodeURIComponent(ticker)}&limit=${limit}`
+    : `?limit=${limit}`;
   const res = await fetch(`${API_BASE}/observation/comments${q}`);
   return res.json();
 }

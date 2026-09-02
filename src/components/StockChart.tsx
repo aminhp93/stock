@@ -11,11 +11,12 @@ import {
 import { ChartDataPoint } from "../types";
 
 /** Số nến trống chừa bên phải để nhãn R1/R2/S1/S2 không đè lên giá. */
-const RIGHT_OFFSET_BARS = 30;
+const RIGHT_OFFSET_BARS = 50;
 
 interface StockChartProps {
   data: ChartDataPoint[];
   symbol: string;
+  range?: string;
   loading?: boolean;
   showMA20?: boolean;
   showMA50?: boolean;
@@ -25,6 +26,7 @@ interface StockChartProps {
 export const StockChart: React.FC<StockChartProps> = ({
   data,
   symbol,
+  range: selectedRange = "1Y",
   loading,
   showMA20 = true,
   showMA50 = true,
@@ -371,19 +373,21 @@ export const StockChart: React.FC<StockChartProps> = ({
       });
     }
 
-    // Khung nhìn mặc định: ~150 phiên gần nhất + chừa RIGHT_OFFSET_BARS nến trống
-    // bên phải để nhìn rõ R1/R2/S1/S2. Không dùng fitContent() (bỏ qua rightOffset).
-    // Người dùng vẫn cuộn/zoom ra xem toàn bộ lịch sử được.
+    // Khung nhìn mặc định:
+    // - 1Y: hiển thị toàn bộ nến trong 1 năm đã load.
+    // - range khác: giữ ~150 phiên gần nhất.
+    // Luôn chừa RIGHT_OFFSET_BARS bên phải để nhãn R1/R2/S1/S2 không đè giá.
     if (data.length > 0) {
-      const visibleBars = Math.min(data.length, 150);
-      const range = {
+      const visibleBars =
+        selectedRange === "1Y" ? data.length : Math.min(data.length, 150);
+      const visibleRange = {
         from: data.length - visibleBars,
         to: data.length - 1 + RIGHT_OFFSET_BARS,
       };
-      mainChartRef.current?.timeScale().setVisibleLogicalRange(range);
-      rsiChartRef.current?.timeScale().setVisibleLogicalRange(range);
+      mainChartRef.current?.timeScale().setVisibleLogicalRange(visibleRange);
+      rsiChartRef.current?.timeScale().setVisibleLogicalRange(visibleRange);
     }
-  }, [data]);
+  }, [data, selectedRange]);
 
   // Toggle visibility of indicators
   useEffect(() => {

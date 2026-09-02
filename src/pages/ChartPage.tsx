@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { StockChart } from "../components/StockChart";
 import { TelegramModal } from "../components/TelegramModal";
@@ -28,7 +28,7 @@ import {
 const WATCHLIST = {
   id: 4611155,
   name: "watching",
-  symbols: ["HPG", "MBS", "TCH", "VIC", "HDG", "PDR", "DXG", "HHS"],
+  symbols: ["VNINDEX", "HPG", "MBS", "TCH", "VIC", "HDG", "PDR", "DXG", "HHS"],
 };
 
 const WATCHLIST_THANH_KHOAN_VUA = {
@@ -183,54 +183,188 @@ const WATCHLIST_THANH_KHOAN_VUA = {
   ],
 };
 
+const SEARCH_SYMBOLS = Array.from(
+  new Set(["VNINDEX", ...WATCHLIST_THANH_KHOAN_VUA.symbols]),
+);
+
 const GAUGE_C = (g: number) =>
-  g < 20 ? "#b91c1c" : g < 40 ? "#ea580c" : g < 60 ? "#64748b" : g < 80 ? "#16a34a" : "#15803d";
+  g < 20
+    ? "#b91c1c"
+    : g < 40
+      ? "#ea580c"
+      : g < 60
+        ? "#64748b"
+        : g < 80
+          ? "#16a34a"
+          : "#15803d";
 const GAUGE_VN = (l: string) =>
-  ({ EXTREME_FEAR: "Sợ hãi tột độ", FEAR: "Sợ hãi", NEUTRAL: "Trung tính", GREED: "Tham lam", EXTREME_GREED: "Tham lam tột độ" } as Record<string, string>)[l] || l;
-const vnd = (n?: number | null) => (n == null ? "--" : n.toLocaleString("vi-VN"));
+  (
+    ({
+      EXTREME_FEAR: "Sợ hãi tột độ",
+      FEAR: "Sợ hãi",
+      NEUTRAL: "Trung tính",
+      GREED: "Tham lam",
+      EXTREME_GREED: "Tham lam tột độ",
+    }) as Record<string, string>
+  )[l] || l;
+const vnd = (n?: number | null) =>
+  n == null ? "--" : n.toLocaleString("vi-VN");
 
 // Dải Reward/Risk + Tâm lý theo mã — luôn cập nhật theo symbol đang chọn
 const SignalStrip: React.FC<{ s: TickerSignals | null }> = ({ s }) => {
   if (!s) {
     return (
-      <div style={{ padding: "8px 20px", fontSize: "11px", color: "var(--text-dim)", borderBottom: "1px solid var(--border-color)", background: "#fbfbfa" }}>
+      <div
+        style={{
+          padding: "8px 20px",
+          fontSize: "11px",
+          color: "var(--text-dim)",
+          borderBottom: "1px solid var(--border-color)",
+          background: "#fbfbfa",
+        }}
+      >
         Đang tính reward/risk & tâm lý…
       </div>
     );
   }
-  const rr = s.reward_risk, t = s.technical, se = s.sentiment;
+  const rr = s.reward_risk,
+    t = s.technical,
+    se = s.sentiment;
   // vị trí giá giữa hỗ trợ và kháng cự gần
   const span = rr.resistance_near - rr.support;
-  const pos = span > 0 ? Math.max(0, Math.min(1, (s.price - rr.support) / span)) : 0.5;
-  const Badge: React.FC<{ ok: boolean; children: React.ReactNode }> = ({ ok, children }) => (
-    <span style={{ fontSize: "10.5px", fontWeight: 700, padding: "1px 6px", borderRadius: "4px", background: ok ? "var(--bull-green-bg)" : "#f1f5f9", color: ok ? "var(--bull-green)" : "#94a3b8" }}>{children}</span>
+  const pos =
+    span > 0 ? Math.max(0, Math.min(1, (s.price - rr.support) / span)) : 0.5;
+  const Badge: React.FC<{ ok: boolean; children: React.ReactNode }> = ({
+    ok,
+    children,
+  }) => (
+    <span
+      style={{
+        fontSize: "10.5px",
+        fontWeight: 700,
+        padding: "1px 6px",
+        borderRadius: "4px",
+        background: ok ? "var(--bull-green-bg)" : "#f1f5f9",
+        color: ok ? "var(--bull-green)" : "#94a3b8",
+      }}
+    >
+      {children}
+    </span>
   );
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap", padding: "9px 20px", borderBottom: "1px solid var(--border-color)", background: "#fbfbfa", fontFamily: "'Inter', sans-serif" }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "20px",
+        flexWrap: "wrap",
+        padding: "9px 20px",
+        borderBottom: "1px solid var(--border-color)",
+        background: "#fbfbfa",
+        fontFamily: "'Inter', sans-serif",
+      }}
+    >
       {/* Tâm lý mã */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span style={{ fontSize: "10px", color: "var(--text-dim)", fontWeight: 700 }}>TÂM LÝ MÃ</span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "20px", fontWeight: 900, color: GAUGE_C(se.composite_gauge) }}>{Math.round(se.composite_gauge)}</span>
-        <span style={{ fontSize: "11px", fontWeight: 700, color: GAUGE_C(se.composite_gauge) }}>{GAUGE_VN(se.label)}</span>
-        <span style={{ fontSize: "10px", color: "var(--text-dim)" }}>(kỹ thuật {se.technical_score}{s.cfa99.mentions_60d >= 3 ? ` + CFA99 ${s.cfa99.net_bull_pct! > 0 ? "+" : ""}${s.cfa99.net_bull_pct}%` : ""})</span>
+        <span
+          style={{
+            fontSize: "10px",
+            color: "var(--text-dim)",
+            fontWeight: 700,
+          }}
+        >
+          TÂM LÝ MÃ
+        </span>
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "20px",
+            fontWeight: 900,
+            color: GAUGE_C(se.composite_gauge),
+          }}
+        >
+          {Math.round(se.composite_gauge)}
+        </span>
+        <span
+          style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            color: GAUGE_C(se.composite_gauge),
+          }}
+        >
+          {GAUGE_VN(se.label)}
+        </span>
+        <span style={{ fontSize: "10px", color: "var(--text-dim)" }}>
+          (kỹ thuật {se.technical_score}
+          {s.cfa99.mentions_60d >= 3
+            ? ` + CFA99 ${s.cfa99.net_bull_pct! > 0 ? "+" : ""}${s.cfa99.net_bull_pct}%`
+            : ""}
+          )
+        </span>
       </div>
       {/* R/R */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span style={{ fontSize: "10px", color: "var(--text-dim)", fontWeight: 700 }}>R/R</span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "16px", fontWeight: 800, color: rr.valid ? "var(--bull-green)" : "var(--bear-red)" }}>
+        <span
+          style={{
+            fontSize: "10px",
+            color: "var(--text-dim)",
+            fontWeight: 700,
+          }}
+        >
+          R/R
+        </span>
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "16px",
+            fontWeight: 800,
+            color: rr.valid ? "var(--bull-green)" : "var(--bear-red)",
+          }}
+        >
           1 : {rr.rr ?? "--"}
         </span>
-        <span style={{ fontSize: "10.5px", color: "var(--text-dim)" }}>→ xa 1 : {rr.rr_far ?? "--"}</span>
+        <span style={{ fontSize: "10.5px", color: "var(--text-dim)" }}>
+          → xa 1 : {rr.rr_far ?? "--"}
+        </span>
         <Badge ok={rr.valid}>{rr.valid ? "≥ 2 ✓" : "< 2"}</Badge>
       </div>
       {/* mini R/R bar */}
       <div style={{ flex: "1 1 220px", minWidth: "180px" }}>
-        <div style={{ position: "relative", height: "8px", borderRadius: "4px", background: "linear-gradient(90deg,#fecaca,#e2e8f0,#bbf7d0)" }}>
-          <div style={{ position: "absolute", left: `${pos * 100}%`, top: "-3px", width: "2px", height: "14px", background: "#0f172a" }} />
+        <div
+          style={{
+            position: "relative",
+            height: "8px",
+            borderRadius: "4px",
+            background: "linear-gradient(90deg,#fecaca,#e2e8f0,#bbf7d0)",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: `${pos * 100}%`,
+              top: "-3px",
+              width: "2px",
+              height: "14px",
+              background: "#0f172a",
+            }}
+          />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9.5px", color: "var(--text-dim)", marginTop: "2px", fontFamily: "'JetBrains Mono', monospace" }}>
-          <span>HT {vnd(rr.support)} (−{rr.risk_pct}%)</span>
-          <span>KC {vnd(rr.resistance_near)} (+{rr.reward_pct}%)</span>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: "9.5px",
+            color: "var(--text-dim)",
+            marginTop: "2px",
+            fontFamily: "'JetBrains Mono', monospace",
+          }}
+        >
+          <span>
+            HT {vnd(rr.support)} (−{rr.risk_pct}%)
+          </span>
+          <span>
+            KC {vnd(rr.resistance_near)} (+{rr.reward_pct}%)
+          </span>
         </div>
       </div>
       {/* posture */}
@@ -241,7 +375,8 @@ const SignalStrip: React.FC<{ s: TickerSignals | null }> = ({ s }) => {
       </div>
       <div style={{ fontSize: "10.5px", color: "var(--text-dim)" }}>
         đỉnh 52T {t.pct_from_high_52w}% · GTGD {s.liquidity.turnover_20d_bn} tỷ
-        {s.foreign?.room_left_pct != null && ` · room NN ${s.foreign.room_left_pct}%`}
+        {s.foreign?.room_left_pct != null &&
+          ` · room NN ${s.foreign.room_left_pct}%`}
         <span style={{ marginLeft: "6px", color: "#cbd5e1" }}>· {s.as_of}</span>
       </div>
     </div>
@@ -249,29 +384,73 @@ const SignalStrip: React.FC<{ s: TickerSignals | null }> = ({ s }) => {
 };
 
 // nút "Chi tiết" cho từng thẻ + block liệt kê số liệu thô để review/verify
-const DetailToggle: React.FC<{ open: boolean; onClick: () => void }> = ({ open, onClick }) => (
+const DetailToggle: React.FC<{ open: boolean; onClick: () => void }> = ({
+  open,
+  onClick,
+}) => (
   <button
     onClick={onClick}
     style={{
-      fontSize: "10.5px", fontWeight: 700, padding: "2px 8px", borderRadius: "5px",
-      border: "1px solid var(--border-color)", background: open ? "#eef2ff" : "#fff",
-      color: open ? "#4338ca" : "var(--text-muted)", cursor: "pointer",
+      fontSize: "10.5px",
+      fontWeight: 700,
+      padding: "2px 8px",
+      borderRadius: "5px",
+      border: "1px solid var(--border-color)",
+      background: open ? "#eef2ff" : "#fff",
+      color: open ? "#4338ca" : "var(--text-muted)",
+      cursor: "pointer",
     }}
   >
     {open ? "Ẩn ▲" : "Chi tiết ▾"}
   </button>
 );
 
-const KV: React.FC<{ k: string; v: React.ReactNode; warn?: boolean }> = ({ k, v, warn }) => (
-  <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: "1px dotted var(--border-color)", fontSize: "11.5px" }}>
+const KV: React.FC<{ k: string; v: React.ReactNode; warn?: boolean }> = ({
+  k,
+  v,
+  warn,
+}) => (
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      padding: "3px 0",
+      borderBottom: "1px dotted var(--border-color)",
+      fontSize: "11.5px",
+    }}
+  >
     <span style={{ color: "var(--text-muted)" }}>{k}</span>
-    <span className="mono" style={{ fontWeight: 700, color: warn ? "var(--bear-red)" : "var(--text-main)" }}>{v}</span>
+    <span
+      className="mono"
+      style={{
+        fontWeight: 700,
+        color: warn ? "var(--bear-red)" : "var(--text-main)",
+      }}
+    >
+      {v}
+    </span>
   </div>
 );
 
 const DetailBox: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div style={{ marginTop: "10px", padding: "10px 12px", background: "#f8fafc", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-    <div style={{ fontSize: "10px", fontWeight: 800, color: "var(--text-dim)", marginBottom: "4px", letterSpacing: "0.04em" }}>
+  <div
+    style={{
+      marginTop: "10px",
+      padding: "10px 12px",
+      background: "#f8fafc",
+      border: "1px solid var(--border-color)",
+      borderRadius: "8px",
+    }}
+  >
+    <div
+      style={{
+        fontSize: "10px",
+        fontWeight: 800,
+        color: "var(--text-dim)",
+        marginBottom: "4px",
+        letterSpacing: "0.04em",
+      }}
+    >
       SỐ LIỆU THÔ ĐỂ ĐỐI CHIẾU
     </div>
     {children}
@@ -298,6 +477,9 @@ export const ChartPage: React.FC = () => {
   const [resyncing, setResyncing] = useState(false);
   const [resyncMsg, setResyncMsg] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState<string>("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement | null>(null);
+  const isIndexSymbol = symbol === "VNINDEX";
 
   const handleFullResync = async () => {
     setResyncing(true);
@@ -388,15 +570,40 @@ export const ChartPage: React.FC = () => {
     loadData(symbol, range);
   }, [symbol, range]);
 
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!searchBoxRef.current) return;
+      const target = event.target as Node;
+      if (!searchBoxRef.current.contains(target)) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSearchOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
   const handleSelectSymbol = (sym: string) => {
     setSymbol(sym);
     setSearchParams({ symbol: sym });
     setSearchInput(sym);
+    setIsSearchOpen(false);
   };
 
-  const filteredThanhKhoanVua = WATCHLIST_THANH_KHOAN_VUA.symbols
-    .filter((s) => s.includes(searchInput.trim().toUpperCase()))
-    .slice(0, 18);
+  const filteredThanhKhoanVua = SEARCH_SYMBOLS.filter((s) =>
+    s.includes(searchInput.trim().toUpperCase()),
+  ).slice(0, 18);
 
   const latestBar =
     chartData.length > 0 ? chartData[chartData.length - 1] : null;
@@ -408,7 +615,13 @@ export const ChartPage: React.FC = () => {
   const isUp = priceChange >= 0;
 
   const formatVND = (num?: number) => {
-    if (!num) return "--";
+    if (num == null) return "--";
+    if (isIndexSymbol) {
+      return new Intl.NumberFormat("vi-VN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(num);
+    }
     return new Intl.NumberFormat("vi-VN").format(num) + " đ";
   };
 
@@ -476,7 +689,7 @@ export const ChartPage: React.FC = () => {
               gap: "8px",
             }}
           >
-            <div style={{ position: "relative" }}>
+            <div ref={searchBoxRef} style={{ position: "relative" }}>
               <Search
                 size={13}
                 color="#64748b"
@@ -484,14 +697,26 @@ export const ChartPage: React.FC = () => {
               />
               <input
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
-                onFocus={(e) => e.currentTarget.select()}
+                onChange={(e) => {
+                  const nextValue = e.target.value.toUpperCase();
+                  setSearchInput(nextValue);
+                  setIsSearchOpen(nextValue.trim().length > 0);
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.select();
+                  if (searchInput.trim()) {
+                    setIsSearchOpen(true);
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && filteredThanhKhoanVua.length > 0) {
                     handleSelectSymbol(filteredThanhKhoanVua[0]);
                   }
+                  if (e.key === "Escape") {
+                    setIsSearchOpen(false);
+                  }
                 }}
-                placeholder="Search mã... (VD: HPG)"
+                placeholder="Search mã... (VD: HPG, VNINDEX)"
                 style={{
                   width: "190px",
                   height: "28px",
@@ -506,7 +731,7 @@ export const ChartPage: React.FC = () => {
                 }}
               />
 
-              {searchInput.trim() && (
+              {isSearchOpen && searchInput.trim() && (
                 <div
                   style={{
                     position: "absolute",
@@ -684,7 +909,8 @@ export const ChartPage: React.FC = () => {
                   color: "var(--text-muted)",
                 }}
               >
-                {summary?.company_name || `CTCP ${symbol}`}
+                {summary?.company_name ||
+                  (isIndexSymbol ? "Chỉ số VN-Index (HOSE)" : `CTCP ${symbol}`)}
               </span>
               <span
                 style={{
@@ -855,6 +1081,7 @@ export const ChartPage: React.FC = () => {
             <StockChart
               data={chartData}
               symbol={symbol}
+              range={range}
               loading={loading}
               showMA20={showMA20}
               showMA50={showMA50}
@@ -884,13 +1111,20 @@ export const ChartPage: React.FC = () => {
                 <ShieldCheck size={16} color="var(--accent-blue)" />
                 <span>Hội Đồng Xác Thực</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
                 <span
                   className={`badge ${summary?.approved ? "badge-approved" : "badge-rejected"}`}
                 >
                   {summary?.verdict || (summary ? "—" : "…")}
                 </span>
-                <DetailToggle open={openCard === "verdict"} onClick={() => setOpenCard(openCard === "verdict" ? null : "verdict")} />
+                <DetailToggle
+                  open={openCard === "verdict"}
+                  onClick={() =>
+                    setOpenCard(openCard === "verdict" ? null : "verdict")
+                  }
+                />
               </div>
             </div>
 
@@ -1003,7 +1237,12 @@ export const ChartPage: React.FC = () => {
                 </span>
                 <strong
                   className="mono"
-                  style={{ color: (summary?.risk_reward_ratio ?? 0) >= 2 ? "var(--bull-green)" : "var(--bear-red)" }}
+                  style={{
+                    color:
+                      (summary?.risk_reward_ratio ?? 0) >= 2
+                        ? "var(--bull-green)"
+                        : "var(--bear-red)",
+                  }}
                 >
                   1 : {summary?.risk_reward_ratio ?? "--"}
                 </strong>
@@ -1013,17 +1252,55 @@ export const ChartPage: React.FC = () => {
             {openCard === "verdict" && (
               <DetailBox>
                 <KV k="Nguồn plan" v="strategy_agent · dữ liệu đến" />
-                <KV k="Ngày dữ liệu" v={signals?.as_of ?? summary?.timestamp ?? "--"} />
-                <KV k="Giá hiện tại" v={vnd(signals?.price ?? summary?.current_price)} />
-                <KV k="Hỗ trợ (đáy 20 phiên)" v={vnd(signals?.reward_risk.support)} />
-                <KV k="Kháng cự gần (đỉnh 60 phiên)" v={vnd(signals?.reward_risk.resistance_near)} />
-                <KV k="Kháng cự xa (đỉnh 120 phiên)" v={vnd(signals?.reward_risk.resistance_far)} />
-                <KV k="Risk %" v={signals?.reward_risk.risk_pct != null ? `−${signals.reward_risk.risk_pct}%` : "--"} warn />
-                <KV k="Reward % (gần / xa)" v={`+${signals?.reward_risk.reward_pct ?? "--"}% / +${signals?.reward_risk.reward_far_pct ?? "--"}%`} />
-                <KV k="R/R gần → xa" v={`1:${signals?.reward_risk.rr ?? "--"} → 1:${signals?.reward_risk.rr_far ?? "--"}`} warn={!signals?.reward_risk.valid} />
-                <KV k="Điểm kỷ luật" v={`${summary?.verifier_score ?? "--"} / 100`} />
+                <KV
+                  k="Ngày dữ liệu"
+                  v={signals?.as_of ?? summary?.timestamp ?? "--"}
+                />
+                <KV
+                  k="Giá hiện tại"
+                  v={vnd(signals?.price ?? summary?.current_price)}
+                />
+                <KV
+                  k="Hỗ trợ (đáy 20 phiên)"
+                  v={vnd(signals?.reward_risk.support)}
+                />
+                <KV
+                  k="Kháng cự gần (đỉnh 60 phiên)"
+                  v={vnd(signals?.reward_risk.resistance_near)}
+                />
+                <KV
+                  k="Kháng cự xa (đỉnh 120 phiên)"
+                  v={vnd(signals?.reward_risk.resistance_far)}
+                />
+                <KV
+                  k="Risk %"
+                  v={
+                    signals?.reward_risk.risk_pct != null
+                      ? `−${signals.reward_risk.risk_pct}%`
+                      : "--"
+                  }
+                  warn
+                />
+                <KV
+                  k="Reward % (gần / xa)"
+                  v={`+${signals?.reward_risk.reward_pct ?? "--"}% / +${signals?.reward_risk.reward_far_pct ?? "--"}%`}
+                />
+                <KV
+                  k="R/R gần → xa"
+                  v={`1:${signals?.reward_risk.rr ?? "--"} → 1:${signals?.reward_risk.rr_far ?? "--"}`}
+                  warn={!signals?.reward_risk.valid}
+                />
+                <KV
+                  k="Điểm kỷ luật"
+                  v={`${summary?.verifier_score ?? "--"} / 100`}
+                />
                 {(summary?.checklist || []).map((c: any, i: number) => (
-                  <KV key={i} k={c.criterion} v={c.passed ? "OK" : "FAIL"} warn={!c.passed} />
+                  <KV
+                    key={i}
+                    k={c.criterion}
+                    v={c.passed ? "OK" : "FAIL"}
+                    warn={!c.passed}
+                  />
                 ))}
               </DetailBox>
             )}
@@ -1039,12 +1316,17 @@ export const ChartPage: React.FC = () => {
                 <Users size={16} color="var(--accent-yellow)" />
                 <span>Đồng Thuận 10 Investor</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
                 <span
                   className="mono"
                   style={{
                     fontSize: "11px",
-                    color: (summary?.sentiment_index ?? 0) >= 0 ? "var(--bull-green)" : "var(--bear-red)",
+                    color:
+                      (summary?.sentiment_index ?? 0) >= 0
+                        ? "var(--bull-green)"
+                        : "var(--bear-red)",
                     fontWeight: 700,
                   }}
                 >
@@ -1052,7 +1334,12 @@ export const ChartPage: React.FC = () => {
                     ? `${summary.sentiment_index > 0 ? "+" : ""}${summary.sentiment_index}`
                     : "…"}
                 </span>
-                <DetailToggle open={openCard === "consensus"} onClick={() => setOpenCard(openCard === "consensus" ? null : "consensus")} />
+                <DetailToggle
+                  open={openCard === "consensus"}
+                  onClick={() =>
+                    setOpenCard(openCard === "consensus" ? null : "consensus")
+                  }
+                />
               </div>
             </div>
 
@@ -1099,15 +1386,24 @@ export const ChartPage: React.FC = () => {
 
             {openCard === "consensus" && (
               <DetailBox>
-                <KV k="Panic %" v={`${summary?.panic_pct ?? "--"}%`} warn={(summary?.panic_pct ?? 0) > 20} />
-                {(summary?.individual_decisions || []).map((d: any, i: number) => (
-                  <KV
-                    key={i}
-                    k={`${d.persona_name}`}
-                    v={`${d.action} · tin cậy ${d.confidence} · target ${d.expected_target_price ? vnd(d.expected_target_price) : "—"}`}
-                    warn={String(d.action).toUpperCase().includes("SELL") || String(d.action).toUpperCase().includes("BÁN")}
-                  />
-                ))}
+                <KV
+                  k="Panic %"
+                  v={`${summary?.panic_pct ?? "--"}%`}
+                  warn={(summary?.panic_pct ?? 0) > 20}
+                />
+                {(summary?.individual_decisions || []).map(
+                  (d: any, i: number) => (
+                    <KV
+                      key={i}
+                      k={`${d.persona_name}`}
+                      v={`${d.action} · tin cậy ${d.confidence} · target ${d.expected_target_price ? vnd(d.expected_target_price) : "—"}`}
+                      warn={
+                        String(d.action).toUpperCase().includes("SELL") ||
+                        String(d.action).toUpperCase().includes("BÁN")
+                      }
+                    />
+                  ),
+                )}
               </DetailBox>
             )}
           </div>
@@ -1122,7 +1418,10 @@ export const ChartPage: React.FC = () => {
                 <TrendingUp size={16} color="var(--accent-orange)" />
                 <span>Kỹ Thuật & Định Giá DCF</span>
               </div>
-              <DetailToggle open={openCard === "tech"} onClick={() => setOpenCard(openCard === "tech" ? null : "tech")} />
+              <DetailToggle
+                open={openCard === "tech"}
+                onClick={() => setOpenCard(openCard === "tech" ? null : "tech")}
+              />
             </div>
 
             <div
@@ -1142,7 +1441,13 @@ export const ChartPage: React.FC = () => {
                 }}
               >
                 <span style={{ color: "var(--text-muted)" }}>Xu Hướng:</span>
-                <strong style={{ color: summary?.is_uptrend ? "var(--bull-green)" : "var(--bear-red)" }}>
+                <strong
+                  style={{
+                    color: summary?.is_uptrend
+                      ? "var(--bull-green)"
+                      : "var(--bear-red)",
+                  }}
+                >
                   {summary?.technical_trend || "…"}
                 </strong>
               </div>
@@ -1159,7 +1464,12 @@ export const ChartPage: React.FC = () => {
                 </span>
                 <strong
                   className="mono"
-                  style={{ color: (summary?.margin_of_safety_pct ?? 0) >= 0 ? "var(--bull-green)" : "var(--bear-red)" }}
+                  style={{
+                    color:
+                      (summary?.margin_of_safety_pct ?? 0) >= 0
+                        ? "var(--bull-green)"
+                        : "var(--bear-red)",
+                  }}
                 >
                   {summary?.margin_of_safety_pct != null
                     ? `${summary.margin_of_safety_pct > 0 ? "+" : ""}${summary.margin_of_safety_pct}%`
@@ -1180,14 +1490,39 @@ export const ChartPage: React.FC = () => {
 
             {openCard === "tech" && (
               <DetailBox>
-                <KV k="Giá / MA20 / MA50 / MA200" v={`${vnd(signals?.price)} / ${vnd(signals?.technical.ma20)} / ${vnd(signals?.technical.ma50)} / ${vnd(signals?.technical.ma200)}`} />
-                <KV k="Trên MA20 / 50 / 200" v={`${signals?.technical.above_ma20 ? "✓" : "✗"} / ${signals?.technical.above_ma50 ? "✓" : "✗"} / ${signals?.technical.above_ma200 ? "✓" : "✗"}`} warn={!signals?.technical.above_ma50} />
-                <KV k="Đỉnh / Đáy 52 tuần" v={`${vnd(signals?.technical.high_52w)} / ${vnd(signals?.technical.low_52w)}`} />
-                <KV k="Cách đỉnh / đáy 52T" v={`${signals?.technical.pct_from_high_52w ?? "--"}% / +${signals?.technical.pct_from_low_52w ?? "--"}%`} />
-                <KV k="P/E · P/B" v={`${summary?.financials?.pe_ratio ?? "--"} · ${summary?.financials?.pb_ratio ?? "--"}`} />
-                <KV k="ROE · Biên LN" v={`${summary?.financials?.roe ?? "--"} · ${summary?.financials?.profit_margin ?? "--"}`} />
-                <KV k="Giá trị nội tại DCF" v={vnd(summary?.financials?.intrinsic_value_dcf)} />
-                <KV k="Nợ / Vốn CSH" v={summary?.financials?.debt_to_equity ?? "--"} />
+                <KV
+                  k="Giá / MA20 / MA50 / MA200"
+                  v={`${vnd(signals?.price)} / ${vnd(signals?.technical.ma20)} / ${vnd(signals?.technical.ma50)} / ${vnd(signals?.technical.ma200)}`}
+                />
+                <KV
+                  k="Trên MA20 / 50 / 200"
+                  v={`${signals?.technical.above_ma20 ? "✓" : "✗"} / ${signals?.technical.above_ma50 ? "✓" : "✗"} / ${signals?.technical.above_ma200 ? "✓" : "✗"}`}
+                  warn={!signals?.technical.above_ma50}
+                />
+                <KV
+                  k="Đỉnh / Đáy 52 tuần"
+                  v={`${vnd(signals?.technical.high_52w)} / ${vnd(signals?.technical.low_52w)}`}
+                />
+                <KV
+                  k="Cách đỉnh / đáy 52T"
+                  v={`${signals?.technical.pct_from_high_52w ?? "--"}% / +${signals?.technical.pct_from_low_52w ?? "--"}%`}
+                />
+                <KV
+                  k="P/E · P/B"
+                  v={`${summary?.financials?.pe_ratio ?? "--"} · ${summary?.financials?.pb_ratio ?? "--"}`}
+                />
+                <KV
+                  k="ROE · Biên LN"
+                  v={`${summary?.financials?.roe ?? "--"} · ${summary?.financials?.profit_margin ?? "--"}`}
+                />
+                <KV
+                  k="Giá trị nội tại DCF"
+                  v={vnd(summary?.financials?.intrinsic_value_dcf)}
+                />
+                <KV
+                  k="Nợ / Vốn CSH"
+                  v={summary?.financials?.debt_to_equity ?? "--"}
+                />
               </DetailBox>
             )}
           </div>

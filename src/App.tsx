@@ -5,6 +5,8 @@ import { StockLayout } from "./pages/StockLayout";
 import { DataPage } from "./pages/DataPage";
 import { ChartPage } from "./pages/ChartPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { SymbolDetailPage } from "./pages/SymbolDetailPage";
+import { CurrentWatchlistPage } from "./pages/CurrentWatchlistPage";
 import { TestAgentPage } from "./pages/TestAgentPage";
 import { ObservationPage } from "./pages/ObservationPage";
 import { PersonalLayout } from "./pages/PersonalLayout";
@@ -34,7 +36,16 @@ export const App: React.FC = () => {
             <Route index element={<Navigate to="data" replace />} />
             <Route path="data" element={<DataPage />} />
             <Route path="chart" element={<ChartPage />} />
-            <Route path="analysis" element={<DashboardPage />} />
+            <Route path="watchlist" element={<DashboardPage />} />
+            <Route
+              path="analysis"
+              element={<Navigate to="../watchlist" replace />}
+            />
+            <Route path="symbol/:symbol" element={<SymbolDetailPage />} />
+            <Route
+              path="current-watchlist"
+              element={<CurrentWatchlistPage />}
+            />
             <Route path="test-agent" element={<TestAgentPage />} />
             <Route path="observation" element={<ObservationPage />} />
           </Route>
@@ -72,7 +83,7 @@ export const App: React.FC = () => {
           />
           <Route
             path="/finance/dashboard"
-            element={<Navigate to="/finance/stock/analysis" replace />}
+            element={<Navigate to="/finance/stock/watchlist" replace />}
           />
           <Route
             path="*"

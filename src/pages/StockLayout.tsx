@@ -1,6 +1,13 @@
 import React from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Database, BarChart3, Bot, Zap, Youtube } from "lucide-react";
+import {
+  Database,
+  BarChart3,
+  Bot,
+  Briefcase,
+  Zap,
+  Youtube,
+} from "lucide-react";
 
 const SUB_TABS = [
   { to: "/finance/stock/data", label: "Dữ Liệu", icon: <Database size={13} /> },
@@ -10,9 +17,14 @@ const SUB_TABS = [
     icon: <BarChart3 size={13} />,
   },
   {
-    to: "/finance/stock/analysis",
-    label: "Phân Tích",
+    to: "/finance/stock/watchlist",
+    label: "Danh Mục",
     icon: <Bot size={13} />,
+  },
+  {
+    to: "/finance/stock/current-watchlist",
+    label: "Mã Đang Cầm",
+    icon: <Briefcase size={13} />,
   },
   {
     to: "/finance/stock/test-agent",

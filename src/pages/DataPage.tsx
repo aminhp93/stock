@@ -613,8 +613,7 @@ const ChungChiQuyTab: React.FC = () => {
     setError(null);
     fetchNavHistory(selectedId)
       .then((data) => {
-        const histories =
-          data?.navHistories ?? (data as any)?.data?.navHistories ?? [];
+        const histories = data?.navHistories ?? [];
         if (!histories.length) throw new Error("Không có dữ liệu NAV");
         // Sample to keep chart readable (max 300 points)
         const sampled =
@@ -989,7 +988,9 @@ const CoPhieuTab: React.FC = () => {
                       </button>
                       <button
                         onClick={() =>
-                          navigate(`/finance/stock/analysis?symbol=${s.symbol}`)
+                          navigate(
+                            `/finance/stock/watchlist?symbol=${s.symbol}`,
+                          )
                         }
                         className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold transition-colors"
                       >
