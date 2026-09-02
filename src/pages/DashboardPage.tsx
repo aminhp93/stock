@@ -3,164 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { fetchChartData } from "../services/api";
 import { ChartDataPoint } from "../types";
 import { Bot, BarChart2 } from "lucide-react";
-
-const WATCHLIST_WATCHING = {
-  name: "watching",
-  symbols: ["HPG", "MBS", "TCH", "VIC", "HDG", "PDR", "DXG", "HHS"],
-};
-
-const WATCHLIST_THANH_KHOAN_VUA = {
-  name: "thanh_khoan_vua",
-  symbols: [
-    "AAA",
-    "AAS",
-    "ACB",
-    "ACV",
-    "AGR",
-    "ANV",
-    "BAF",
-    "BCM",
-    "BID",
-    "BMI",
-    "BSR",
-    "BVB",
-    "BVH",
-    "CEO",
-    "CII",
-    "CSV",
-    "CTD",
-    "CTG",
-    "CTI",
-    "CTR",
-    "CTS",
-    "DBC",
-    "DCM",
-    "DDV",
-    "DGC",
-    "DGW",
-    "DIG",
-    "DPG",
-    "DPM",
-    "DPR",
-    "DXG",
-    "DXS",
-    "E1VFVN30",
-    "EIB",
-    "ELC",
-    "EVF",
-    "EVG",
-    "FCN",
-    "FPT",
-    "FTS",
-    "GAS",
-    "GEL",
-    "GEX",
-    "GMD",
-    "GVR",
-    "HAG",
-    "HAH",
-    "HBC",
-    "HCM",
-    "HDB",
-    "HDC",
-    "HDG",
-    "HHP",
-    "HHS",
-    "HHV",
-    "HPG",
-    "HPX",
-    "HQC",
-    "HSG",
-    "HT1",
-    "HUT",
-    "HVN",
-    "IDC",
-    "IDI",
-    "IJC",
-    "KBC",
-    "KDH",
-    "KHG",
-    "KSB",
-    "LAS",
-    "LCG",
-    "LPB",
-    "MBB",
-    "MBS",
-    "MSB",
-    "MSN",
-    "MSR",
-    "MWG",
-    "NAB",
-    "NKG",
-    "NLG",
-    "NT2",
-    "NVL",
-    "OCB",
-    "OIL",
-    "ORS",
-    "PAN",
-    "PC1",
-    "PDR",
-    "PET",
-    "PLC",
-    "PLX",
-    "PNJ",
-    "POW",
-    "PVC",
-    "PVD",
-    "PVP",
-    "PVS",
-    "PVT",
-    "SAB",
-    "SCR",
-    "SHB",
-    "SHI",
-    "SHS",
-    "SSB",
-    "SSI",
-    "STB",
-    "SZC",
-    "TCB",
-    "TCH",
-    "TCM",
-    "TCX",
-    "TNG",
-    "TPB",
-    "TTF",
-    "TV2",
-    "TVN",
-    "VCB",
-    "VCG",
-    "VCI",
-    "VCK",
-    "VDS",
-    "VEA",
-    "VFS",
-    "VGC",
-    "VGI",
-    "VGS",
-    "VGT",
-    "VHC",
-    "VHM",
-    "VIB",
-    "VIC",
-    "VIX",
-    "VJC",
-    "VND",
-    "VNM",
-    "VOS",
-    "VPB",
-    "VPI",
-    "VPX",
-    "VRE",
-    "VSC",
-    "VTP",
-    "VTZ",
-    "YEG",
-  ],
-};
-
-const PRESET_SYMBOLS = WATCHLIST_WATCHING.symbols;
+import { WATCHLISTS, getWatchlist, DEFAULT_WATCHLIST } from "../data/watchlists";
 
 // ─── Watchlist S/R Analysis Card ─────────────────────────────────────────────
 const WIN = 5;
@@ -635,21 +478,27 @@ const WatchlistAnalysisCard: React.FC<{
 export const DashboardPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const symbolParam = (searchParams.get("symbol") || "TCH").toUpperCase();
+  const wlParam = searchParams.get("wl") || DEFAULT_WATCHLIST;
 
   const [symbol, setSymbol] = useState<string>(symbolParam);
+  const [wlName, setWlName] = useState<string>(wlParam);
 
   useEffect(() => {
     if (symbolParam !== symbol) setSymbol(symbolParam);
   }, [symbolParam]);
+  useEffect(() => {
+    if (wlParam !== wlName) setWlName(wlParam);
+  }, [wlParam]);
+
+  const activeWl = getWatchlist(wlName) || WATCHLISTS[0];
 
   const handleSelectSymbol = (sym: string) => {
     setSymbol(sym);
-    setSearchParams({ symbol: sym });
+    setSearchParams({ symbol: sym, wl: wlName });
   };
-
-  const formatVND = (num?: number) => {
-    if (!num) return "--";
-    return new Intl.NumberFormat("vi-VN").format(num) + " đ";
+  const handleSelectWatchlist = (name: string) => {
+    setWlName(name);
+    setSearchParams({ symbol, wl: name });
   };
 
   return (
@@ -709,44 +558,55 @@ export const DashboardPage: React.FC = () => {
               <span className="badge badge-info">Point-In-Time T</span>
             </div>
             <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-              Watchlist S/R — mã đang chọn:{" "}
+              {activeWl.symbols.length} mã · mã đang chọn:{" "}
               <strong style={{ color: "var(--text-main)" }}>{symbol}</strong>
             </span>
           </div>
         </div>
 
-        {/* Preset Symbol Pills */}
+        {/* Watchlist selector */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          {PRESET_SYMBOLS.map((s) => (
+          {WATCHLISTS.map((w) => (
             <button
-              key={s}
-              onClick={() => handleSelectSymbol(s)}
-              className={`btn ${s === symbol ? "btn-primary" : "btn-secondary"}`}
-              style={{
-                padding: "6px 12px",
-                fontSize: "12px",
-                fontFamily: "'JetBrains Mono', monospace",
-                fontWeight: 700,
-              }}
+              key={w.name}
+              onClick={() => handleSelectWatchlist(w.name)}
+              className={`btn ${w.name === wlName ? "btn-primary" : "btn-secondary"}`}
+              style={{ padding: "6px 12px", fontSize: "12px", fontWeight: 700 }}
+              title={`${w.name} · ${w.symbols.length} mã`}
             >
-              {s}
+              {w.label}{" "}
+              <span style={{ opacity: 0.6, fontFamily: "'JetBrains Mono', monospace" }}>
+                {w.symbols.length}
+              </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Watchlist: watching ── */}
-      <WatchlistAnalysisCard
-        title="watching"
-        symbols={WATCHLIST_WATCHING.symbols}
-        activeSymbol={symbol}
-        onSelect={handleSelectSymbol}
-      />
+      {/* Symbol pills của watchlist đang chọn */}
+      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "-16px" }}>
+        {activeWl.symbols.map((s) => (
+          <button
+            key={s}
+            onClick={() => handleSelectSymbol(s)}
+            className={`btn ${s === symbol ? "btn-primary" : "btn-secondary"}`}
+            style={{
+              padding: "5px 10px",
+              fontSize: "11.5px",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 700,
+            }}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
 
-      {/* ── Watchlist: thanh_khoan_vua ── */}
+      {/* ── Bảng phân tích S/R của watchlist đang chọn ── */}
       <WatchlistAnalysisCard
-        title="thanh_khoan_vua"
-        symbols={WATCHLIST_THANH_KHOAN_VUA.symbols}
+        key={activeWl.name}
+        title={activeWl.label}
+        symbols={activeWl.symbols}
         activeSymbol={symbol}
         onSelect={handleSelectSymbol}
       />

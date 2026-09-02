@@ -10,6 +10,9 @@ import {
 } from "lightweight-charts";
 import { ChartDataPoint } from "../types";
 
+/** Số nến trống chừa bên phải để nhãn R1/R2/S1/S2 không đè lên giá. */
+const RIGHT_OFFSET_BARS = 30;
+
 interface StockChartProps {
   data: ChartDataPoint[];
   symbol: string;
@@ -63,6 +66,7 @@ export const StockChart: React.FC<StockChartProps> = ({
       timeScale: {
         borderColor: "#e2e8f0",
         timeVisible: true,
+        rightOffset: RIGHT_OFFSET_BARS,
       },
     });
 
@@ -120,6 +124,7 @@ export const StockChart: React.FC<StockChartProps> = ({
       timeScale: {
         borderColor: "#e2e8f0",
         timeVisible: true,
+        rightOffset: RIGHT_OFFSET_BARS,
       },
     });
 
@@ -366,8 +371,18 @@ export const StockChart: React.FC<StockChartProps> = ({
       });
     }
 
-    if (mainChartRef.current) mainChartRef.current.timeScale().fitContent();
-    if (rsiChartRef.current) rsiChartRef.current.timeScale().fitContent();
+    // Khung nhìn mặc định: ~150 phiên gần nhất + chừa RIGHT_OFFSET_BARS nến trống
+    // bên phải để nhìn rõ R1/R2/S1/S2. Không dùng fitContent() (bỏ qua rightOffset).
+    // Người dùng vẫn cuộn/zoom ra xem toàn bộ lịch sử được.
+    if (data.length > 0) {
+      const visibleBars = Math.min(data.length, 150);
+      const range = {
+        from: data.length - visibleBars,
+        to: data.length - 1 + RIGHT_OFFSET_BARS,
+      };
+      mainChartRef.current?.timeScale().setVisibleLogicalRange(range);
+      rsiChartRef.current?.timeScale().setVisibleLogicalRange(range);
+    }
   }, [data]);
 
   // Toggle visibility of indicators
