@@ -12,6 +12,7 @@ PORT = int(os.environ.get("PORT", 8000))
 DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
 
 _SHARED_TELEGRAM_ANALYZER = None
+STRATEGY_DB = dict(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -76,6 +77,16 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             ticker = query.get("ticker", [None])[0]
             limit = int(query.get("limit", [50])[0])
             self.handle_observation_comments(ticker, limit)
+        elif path == "/api/strategy/list":
+            self.handle_strategy_list()
+        elif path == "/api/strategy/rank":
+            strategy = query.get("strategy", ["momentum"])[0]
+            asof = query.get("asof", [None])[0]
+            topn = int(query.get("topn", [15])[0])
+            self.handle_strategy_rank(strategy, asof, topn)
+        elif path == "/api/strategy/backtest-status":
+            strategy = query.get("strategy", ["momentum"])[0]
+            self.handle_strategy_backtest_status(strategy)
         else:
             # SPA fallback: if file does not exist, serve index.html
             local_path = self.translate_path(self.path)
@@ -95,6 +106,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_observation_collect()
         elif path == "/api/observation/seed-sample":
             self.handle_observation_seed_sample()
+        elif path == "/api/strategy/backtest":
+            strategy = query.get("strategy", ["momentum"])[0]
+            self.handle_strategy_backtest_start(strategy)
         else:
             self.send_json_response({"status": "OK"})
 
@@ -295,6 +309,112 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({
                 "error": f"Lỗi truy vấn nến giá PostgreSQL cho biểu đồ {symbol}: {str(e)}"
             }, status_code=503)
+
+    def handle_strategy_list(self):
+        """Danh sách chiến lược khả dụng (tab 'Test Chiến Lược') + kết quả backtest gần nhất."""
+        try:
+            from backend.utils.strategy_rank import STRATEGIES, DDL
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute(DDL)
+                conn.commit()
+                out = []
+                for code, meta in STRATEGIES.items():
+                    cur.execute("""
+                        SELECT id, status, started_at, finished_at, sample_start, sample_end, n_samples,
+                               top20_ret5d, universe_ret5d, edge_5d, top20_ret10d, hit_rate_5d, error
+                        FROM strategy_backtest_runs WHERE strategy=%s ORDER BY id DESC LIMIT 1
+                    """, (code,))
+                    row = cur.fetchone()
+                    latest = None
+                    if row:
+                        (rid, status, started, finished, sstart, send, n, t5, u5, edge, t10, hit, err) = row
+                        latest = {
+                            "run_id": rid, "status": status,
+                            "started_at": started.isoformat() if started else None,
+                            "finished_at": finished.isoformat() if finished else None,
+                            "sample_start": sstart.isoformat() if sstart else None,
+                            "sample_end": send.isoformat() if send else None,
+                            "n_samples": n, "top20_ret5d": t5, "universe_ret5d": u5,
+                            "edge_5d": edge, "top20_ret10d": t10, "hit_rate_5d": hit, "error": err,
+                        }
+                    out.append({"code": code, "label": meta["label"], "desc": meta["desc"], "latest_backtest": latest})
+            conn.close()
+            self.send_json_response({"strategies": out})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_strategy_rank(self, strategy: str, asof: Optional[str], topn: int):
+        try:
+            from backend.utils.strategy_rank import rank
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                if not asof:
+                    cur.execute("SELECT max(trading_date) FROM stock_prices WHERE symbol<>'VNINDEX'")
+                    asof = cur.fetchone()[0].isoformat()
+                res = rank(cur, strategy, asof, topn)
+            conn.close()
+            self.send_json_response(res)
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_strategy_backtest_start(self, strategy: str):
+        """Tạo 1 run 'running' rồi chạy backtest trong subprocess nền (mất ~1-2 phút)."""
+        import subprocess
+        import sys as _sys
+        try:
+            from backend.utils.strategy_rank import DDL, STRATEGIES
+            if strategy not in STRATEGIES:
+                self.send_json_response({"error": f"Không rõ chiến lược '{strategy}'"}, 400)
+                return
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute(DDL)
+                cur.execute("INSERT INTO strategy_backtest_runs (strategy, status) VALUES (%s, 'running') RETURNING id",
+                            (strategy,))
+                run_id = cur.fetchone()[0]
+            conn.commit()
+            conn.close()
+
+            script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts", "rank_momentum.py")
+            args = [_sys.executable, script, "--backtest", "--save-run", str(run_id)]
+            if strategy == "contra":
+                args.insert(2, "--contra")
+            subprocess.Popen(args, env={**os.environ})
+            self.send_json_response({"status": "started", "run_id": run_id,
+                                      "message": "Backtest đang chạy nền (~1-2 phút). Poll /api/strategy/backtest-status."})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_strategy_backtest_status(self, strategy: str):
+        try:
+            from backend.utils.strategy_rank import DDL
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute(DDL)
+                conn.commit()
+                cur.execute("""
+                    SELECT id, status, started_at, finished_at, sample_start, sample_end, n_samples,
+                           top20_ret5d, universe_ret5d, edge_5d, top20_ret10d, hit_rate_5d, error
+                    FROM strategy_backtest_runs WHERE strategy=%s ORDER BY id DESC LIMIT 1
+                """, (strategy,))
+                row = cur.fetchone()
+            conn.close()
+            if not row:
+                self.send_json_response({"status": "none"})
+                return
+            (rid, status, started, finished, sstart, send, n, t5, u5, edge, t10, hit, err) = row
+            self.send_json_response({
+                "run_id": rid, "status": status,
+                "started_at": started.isoformat() if started else None,
+                "finished_at": finished.isoformat() if finished else None,
+                "sample_start": sstart.isoformat() if sstart else None,
+                "sample_end": send.isoformat() if send else None,
+                "n_samples": n, "top20_ret5d": t5, "universe_ret5d": u5,
+                "edge_5d": edge, "top20_ret10d": t10, "hit_rate_5d": hit, "error": err,
+            })
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
 
     def handle_api_ticker_signals(self, symbol: str):
         """Reward/risk + tâm lý theo mã — tính từ dữ liệu thật (stock_prices,

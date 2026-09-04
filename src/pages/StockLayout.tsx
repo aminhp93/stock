@@ -27,8 +27,8 @@ const SUB_TABS = [
     icon: <Briefcase size={13} />,
   },
   {
-    to: "/finance/stock/test-agent",
-    label: "Test Agent",
+    to: "/finance/stock/test",
+    label: "Test",
     icon: <Zap size={13} />,
   },
   {

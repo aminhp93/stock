@@ -7,7 +7,7 @@ import { ChartPage } from "./pages/ChartPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { SymbolDetailPage } from "./pages/SymbolDetailPage";
 import { CurrentWatchlistPage } from "./pages/CurrentWatchlistPage";
-import { TestAgentPage } from "./pages/TestAgentPage";
+import { TestPage } from "./pages/TestPage";
 import { ObservationPage } from "./pages/ObservationPage";
 import { PersonalLayout } from "./pages/PersonalLayout";
 import {
@@ -46,7 +46,11 @@ export const App: React.FC = () => {
               path="current-watchlist"
               element={<CurrentWatchlistPage />}
             />
-            <Route path="test-agent" element={<TestAgentPage />} />
+            <Route path="test" element={<TestPage />} />
+            <Route
+              path="test-agent"
+              element={<Navigate to="../test" replace />}
+            />
             <Route path="observation" element={<ObservationPage />} />
           </Route>
 

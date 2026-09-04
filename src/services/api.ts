@@ -145,6 +145,88 @@ export async function fetchTickerSignals(
   return res.json();
 }
 
+// ─── Strategy Test (tab "Test Chiến Lược") ───────────────────────────────────
+export interface StrategyBacktestResult {
+  run_id: number;
+  status: "running" | "done" | "error" | "none";
+  started_at: string | null;
+  finished_at: string | null;
+  sample_start: string | null;
+  sample_end: string | null;
+  n_samples: number | null;
+  top20_ret5d: number | null;
+  universe_ret5d: number | null;
+  edge_5d: number | null;
+  top20_ret10d: number | null;
+  hit_rate_5d: number | null;
+  error: string | null;
+}
+
+export interface StrategyListItem {
+  code: string;
+  label: string;
+  desc: string;
+  latest_backtest: StrategyBacktestResult | null;
+}
+
+export interface StrategyRankRow {
+  symbol: string;
+  score: number;
+  close: number;
+  rsi: number;
+  ret20: number;
+  ret60: number;
+  rs20: number;
+  vol_surge: number;
+  gap_to_hi60: number;
+  turn_bn: number;
+  above_ma200: boolean;
+}
+
+export interface StrategyRankResult {
+  strategy: string;
+  as_of: string;
+  universe_size: number;
+  results: StrategyRankRow[];
+  error?: string;
+}
+
+export async function fetchStrategyList(): Promise<{ strategies: StrategyListItem[] }> {
+  const res = await fetch(`${API_BASE}/strategy/list`);
+  return res.json();
+}
+
+export async function fetchStrategyRank(
+  strategy: string,
+  topn = 15,
+  asof?: string,
+): Promise<StrategyRankResult> {
+  const q = new URLSearchParams({ strategy, topn: String(topn) });
+  if (asof) q.set("asof", asof);
+  const res = await fetch(`${API_BASE}/strategy/rank?${q.toString()}`);
+  return res.json();
+}
+
+export async function triggerStrategyBacktest(strategy: string): Promise<{
+  status: string;
+  run_id: number;
+  message: string;
+}> {
+  const res = await fetch(`${API_BASE}/strategy/backtest?strategy=${encodeURIComponent(strategy)}`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchStrategyBacktestStatus(strategy: string): Promise<StrategyBacktestResult> {
+  const res = await fetch(`${API_BASE}/strategy/backtest-status?strategy=${encodeURIComponent(strategy)}`);
+  return res.json();
+}
+
 export async function fetchStockSummary(symbol: string): Promise<StockSummary> {
   const res = await fetch(
     `${API_BASE}/summary?symbol=${encodeURIComponent(symbol)}`,
