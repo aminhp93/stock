@@ -169,18 +169,18 @@ export interface StrategyListItem {
   latest_backtest: StrategyBacktestResult | null;
 }
 
+export interface StrategyMetric {
+  label: string;
+  value: string;
+  tone: "up" | "down" | "neutral";
+}
+
 export interface StrategyRankRow {
   symbol: string;
   score: number;
   close: number;
-  rsi: number;
-  ret20: number;
-  ret60: number;
-  rs20: number;
-  vol_surge: number;
-  gap_to_hi60: number;
   turn_bn: number;
-  above_ma200: boolean;
+  metrics: StrategyMetric[];
 }
 
 export interface StrategyRankResult {

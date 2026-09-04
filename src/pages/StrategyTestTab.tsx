@@ -274,13 +274,18 @@ export const StrategyTestTab: React.FC = () => {
           <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "20px 0", textAlign: "center" }}>
             Đang chấm điểm {universeSize || "toàn bộ"} mã…
           </div>
+        ) : rankRows.length === 0 ? (
+          <div style={{ fontSize: "12.5px", color: "#94a3b8", padding: "20px 0", textAlign: "center" }}>
+            Không có mã nào đạt điều kiện ngày {asOf || "này"}.
+            {universeSize === 0 && " Chiến lược có thể chưa kích hoạt hôm nay (vd điều kiện thị trường chung chưa đạt)."}
+          </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px" }}>
               <thead>
                 <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                  {["#", "Mã", "Điểm", "Giá", "RSI", "Ret20", "Ret60", "RS20", "Vol×", "→đỉnh60", "GTGD tỷ"].map((h) => (
-                    <th key={h} style={{ textAlign: "left", padding: "7px 9px", fontSize: "10.5px", color: "#64748b" }}>
+                  {["#", "Mã", "Điểm", "Giá", ...rankRows[0].metrics.map((m) => m.label), "GTGD tỷ"].map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "7px 9px", fontSize: "10.5px", color: "#64748b", whiteSpace: "nowrap" }}>
                       {h}
                     </th>
                   ))}
@@ -295,28 +300,21 @@ export const StrategyTestTab: React.FC = () => {
                     </td>
                     <td style={{ padding: "7px 9px", fontWeight: 700 }}>{r.score.toFixed(0)}</td>
                     <td style={{ padding: "7px 9px", fontFamily: "'JetBrains Mono', monospace" }}>{fmtPx(r.close)}</td>
-                    <td style={{ padding: "7px 9px", color: r.rsi > 70 ? "var(--bear-red)" : r.rsi < 35 ? "#d97706" : "var(--text-main)" }}>
-                      {r.rsi.toFixed(0)}
-                    </td>
-                    <td style={{ padding: "7px 9px", color: r.ret20 >= 0 ? "var(--bull-green)" : "var(--bear-red)" }}>
-                      {fmtPct(r.ret20, 1)}
-                    </td>
-                    <td style={{ padding: "7px 9px", color: r.ret60 >= 0 ? "var(--bull-green)" : "var(--bear-red)" }}>
-                      {fmtPct(r.ret60, 1)}
-                    </td>
-                    <td style={{ padding: "7px 9px" }}>{fmtPct(r.rs20, 1)}</td>
-                    <td style={{ padding: "7px 9px" }}>{r.vol_surge.toFixed(2)}</td>
-                    <td style={{ padding: "7px 9px" }}>{r.gap_to_hi60.toFixed(1)}%</td>
+                    {r.metrics.map((m) => (
+                      <td
+                        key={m.label}
+                        style={{
+                          padding: "7px 9px",
+                          whiteSpace: "nowrap",
+                          color: m.tone === "up" ? "var(--bull-green)" : m.tone === "down" ? "var(--bear-red)" : "var(--text-main)",
+                        }}
+                      >
+                        {m.value}
+                      </td>
+                    ))}
                     <td style={{ padding: "7px 9px" }}>{r.turn_bn.toFixed(0)}</td>
                   </tr>
                 ))}
-                {rankRows.length === 0 && (
-                  <tr>
-                    <td colSpan={11} style={{ padding: "16px", textAlign: "center", color: "#94a3b8" }}>
-                      Không có dữ liệu.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>

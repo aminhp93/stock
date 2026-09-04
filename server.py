@@ -377,9 +377,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             conn.close()
 
             script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts", "rank_momentum.py")
-            args = [_sys.executable, script, "--backtest", "--save-run", str(run_id)]
-            if strategy == "contra":
-                args.insert(2, "--contra")
+            args = [_sys.executable, script, "--backtest", "--strategy", strategy, "--save-run", str(run_id)]
             subprocess.Popen(args, env={**os.environ})
             self.send_json_response({"status": "started", "run_id": run_id,
                                       "message": "Backtest đang chạy nền (~1-2 phút). Poll /api/strategy/backtest-status."})
