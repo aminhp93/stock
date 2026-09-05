@@ -1,0 +1,2618 @@
+{
+  "analyzed_at": "2026-09-03T21:29:25.944869",
+  "total_videos_analyzed": 40,
+  "total_words_analyzed": 240213,
+  "macro_stance_summary": {
+    "average_score": 0.207,
+    "overall_label": "LẠC QUAN MỞ RỘNG",
+    "defensive_video_count": 9,
+    "neutral_video_count": 9,
+    "expansion_video_count": 22
+  },
+  "overall_theme_ranking": [
+    [
+      "Chứng khoán, Định giá & Nâng hạng FTSE",
+      1275
+    ],
+    [
+      "Lãi suất, Fed & Chính sách tiền tệ",
+      1090
+    ],
+    [
+      "Vàng, Xăng dầu & Kim loại",
+      759
+    ],
+    [
+      "Ngân hàng, Tín dụng & Nợ xấu",
+      654
+    ],
+    [
+      "Đầu tư công, Ngân sách & Nghị quyết",
+      589
+    ],
+    [
+      "Tỷ giá USD/VND & Lạm phát CPI",
+      392
+    ],
+    [
+      "Thị trường Bất động sản",
+      322
+    ]
+  ],
+  "overall_asset_ranking": [
+    [
+      "Cổ phiếu (Stocks)",
+      857
+    ],
+    [
+      "Vàng & Kim loại (Gold)",
+      255
+    ],
+    [
+      "Bất động sản (Real Estate)",
+      239
+    ],
+    [
+      "Tiền gửi & Trái phiếu (Cash & Bonds)",
+      196
+    ]
+  ],
+  "playlists": {
+    "ĐI THEO DÒNG TIỀN": {
+      "video_count": 20,
+      "total_words": 125316,
+      "avg_stance_score": 0.245,
+      "top_themes": [
+        [
+          "Chứng khoán, Định giá & Nâng hạng FTSE",
+          765
+        ],
+        [
+          "Lãi suất, Fed & Chính sách tiền tệ",
+          681
+        ],
+        [
+          "Ngân hàng, Tín dụng & Nợ xấu",
+          512
+        ]
+      ],
+      "asset_breakdown": [
+        [
+          "Cổ phiếu (Stocks)",
+          474
+        ],
+        [
+          "Bất động sản (Real Estate)",
+          188
+        ],
+        [
+          "Vàng & Kim loại (Gold)",
+          105
+        ],
+        [
+          "Tiền gửi & Trái phiếu (Cash & Bonds)",
+          64
+        ]
+      ]
+    },
+    "Góc nhìn Tài chính & Kinh doanh": {
+      "video_count": 20,
+      "total_words": 114897,
+      "avg_stance_score": 0.169,
+      "top_themes": [
+        [
+          "Chứng khoán, Định giá & Nâng hạng FTSE",
+          510
+        ],
+        [
+          "Vàng, Xăng dầu & Kim loại",
+          459
+        ],
+        [
+          "Lãi suất, Fed & Chính sách tiền tệ",
+          409
+        ]
+      ],
+      "asset_breakdown": [
+        [
+          "Cổ phiếu (Stocks)",
+          383
+        ],
+        [
+          "Vàng & Kim loại (Gold)",
+          150
+        ],
+        [
+          "Tiền gửi & Trái phiếu (Cash & Bonds)",
+          132
+        ],
+        [
+          "Bất động sản (Real Estate)",
+          51
+        ]
+      ]
+    }
+  },
+  "videos": [
+    {
+      "index": 1,
+      "video_id": "OWPk3d2M-mU",
+      "title": "THỊ TRƯỜNG CHỨNG KHOÁN TOÀN CẦU NÍN THỞ CHỜ BÀI PHÁT BIỂU CỦA CHỦ TỊCH FED | #ĐTDT 28/08/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=OWPk3d2M-mU",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 3857,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 7,
+          "density_per_1k": 1.81
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 4,
+          "density_per_1k": 1.04
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 5,
+          "density_per_1k": 1.3
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 52,
+          "density_per_1k": 13.48
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 4,
+          "density_per_1k": 1.04
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 0,
+          "density_per_1k": 0.0
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 9,
+      "defensive_hits": 1,
+      "stance_score": 0.8,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 39,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 2,
+      "video_id": "z2rOMPJ4P2I",
+      "title": "FTSE THÊM 27 CỔ PHIẾU VÀO RỔ CHỈ SỐ EMERGING MARKET KỊCH BẢN TT CHỨNG KHOÁN QUÝ 3 | #ĐTDT 24/08/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=z2rOMPJ4P2I",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 6855,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 36,
+          "density_per_1k": 5.25
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 5,
+          "density_per_1k": 0.73
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 4,
+          "density_per_1k": 0.58
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 9,
+          "density_per_1k": 1.31
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 85,
+          "density_per_1k": 12.4
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 11,
+          "density_per_1k": 1.6
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 5,
+          "density_per_1k": 0.73
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 36,
+      "defensive_hits": 8,
+      "stance_score": 0.636,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 52,
+        "Bất động sản (Real Estate)": 4,
+        "Vàng & Kim loại (Gold)": 6,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 5
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 3,
+      "video_id": "ZvtOS52Aghk",
+      "title": "GIAO DỊCH BẤT ĐỘNG SẢN TP. HÀ NỘI GIẢM 50% SO VỚI 2025 | #ĐTDT 21/08/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=ZvtOS52Aghk",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 4754,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 8,
+          "density_per_1k": 1.68
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 50,
+          "density_per_1k": 10.52
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 2,
+          "density_per_1k": 0.42
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 17,
+          "density_per_1k": 3.58
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 5,
+          "density_per_1k": 1.05
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 0,
+          "density_per_1k": 0.0
+        }
+      },
+      "top_theme": "Thị trường Bất động sản",
+      "top_theme_key": "REAL_ESTATE",
+      "expansion_hits": 5,
+      "defensive_hits": 2,
+      "stance_score": 0.429,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 1,
+        "Bất động sản (Real Estate)": 31,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Bất động sản (Real Estate)",
+      "has_data": true
+    },
+    {
+      "index": 4,
+      "video_id": "NZEloxSzpPw",
+      "title": "CỔ PHIẾU NÀO SẼ LỌT VÀO RỔ FTSE? | #ĐTDT 17/08/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=NZEloxSzpPw",
+      "upload_date": "20260817",
+      "duration_formatted": "26:20",
+      "total_words": 5310,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 7,
+          "density_per_1k": 1.32
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 4,
+          "density_per_1k": 0.75
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 5,
+          "density_per_1k": 0.94
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 1,
+          "density_per_1k": 0.19
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 79,
+          "density_per_1k": 14.88
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 2,
+          "density_per_1k": 0.38
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 0,
+          "density_per_1k": 0.0
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 14,
+      "defensive_hits": 2,
+      "stance_score": 0.75,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 49,
+        "Bất động sản (Real Estate)": 5,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 5,
+      "video_id": "LleJu2WHj5c",
+      "title": "THỦ TƯỚNG YÊU CẦU GIẢM THỰC CHẤT LÃI SUẤT CHO VAY, VN-INDEX GIẢM 36 ĐIỂM | #ĐTDT 14/08/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=LleJu2WHj5c",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 8072,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 98,
+          "density_per_1k": 12.14
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 4,
+          "density_per_1k": 0.5
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 5,
+          "density_per_1k": 0.62
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 178,
+          "density_per_1k": 22.05
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 50,
+          "density_per_1k": 6.19
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 4,
+          "density_per_1k": 0.5
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 16,
+          "density_per_1k": 1.98
+        }
+      },
+      "top_theme": "Ngân hàng, Tín dụng & Nợ xấu",
+      "top_theme_key": "BANKING_CREDIT_NPL",
+      "expansion_hits": 75,
+      "defensive_hits": 28,
+      "stance_score": 0.456,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 29,
+        "Bất động sản (Real Estate)": 5,
+        "Vàng & Kim loại (Gold)": 2,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 7
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 6,
+      "video_id": "9_SSxrNxrgo",
+      "title": "TÍN DỤNG ĐẠT 155%/GDP: THANH KHOẢN LIỆU CÓ CĂNG THẲNG? | #ĐTDT 10/08/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=9_SSxrNxrgo",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 4731,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 34,
+          "density_per_1k": 7.19
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 6,
+          "density_per_1k": 1.27
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 2,
+          "density_per_1k": 0.42
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 32,
+          "density_per_1k": 6.76
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 59,
+          "density_per_1k": 12.47
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 1,
+          "density_per_1k": 0.21
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 15,
+          "density_per_1k": 3.17
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 31,
+      "defensive_hits": 10,
+      "stance_score": 0.512,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 40,
+        "Bất động sản (Real Estate)": 2,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 4
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 7,
+      "video_id": "z6Y0xjvGDd8",
+      "title": "SÓNG THOÁT HÀNG CHUNG CƯ SẮP BÀN GIAO | #ĐTDT 07/08/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=z6Y0xjvGDd8",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 7294,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 42,
+          "density_per_1k": 5.76
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 4,
+          "density_per_1k": 0.55
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 93,
+          "density_per_1k": 12.75
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 25,
+          "density_per_1k": 3.43
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 14,
+          "density_per_1k": 1.92
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 21,
+          "density_per_1k": 2.88
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 7,
+          "density_per_1k": 0.96
+        }
+      },
+      "top_theme": "Thị trường Bất động sản",
+      "top_theme_key": "REAL_ESTATE",
+      "expansion_hits": 8,
+      "defensive_hits": 22,
+      "stance_score": -0.467,
+      "stance_label": "THẬN TRỌNG / PHÒNG THỦ (Defensive)",
+      "stance_type": "DEFENSIVE",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 0,
+        "Bất động sản (Real Estate)": 73,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 1
+      },
+      "top_asset": "Bất động sản (Real Estate)",
+      "has_data": true
+    },
+    {
+      "index": 8,
+      "video_id": "1vSoWFPhR-E",
+      "title": "KINH TẾ ỔN ĐỊNH, CHỨNG KHOÁN PHỤC HỒI HƠN 100 ĐIỂM | #ĐTDT 03/08/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=1vSoWFPhR-E",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 5487,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 7,
+          "density_per_1k": 1.28
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 14,
+          "density_per_1k": 2.55
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 1,
+          "density_per_1k": 0.18
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 51,
+          "density_per_1k": 9.29
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 14,
+          "density_per_1k": 2.55
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 7,
+          "density_per_1k": 1.28
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 46,
+      "defensive_hits": 17,
+      "stance_score": 0.46,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 44,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 1,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 2
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 9,
+      "video_id": "kwvMpQEiUdA",
+      "title": "FED GIỮ NGUYÊN LÃI SUẤT LO NGẠI LẠM PHÁT, SBV NỚI LỎNG HỖ TRỢ TĂNG TRƯỞNG | #ĐTDT 31/7/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=kwvMpQEiUdA",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 6236,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 110,
+          "density_per_1k": 17.64
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 32,
+          "density_per_1k": 5.13
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 2,
+          "density_per_1k": 0.32
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 16,
+          "density_per_1k": 2.57
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 11,
+          "density_per_1k": 1.76
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 12,
+          "density_per_1k": 1.92
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 3,
+          "density_per_1k": 0.48
+        }
+      },
+      "top_theme": "Lãi suất, Fed & Chính sách tiền tệ",
+      "top_theme_key": "INTEREST_RATE_FED",
+      "expansion_hits": 42,
+      "defensive_hits": 19,
+      "stance_score": 0.377,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 3,
+        "Bất động sản (Real Estate)": 2,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 2
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 10,
+      "video_id": "Pvzji3BoxsE",
+      "title": "CHỨNG KHOÁN SỤP ĐỔ 10 PHÚT CUỐI | #ĐTDT 27/7/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=Pvzji3BoxsE",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 4194,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 19,
+          "density_per_1k": 4.53
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 6,
+          "density_per_1k": 1.43
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 4,
+          "density_per_1k": 0.95
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 52,
+          "density_per_1k": 12.4
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 6,
+          "density_per_1k": 1.43
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 0,
+          "density_per_1k": 0.0
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 13,
+      "defensive_hits": 15,
+      "stance_score": -0.071,
+      "stance_label": "CÂN BẰNG / TRUNG TÍNH (Neutral)",
+      "stance_type": "NEUTRAL",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 33,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 2
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 11,
+      "video_id": "iN-2U9_Kc5o",
+      "title": "VN-INDEX GIẢM MẠNH NHẤT CHÂU Á, THÂM HỤT THƯƠNG MẠI -20,46 TỶ CAO NHẤT 30 NĂM | #ĐTDT 22/7/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=iN-2U9_Kc5o",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 8387,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 110,
+          "density_per_1k": 13.12
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 22,
+          "density_per_1k": 2.62
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 26,
+          "density_per_1k": 3.1
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 52,
+          "density_per_1k": 6.2
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 10,
+          "density_per_1k": 1.19
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 16,
+          "density_per_1k": 1.91
+        }
+      },
+      "top_theme": "Lãi suất, Fed & Chính sách tiền tệ",
+      "top_theme_key": "INTEREST_RATE_FED",
+      "expansion_hits": 30,
+      "defensive_hits": 31,
+      "stance_score": -0.016,
+      "stance_label": "CÂN BẰNG / TRUNG TÍNH (Neutral)",
+      "stance_type": "NEUTRAL",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 27,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 2
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 12,
+      "video_id": "ybjaLaTZEhw",
+      "title": "CHỨNG KHOÁN GIẢM MẠNH, GIÁ DẦU TĂNG CAO | #ĐTDT 20/7/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=ybjaLaTZEhw",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 4551,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 10,
+          "density_per_1k": 2.2
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 9,
+          "density_per_1k": 1.98
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 2,
+          "density_per_1k": 0.44
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 7,
+          "density_per_1k": 1.54
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 34,
+          "density_per_1k": 7.47
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 23,
+          "density_per_1k": 5.05
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 1,
+          "density_per_1k": 0.22
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 8,
+      "defensive_hits": 31,
+      "stance_score": -0.59,
+      "stance_label": "THẬN TRỌNG / PHÒNG THỦ (Defensive)",
+      "stance_type": "DEFENSIVE",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 32,
+        "Bất động sản (Real Estate)": 1,
+        "Vàng & Kim loại (Gold)": 10,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 13,
+      "video_id": "Vix6u7OIJTA",
+      "title": "CHỨNG KHOÁN GIẢM MẠNH, KOSPI GIẢM GẦN 9%, CĂNG THẲNG TẠI TRUNG ĐÔNG LÊN CAO | #ĐTDT 13/7/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=Vix6u7OIJTA",
+      "upload_date": "20260713",
+      "duration_formatted": "23:25",
+      "total_words": 4443,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 8,
+          "density_per_1k": 1.8
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 19,
+          "density_per_1k": 4.28
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 1,
+          "density_per_1k": 0.23
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 1,
+          "density_per_1k": 0.23
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 42,
+          "density_per_1k": 9.45
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 27,
+          "density_per_1k": 6.08
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 0,
+          "density_per_1k": 0.0
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 4,
+      "defensive_hits": 13,
+      "stance_score": -0.529,
+      "stance_label": "THẬN TRỌNG / PHÒNG THỦ (Defensive)",
+      "stance_type": "DEFENSIVE",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 37,
+        "Bất động sản (Real Estate)": 1,
+        "Vàng & Kim loại (Gold)": 16,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 14,
+      "video_id": "IERQN8PMR2o",
+      "title": "QUY HOẠCH TỔNG THỂ TP. HỒ CHÍ MINH: 5 + 5 = 10 | #ĐTDT 10/7/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=IERQN8PMR2o",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 7898,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 25,
+          "density_per_1k": 3.17
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 3,
+          "density_per_1k": 0.38
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 5,
+          "density_per_1k": 0.63
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 12,
+          "density_per_1k": 1.52
+        }
+      },
+      "top_theme": "Thị trường Bất động sản",
+      "top_theme_key": "REAL_ESTATE",
+      "expansion_hits": 6,
+      "defensive_hits": 0,
+      "stance_score": 1.0,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 0,
+        "Bất động sản (Real Estate)": 17,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Bất động sản (Real Estate)",
+      "has_data": true
+    },
+    {
+      "index": 15,
+      "video_id": "cxnyHlWhAk4",
+      "title": "LIỆU MÙA BÁO CÁO TÀI CHÍNH QUÝ II CÓ ĐỦ SỨC TẠO ĐỘNG LỰC MỚI CHO VN-INDEX? | #ĐTDT 06/7/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=cxnyHlWhAk4",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 5631,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 9,
+          "density_per_1k": 1.6
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 2,
+          "density_per_1k": 0.36
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 3,
+          "density_per_1k": 0.53
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 4,
+          "density_per_1k": 0.71
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 50,
+          "density_per_1k": 8.88
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 7,
+          "density_per_1k": 1.24
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 3,
+          "density_per_1k": 0.53
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 14,
+      "defensive_hits": 17,
+      "stance_score": -0.097,
+      "stance_label": "CÂN BẰNG / TRUNG TÍNH (Neutral)",
+      "stance_type": "NEUTRAL",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 43,
+        "Bất động sản (Real Estate)": 1,
+        "Vàng & Kim loại (Gold)": 1,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 1
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 16,
+      "video_id": "RRpTDK7KC1I",
+      "title": "GDP 8,39%, CPI 4,38%, TĂNG TRƯỞNG TÍN DỤNG 7,73%: ĐÂU LÀ NGUỒN VỐN TIẾP TỤC TĂNG TRƯỞNG H2/2026?",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=RRpTDK7KC1I",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 7082,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 30,
+          "density_per_1k": 4.24
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 25,
+          "density_per_1k": 3.53
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 6,
+          "density_per_1k": 0.85
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 34,
+          "density_per_1k": 4.8
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 16,
+          "density_per_1k": 2.26
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 19,
+          "density_per_1k": 2.68
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 24,
+          "density_per_1k": 3.39
+        }
+      },
+      "top_theme": "Ngân hàng, Tín dụng & Nợ xấu",
+      "top_theme_key": "BANKING_CREDIT_NPL",
+      "expansion_hits": 60,
+      "defensive_hits": 21,
+      "stance_score": 0.481,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 6,
+        "Bất động sản (Real Estate)": 6,
+        "Vàng & Kim loại (Gold)": 8,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 10
+      },
+      "top_asset": "Tiền gửi & Trái phiếu (Cash & Bonds)",
+      "has_data": true
+    },
+    {
+      "index": 17,
+      "video_id": "NvUQ7O5_NjY",
+      "title": "LÃI SUẤT SẼ RA SAO SAU 1/7? | #ĐTDT 29/6/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=NvUQ7O5_NjY",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 7795,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 70,
+          "density_per_1k": 8.98
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 11,
+          "density_per_1k": 1.41
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 66,
+          "density_per_1k": 8.47
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 42,
+          "density_per_1k": 5.39
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 8,
+          "density_per_1k": 1.03
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 53,
+          "density_per_1k": 6.8
+        }
+      },
+      "top_theme": "Lãi suất, Fed & Chính sách tiền tệ",
+      "top_theme_key": "INTEREST_RATE_FED",
+      "expansion_hits": 39,
+      "defensive_hits": 12,
+      "stance_score": 0.529,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 14,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 1,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 14
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 18,
+      "video_id": "19ZtMxk8Nj8",
+      "title": "KHỞI CÔNG 5 TUYẾN METRO VÀ 3 DỰ ÁN NHÀ Ở CHO THUÊ | #ĐTDT 22/6/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=19ZtMxk8Nj8",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 8644,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 15,
+          "density_per_1k": 1.74
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 46,
+          "density_per_1k": 5.32
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 5,
+          "density_per_1k": 0.58
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 6,
+          "density_per_1k": 0.69
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 22,
+          "density_per_1k": 2.55
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 25,
+          "density_per_1k": 2.89
+        }
+      },
+      "top_theme": "Thị trường Bất động sản",
+      "top_theme_key": "REAL_ESTATE",
+      "expansion_hits": 13,
+      "defensive_hits": 8,
+      "stance_score": 0.238,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 4,
+        "Bất động sản (Real Estate)": 32,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 1
+      },
+      "top_asset": "Bất động sản (Real Estate)",
+      "has_data": true
+    },
+    {
+      "index": 19,
+      "video_id": "dZN7rfTT00w",
+      "title": "SBV NỚI TRẦN VỐN NGẮN HẠN CHO DÀI HẠN TỪ 30% LÊN 40%, TÍCH CỰC HAY TIÊU CỰC? | #ĐTDT 19/6/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=dZN7rfTT00w",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 9115,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 35,
+          "density_per_1k": 3.84
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 3,
+          "density_per_1k": 0.33
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 9,
+          "density_per_1k": 0.99
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 88,
+          "density_per_1k": 9.65
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 31,
+          "density_per_1k": 3.4
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 5,
+          "density_per_1k": 0.55
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 19,
+          "density_per_1k": 2.08
+        }
+      },
+      "top_theme": "Ngân hàng, Tín dụng & Nợ xấu",
+      "top_theme_key": "BANKING_CREDIT_NPL",
+      "expansion_hits": 62,
+      "defensive_hits": 41,
+      "stance_score": 0.204,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 8,
+        "Bất động sản (Real Estate)": 7,
+        "Vàng & Kim loại (Gold)": 3,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 10
+      },
+      "top_asset": "Tiền gửi & Trái phiếu (Cash & Bonds)",
+      "has_data": true
+    },
+    {
+      "index": 20,
+      "video_id": "0DxUxfCqiqc",
+      "title": "NÓNG: MỸ-IRAN ĐẠT THỎA THUẬN CHẤM DỨT CHIẾN TRANH, GIÁ DẦU GIẢM MẠNH | #ĐTDT 15/6/2026",
+      "playlist_name": "ĐI THEO DÒNG TIỀN",
+      "url": "https://www.youtube.com/watch?v=0DxUxfCqiqc",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 4980,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 41,
+          "density_per_1k": 8.23
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 32,
+          "density_per_1k": 6.43
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 1,
+          "density_per_1k": 0.2
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 8,
+          "density_per_1k": 1.61
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 19,
+          "density_per_1k": 3.82
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 94,
+          "density_per_1k": 18.88
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 1,
+          "density_per_1k": 0.2
+        }
+      },
+      "top_theme": "Vàng, Xăng dầu & Kim loại",
+      "top_theme_key": "GOLD_COMMODITIES",
+      "expansion_hits": 10,
+      "defensive_hits": 15,
+      "stance_score": -0.2,
+      "stance_label": "THẬN TRỌNG / PHÒNG THỦ (Defensive)",
+      "stance_type": "DEFENSIVE",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 13,
+        "Bất động sản (Real Estate)": 1,
+        "Vàng & Kim loại (Gold)": 57,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 3
+      },
+      "top_asset": "Vàng & Kim loại (Gold)",
+      "has_data": true
+    },
+    {
+      "index": 1,
+      "video_id": "BZO05xMn8mw",
+      "title": "LỢI SUẤT TRÁI PHIẾU CHÍNH PHỦ TOÀN CẦU TĂNG CAO: KỶ NGUYÊN VỐN ĐẮT ĐỎ? | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=BZO05xMn8mw",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 8560,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 70,
+          "density_per_1k": 8.18
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 7,
+          "density_per_1k": 0.82
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 4,
+          "density_per_1k": 0.47
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 18,
+          "density_per_1k": 2.1
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 20,
+          "density_per_1k": 2.34
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 21,
+          "density_per_1k": 2.45
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 35,
+          "density_per_1k": 4.09
+        }
+      },
+      "top_theme": "Lãi suất, Fed & Chính sách tiền tệ",
+      "top_theme_key": "INTEREST_RATE_FED",
+      "expansion_hits": 23,
+      "defensive_hits": 18,
+      "stance_score": 0.122,
+      "stance_label": "CÂN BẰNG / TRUNG TÍNH (Neutral)",
+      "stance_type": "NEUTRAL",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 8,
+        "Bất động sản (Real Estate)": 4,
+        "Vàng & Kim loại (Gold)": 11,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 74
+      },
+      "top_asset": "Tiền gửi & Trái phiếu (Cash & Bonds)",
+      "has_data": true
+    },
+    {
+      "index": 2,
+      "video_id": "lnb_g0P6zC8",
+      "title": "ĐẦU TƯ CHỨNG CHỈ QUỸ 2026: LIỆU CÓ DỄ DÀNG?",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=lnb_g0P6zC8",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 3098,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 6,
+          "density_per_1k": 1.94
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 1,
+          "density_per_1k": 0.32
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 2,
+          "density_per_1k": 0.65
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 2,
+          "density_per_1k": 0.65
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 39,
+          "density_per_1k": 12.59
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 6,
+          "density_per_1k": 1.94
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 3,
+          "density_per_1k": 0.97
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 8,
+      "defensive_hits": 17,
+      "stance_score": -0.36,
+      "stance_label": "THẬN TRỌNG / PHÒNG THỦ (Defensive)",
+      "stance_type": "DEFENSIVE",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 37,
+        "Bất động sản (Real Estate)": 2,
+        "Vàng & Kim loại (Gold)": 6,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 7
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 3,
+      "video_id": "pQ4LzO9meAE",
+      "title": "KHỦNG HOẢNG THỊ TRƯỜNG CHỨNG KHOÁN HÀN QUỐC, ETF ĐƠN CỔ PHIẾU LÀ GÌ? | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=pQ4LzO9meAE",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 6878,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 1,
+          "density_per_1k": 0.15
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 1,
+          "density_per_1k": 0.15
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 132,
+          "density_per_1k": 19.19
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 2,
+          "density_per_1k": 0.29
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 0,
+          "density_per_1k": 0.0
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 4,
+      "defensive_hits": 17,
+      "stance_score": -0.619,
+      "stance_label": "THẬN TRỌNG / PHÒNG THỦ (Defensive)",
+      "stance_type": "DEFENSIVE",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 128,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 4,
+      "video_id": "qiKOI04v8ek",
+      "title": "MỸ ÁP MỨC THUẾ MỚI 12,5% | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=qiKOI04v8ek",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 6352,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 1,
+          "density_per_1k": 0.16
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 1,
+          "density_per_1k": 0.16
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 8,
+          "density_per_1k": 1.26
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 2,
+          "density_per_1k": 0.31
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 4,
+          "density_per_1k": 0.63
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 3,
+      "defensive_hits": 4,
+      "stance_score": -0.143,
+      "stance_label": "CÂN BẰNG / TRUNG TÍNH (Neutral)",
+      "stance_type": "NEUTRAL",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 7,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 5,
+      "video_id": "yk_0p9vuJNg",
+      "title": "VIỆT NAM LÀ NƯỚC THU NHẬP TRUNG BÌNH CAO, LIỆU MỨC SỐNG CÓ CAO? | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=yk_0p9vuJNg",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 4219,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 2,
+          "density_per_1k": 0.47
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 13,
+          "density_per_1k": 3.08
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 2,
+          "density_per_1k": 0.47
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 4,
+          "density_per_1k": 0.95
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 11,
+          "density_per_1k": 2.61
+        }
+      },
+      "top_theme": "Ngân hàng, Tín dụng & Nợ xấu",
+      "top_theme_key": "BANKING_CREDIT_NPL",
+      "expansion_hits": 25,
+      "defensive_hits": 8,
+      "stance_score": 0.515,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 2,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 1
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 6,
+      "video_id": "dWcdNmJp8Xs",
+      "title": "NGHỊ QUYẾT 168 KHAI THÔNG 6 VẤN ĐỀ CỐT LÕI HỖ TRỢ TĂNG TRƯỞNG 6 THÁNG CUỐI NĂM 11,9% | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=dWcdNmJp8Xs",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 10110,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 41,
+          "density_per_1k": 4.06
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 15,
+          "density_per_1k": 1.48
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 12,
+          "density_per_1k": 1.19
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 35,
+          "density_per_1k": 3.46
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 21,
+          "density_per_1k": 2.08
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 23,
+          "density_per_1k": 2.27
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 94,
+          "density_per_1k": 9.3
+        }
+      },
+      "top_theme": "Đầu tư công, Ngân sách & Nghị quyết",
+      "top_theme_key": "PUBLIC_INVESTMENT_POLICY",
+      "expansion_hits": 67,
+      "defensive_hits": 43,
+      "stance_score": 0.218,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 10,
+        "Bất động sản (Real Estate)": 13,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 20
+      },
+      "top_asset": "Tiền gửi & Trái phiếu (Cash & Bonds)",
+      "has_data": true
+    },
+    {
+      "index": 7,
+      "video_id": "2qZLFpnpiy4",
+      "title": "ÁP LỰC GIẢI NGÂN ĐẦU TƯ CÔNG VÀ SỨC ÉP LÃI SUẤT 2026 | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=2qZLFpnpiy4",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 7189,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 45,
+          "density_per_1k": 6.26
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 8,
+          "density_per_1k": 1.11
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 22,
+          "density_per_1k": 3.06
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 12,
+          "density_per_1k": 1.67
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 10,
+          "density_per_1k": 1.39
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 16,
+          "density_per_1k": 2.23
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 92,
+          "density_per_1k": 12.8
+        }
+      },
+      "top_theme": "Đầu tư công, Ngân sách & Nghị quyết",
+      "top_theme_key": "PUBLIC_INVESTMENT_POLICY",
+      "expansion_hits": 45,
+      "defensive_hits": 35,
+      "stance_score": 0.125,
+      "stance_label": "CÂN BẰNG / TRUNG TÍNH (Neutral)",
+      "stance_type": "NEUTRAL",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 0,
+        "Bất động sản (Real Estate)": 19,
+        "Vàng & Kim loại (Gold)": 2,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 4
+      },
+      "top_asset": "Bất động sản (Real Estate)",
+      "has_data": true
+    },
+    {
+      "index": 8,
+      "video_id": "tQQbVKYgxqI",
+      "title": "5 ĐIỂM NHẤN VÀ TÍN HIỆU DIỀU HÂU, KỶ NGUYÊN MỚI KEVIN WARSH, ÁP LỰC LÃI SUẤT & TỶ GIÁ CHO VIỆT NAM",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=tQQbVKYgxqI",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 4729,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 93,
+          "density_per_1k": 19.67
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 39,
+          "density_per_1k": 8.25
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 7,
+          "density_per_1k": 1.48
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 8,
+          "density_per_1k": 1.69
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 9,
+          "density_per_1k": 1.9
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 11,
+          "density_per_1k": 2.33
+        }
+      },
+      "top_theme": "Lãi suất, Fed & Chính sách tiền tệ",
+      "top_theme_key": "INTEREST_RATE_FED",
+      "expansion_hits": 23,
+      "defensive_hits": 17,
+      "stance_score": 0.15,
+      "stance_label": "CÂN BẰNG / TRUNG TÍNH (Neutral)",
+      "stance_type": "NEUTRAL",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 2,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 5,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 3
+      },
+      "top_asset": "Vàng & Kim loại (Gold)",
+      "has_data": true
+    },
+    {
+      "index": 9,
+      "video_id": "yMlAw3d41hQ",
+      "title": "CHÂU ÂU TĂNG LÃI SUẤT LẦN ĐẦU SAU 3 NĂM, ÁP LỰC TỚI LÃI SUẤT CỦA VIỆT NAM? | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=yMlAw3d41hQ",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 5682,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 64,
+          "density_per_1k": 11.26
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 29,
+          "density_per_1k": 5.1
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 15,
+          "density_per_1k": 2.64
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 28,
+          "density_per_1k": 4.93
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 20,
+          "density_per_1k": 3.52
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 8,
+          "density_per_1k": 1.41
+        }
+      },
+      "top_theme": "Lãi suất, Fed & Chính sách tiền tệ",
+      "top_theme_key": "INTEREST_RATE_FED",
+      "expansion_hits": 45,
+      "defensive_hits": 29,
+      "stance_score": 0.216,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 16,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 1
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 10,
+      "video_id": "OkDLQtSp740",
+      "title": "LẠM PHÁT 5,6%, CHU KỲ KINH TẾ VÀ CÁC LỚP TÀI SẢN | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=OkDLQtSp740",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 2579,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 16,
+          "density_per_1k": 6.2
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 18,
+          "density_per_1k": 6.98
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 4,
+          "density_per_1k": 1.55
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 6,
+          "density_per_1k": 2.33
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 32,
+          "density_per_1k": 12.41
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 3,
+          "density_per_1k": 1.16
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 1,
+          "density_per_1k": 0.39
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 3,
+      "defensive_hits": 1,
+      "stance_score": 0.5,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 20,
+        "Bất động sản (Real Estate)": 4,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 7
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 11,
+      "video_id": "YPckuQY1bg8",
+      "title": "CHÍNH THỨC NÂNG HẠNG THỊ TRƯỜNG CHỨNG KHOÁN: HIỂU RÕ LỘ TRÌNH PHÂN BỔ TỚI 2027 | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=YPckuQY1bg8",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 3890,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 2,
+          "density_per_1k": 0.51
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 70,
+          "density_per_1k": 17.99
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 1,
+          "density_per_1k": 0.26
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 0,
+          "density_per_1k": 0.0
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 22,
+      "defensive_hits": 3,
+      "stance_score": 0.76,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 40,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 12,
+      "video_id": "DOIKiummdMY",
+      "title": "KHÔNG CHẤP NHẬN TĂNG TRƯỞNG KINH TẾ THẤP? | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=DOIKiummdMY",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 3458,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 11,
+          "density_per_1k": 3.18
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 6,
+          "density_per_1k": 1.74
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 4,
+          "density_per_1k": 1.16
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 2,
+          "density_per_1k": 0.58
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 1,
+          "density_per_1k": 0.29
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 26,
+          "density_per_1k": 7.52
+        }
+      },
+      "top_theme": "Đầu tư công, Ngân sách & Nghị quyết",
+      "top_theme_key": "PUBLIC_INVESTMENT_POLICY",
+      "expansion_hits": 58,
+      "defensive_hits": 0,
+      "stance_score": 1.0,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 2,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 13,
+      "video_id": "jMCxJ9cFZsY",
+      "title": "TRUMP \"QUAY XE\" TỐI HẬU THƯ 48 TIẾNG, QUẢN TRỊ DANH MỤC ĐẦU TƯ CHỦ ĐỘNG | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=jMCxJ9cFZsY",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 5038,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 2,
+          "density_per_1k": 0.4
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 29,
+          "density_per_1k": 5.76
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 19,
+          "density_per_1k": 3.77
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 3,
+          "density_per_1k": 0.6
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 14,
+      "defensive_hits": 4,
+      "stance_score": 0.556,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 17,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 14,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 1
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 14,
+      "video_id": "bJ69qiYvvVA",
+      "title": "XĂNG DẦU TRONG NƯỚC: CƠ CHẾ ĐIỀU HÀNH XĂNG DẦU VÀ BỘ ĐỆM LẠM PHÁT |  Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=bJ69qiYvvVA",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 6230,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 4,
+          "density_per_1k": 0.64
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 19,
+          "density_per_1k": 3.05
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 4,
+          "density_per_1k": 0.64
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 2,
+          "density_per_1k": 0.32
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 46,
+          "density_per_1k": 7.38
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 6,
+          "density_per_1k": 0.96
+        }
+      },
+      "top_theme": "Vàng, Xăng dầu & Kim loại",
+      "top_theme_key": "GOLD_COMMODITIES",
+      "expansion_hits": 10,
+      "defensive_hits": 12,
+      "stance_score": -0.091,
+      "stance_label": "CÂN BẰNG / TRUNG TÍNH (Neutral)",
+      "stance_type": "NEUTRAL",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 2,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 4,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Vàng & Kim loại (Gold)",
+      "has_data": true
+    },
+    {
+      "index": 15,
+      "video_id": "3tVTs_HpyHc",
+      "title": "MỸ, ISRAEL TẤN CÔNG IRAN: KỊCH BẢN NÀO CHO VÀNG, DẦU & CỔ PHIẾU? | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=3tVTs_HpyHc",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 7232,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 9,
+          "density_per_1k": 1.24
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 14,
+          "density_per_1k": 1.94
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 4,
+          "density_per_1k": 0.55
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 2,
+          "density_per_1k": 0.28
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 34,
+          "density_per_1k": 4.7
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 42,
+          "density_per_1k": 5.81
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 0,
+          "density_per_1k": 0.0
+        }
+      },
+      "top_theme": "Vàng, Xăng dầu & Kim loại",
+      "top_theme_key": "GOLD_COMMODITIES",
+      "expansion_hits": 9,
+      "defensive_hits": 29,
+      "stance_score": -0.526,
+      "stance_label": "THẬN TRỌNG / PHÒNG THỦ (Defensive)",
+      "stance_type": "DEFENSIVE",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 33,
+        "Bất động sản (Real Estate)": 2,
+        "Vàng & Kim loại (Gold)": 15,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 2
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 16,
+      "video_id": "ThuXgu2Yv8A",
+      "title": "LÀM SAO ĐỂ THỊ TRƯỜNG CHỨNG KHOÁN ĐẠT 100% GDP | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=ThuXgu2Yv8A",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 5065,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 5,
+          "density_per_1k": 0.99
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 7,
+          "density_per_1k": 1.38
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 54,
+          "density_per_1k": 10.66
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 7,
+          "density_per_1k": 1.38
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 32,
+          "density_per_1k": 6.32
+        }
+      },
+      "top_theme": "Chứng khoán, Định giá & Nâng hạng FTSE",
+      "top_theme_key": "STOCK_FTSE_UPGRADE",
+      "expansion_hits": 35,
+      "defensive_hits": 3,
+      "stance_score": 0.842,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 51,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 0,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 3
+      },
+      "top_asset": "Cổ phiếu (Stocks)",
+      "has_data": true
+    },
+    {
+      "index": 17,
+      "video_id": "fbMqL0VFWT8",
+      "title": "\"MUA ĐỒNG TÍCH SẢN?\" XIN ĐỪNG FOMO | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=fbMqL0VFWT8",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 6114,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 2,
+          "density_per_1k": 0.33
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 3,
+          "density_per_1k": 0.49
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 4,
+          "density_per_1k": 0.65
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 6,
+          "density_per_1k": 0.98
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 144,
+          "density_per_1k": 23.55
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 2,
+          "density_per_1k": 0.33
+        }
+      },
+      "top_theme": "Vàng, Xăng dầu & Kim loại",
+      "top_theme_key": "GOLD_COMMODITIES",
+      "expansion_hits": 10,
+      "defensive_hits": 15,
+      "stance_score": -0.2,
+      "stance_label": "THẬN TRỌNG / PHÒNG THỦ (Defensive)",
+      "stance_type": "DEFENSIVE",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 1,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 45,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Vàng & Kim loại (Gold)",
+      "has_data": true
+    },
+    {
+      "index": 18,
+      "video_id": "r9vuClW0AKA",
+      "title": "TRUMP ĐỀ CỬ KEVIN WARSH CHỦ TỊCH FED: DẤU HỎI VỀ TÍNH ĐỘC LẬP CỦA NGÂN HÀNG TRUNG ƯƠNG?",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=r9vuClW0AKA",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 6010,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 34,
+          "density_per_1k": 5.66
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 10,
+          "density_per_1k": 1.66
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 5,
+          "density_per_1k": 0.83
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 14,
+          "density_per_1k": 2.33
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 9,
+          "density_per_1k": 1.5
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 37,
+          "density_per_1k": 6.16
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 5,
+          "density_per_1k": 0.83
+        }
+      },
+      "top_theme": "Vàng, Xăng dầu & Kim loại",
+      "top_theme_key": "GOLD_COMMODITIES",
+      "expansion_hits": 24,
+      "defensive_hits": 19,
+      "stance_score": 0.116,
+      "stance_label": "CÂN BẰNG / TRUNG TÍNH (Neutral)",
+      "stance_type": "NEUTRAL",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 7,
+        "Bất động sản (Real Estate)": 1,
+        "Vàng & Kim loại (Gold)": 23,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 9
+      },
+      "top_asset": "Vàng & Kim loại (Gold)",
+      "has_data": true
+    },
+    {
+      "index": 19,
+      "video_id": "vojhTxzvmG0",
+      "title": "3 TUẦN ĐẦU NĂM 2026: ĐẢO LỘN TRẬT TỰ THẾ GIỚI | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=vojhTxzvmG0",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 4754,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 3,
+          "density_per_1k": 0.63
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 3,
+          "density_per_1k": 0.63
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 47,
+          "density_per_1k": 9.89
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 3,
+          "density_per_1k": 0.63
+        }
+      },
+      "top_theme": "Vàng, Xăng dầu & Kim loại",
+      "top_theme_key": "GOLD_COMMODITIES",
+      "expansion_hits": 2,
+      "defensive_hits": 12,
+      "stance_score": -0.714,
+      "stance_label": "THẬN TRỌNG / PHÒNG THỦ (Defensive)",
+      "stance_type": "DEFENSIVE",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 0,
+        "Bất động sản (Real Estate)": 0,
+        "Vàng & Kim loại (Gold)": 23,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Vàng & Kim loại (Gold)",
+      "has_data": true
+    },
+    {
+      "index": 20,
+      "video_id": "9oNsguxU2vQ",
+      "title": "CHÍNH SÁCH ĐẶC BIỆT PHÁT TRIỂN KINH TẾ TƯ NHÂN | Góc nhìn TCKD",
+      "playlist_name": "Góc nhìn Tài chính & Kinh doanh",
+      "url": "https://www.youtube.com/watch?v=9oNsguxU2vQ",
+      "upload_date": "",
+      "duration_formatted": "N/A",
+      "total_words": 7710,
+      "theme_scores": {
+        "INTEREST_RATE_FED": {
+          "name": "Lãi suất, Fed & Chính sách tiền tệ",
+          "hits": 3,
+          "density_per_1k": 0.39
+        },
+        "EXCHANGE_RATE_INFLATION": {
+          "name": "Tỷ giá USD/VND & Lạm phát CPI",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "REAL_ESTATE": {
+          "name": "Thị trường Bất động sản",
+          "hits": 10,
+          "density_per_1k": 1.3
+        },
+        "BANKING_CREDIT_NPL": {
+          "name": "Ngân hàng, Tín dụng & Nợ xấu",
+          "hits": 0,
+          "density_per_1k": 0.0
+        },
+        "STOCK_FTSE_UPGRADE": {
+          "name": "Chứng khoán, Định giá & Nâng hạng FTSE",
+          "hits": 4,
+          "density_per_1k": 0.52
+        },
+        "GOLD_COMMODITIES": {
+          "name": "Vàng, Xăng dầu & Kim loại",
+          "hits": 9,
+          "density_per_1k": 1.17
+        },
+        "PUBLIC_INVESTMENT_POLICY": {
+          "name": "Đầu tư công, Ngân sách & Nghị quyết",
+          "hits": 46,
+          "density_per_1k": 5.97
+        }
+      },
+      "top_theme": "Đầu tư công, Ngân sách & Nghị quyết",
+      "top_theme_key": "PUBLIC_INVESTMENT_POLICY",
+      "expansion_hits": 40,
+      "defensive_hits": 2,
+      "stance_score": 0.905,
+      "stance_label": "LẠC QUAN / MỞ RỘNG (Expansion)",
+      "stance_type": "EXPANSION",
+      "asset_hits": {
+        "Cổ phiếu (Stocks)": 0,
+        "Bất động sản (Real Estate)": 6,
+        "Vàng & Kim loại (Gold)": 2,
+        "Tiền gửi & Trái phiếu (Cash & Bonds)": 0
+      },
+      "top_asset": "Bất động sản (Real Estate)",
+      "has_data": true
+    }
+  ]
+}
