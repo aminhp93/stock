@@ -87,6 +87,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/api/strategy/backtest-status":
             strategy = query.get("strategy", ["momentum"])[0]
             self.handle_strategy_backtest_status(strategy)
+        elif path == "/api/finance/raw":
+            self.handle_finance_raw()
         else:
             # SPA fallback: if file does not exist, serve index.html
             local_path = self.translate_path(self.path)
@@ -109,8 +111,46 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/api/strategy/backtest":
             strategy = query.get("strategy", ["momentum"])[0]
             self.handle_strategy_backtest_start(strategy)
+        elif path == "/api/finance/journal":
+            self.handle_finance_journal_create()
+        elif path == "/api/finance/ck-holdings":
+            self.handle_finance_ck_create()
+        elif path == "/api/finance/savings":
+            self.handle_finance_savings_create()
+        elif path == "/api/finance/loans":
+            self.handle_finance_loans_create()
         else:
             self.send_json_response({"status": "OK"})
+
+    def do_PUT(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+        query = urllib.parse.parse_qs(parsed_url.query)
+        entry_id = query.get("id", [None])[0]
+
+        if path == "/api/finance/journal" and entry_id:
+            self.handle_finance_journal_update(entry_id)
+        elif path == "/api/finance/ck-holdings" and entry_id:
+            self.handle_finance_ck_update(entry_id)
+        elif path == "/api/finance/savings" and entry_id:
+            self.handle_finance_savings_update(entry_id)
+        else:
+            self.send_json_response({"error": "Không rõ route PUT hoặc thiếu 'id'"}, 400)
+
+    def do_DELETE(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+        query = urllib.parse.parse_qs(parsed_url.query)
+        entry_id = query.get("id", [None])[0]
+
+        if path == "/api/finance/journal" and entry_id:
+            self.handle_finance_journal_delete(entry_id)
+        elif path == "/api/finance/ck-holdings" and entry_id:
+            self.handle_finance_ck_delete(entry_id)
+        elif path == "/api/finance/savings" and entry_id:
+            self.handle_finance_savings_delete(entry_id)
+        else:
+            self.send_json_response({"error": "Không rõ route DELETE hoặc thiếu 'id'"}, 400)
 
     def handle_api_data_stats(self):
         try:
@@ -434,6 +474,287 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json_response({"error": str(e)}, 500)
 
+    # ─── Personal Finance API (/finance/personal/raw) ────────────────────────
+    def _read_json_body(self) -> Dict[str, Any]:
+        length = int(self.headers.get("Content-Length", 0) or 0)
+        if length <= 0:
+            return {}
+        raw = self.rfile.read(length)
+        return json.loads(raw.decode("utf-8")) if raw else {}
+
+    def handle_finance_raw(self):
+        try:
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, to_char(entry_date, 'YYYY-MM-DD'), vang_so_luong, vang_gia, ck,
+                           tiet_kiem_vcb, tiet_kiem_tcb, cash_vcb, cash_tcb, cash_tpb,
+                           credit_tcb_spent, credit_tcb_instal, vay_vcb
+                    FROM finance_journal ORDER BY entry_date ASC
+                """)
+                rows = [
+                    {"id": str(r[0]), "date": r[1], "vang_so_luong": float(r[2]), "vang_gia": float(r[3]),
+                     "ck": float(r[4]), "tiet_kiem_vcb": float(r[5]), "tiet_kiem_tcb": float(r[6]),
+                     "cash_vcb": float(r[7]), "cash_tcb": float(r[8]), "cash_tpb": float(r[9]),
+                     "credit_tcb_spent": float(r[10]), "credit_tcb_instal": float(r[11]), "vay_vcb": float(r[12])}
+                    for r in cur.fetchall()
+                ]
+
+                cur.execute("SELECT id, to_char(entry_date, 'YYYY-MM-DD'), symbol, tong_sl, gia_von, gia_tt FROM finance_ck_holdings ORDER BY entry_date ASC, id ASC")
+                ck = [
+                    {"id": str(r[0]), "date": r[1], "symbol": r[2], "tong_sl": float(r[3]), "gia_von": float(r[4]), "gia_tt": float(r[5])}
+                    for r in cur.fetchall()
+                ]
+
+                cur.execute("""
+                    SELECT id, bank, amount, rate, to_char(start_date, 'YYYY-MM-DD'), to_char(end_date, 'YYYY-MM-DD')
+                    FROM finance_savings ORDER BY id ASC
+                """)
+                tiet_kiem = [
+                    {"id": str(r[0]), "bank": r[1], "amount": float(r[2]), "rate": float(r[3]),
+                     "start_date": r[4], "end_date": r[5]}
+                    for r in cur.fetchall()
+                ]
+
+                cur.execute("SELECT id, bank, so_tien, thoi_gian, lai_suat FROM finance_loans ORDER BY id ASC")
+                vay = [
+                    {"id": str(r[0]), "bank": r[1], "so_tien": float(r[2]), "thoi_gian": r[3], "lai_suat": r[4]}
+                    for r in cur.fetchall()
+                ]
+            conn.close()
+            self.send_json_response({"rows": rows, "ck": ck, "tietKiem": tiet_kiem, "vay": vay})
+        except Exception as e:
+            self.send_json_response({"error": f"Lỗi kết nối PostgreSQL (finance): {str(e)}"}, status_code=503)
+
+    def handle_finance_journal_create(self):
+        try:
+            body = self._read_json_body()
+            fields = ("date", "vang_so_luong", "vang_gia", "ck", "tiet_kiem_vcb", "tiet_kiem_tcb",
+                      "cash_vcb", "cash_tcb", "cash_tpb", "credit_tcb_spent", "credit_tcb_instal", "vay_vcb")
+            if not body.get("date"):
+                self.send_json_response({"error": "Thiếu trường 'date'"}, 400)
+                return
+            values = [body.get(f, 0) if f != "date" else body["date"] for f in fields]
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO finance_journal
+                        (entry_date, vang_so_luong, vang_gia, ck, tiet_kiem_vcb, tiet_kiem_tcb,
+                         cash_vcb, cash_tcb, cash_tpb, credit_tcb_spent, credit_tcb_instal, vay_vcb)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (entry_date) DO UPDATE SET
+                        vang_so_luong = EXCLUDED.vang_so_luong, vang_gia = EXCLUDED.vang_gia, ck = EXCLUDED.ck,
+                        tiet_kiem_vcb = EXCLUDED.tiet_kiem_vcb, tiet_kiem_tcb = EXCLUDED.tiet_kiem_tcb,
+                        cash_vcb = EXCLUDED.cash_vcb, cash_tcb = EXCLUDED.cash_tcb, cash_tpb = EXCLUDED.cash_tpb,
+                        credit_tcb_spent = EXCLUDED.credit_tcb_spent, credit_tcb_instal = EXCLUDED.credit_tcb_instal,
+                        vay_vcb = EXCLUDED.vay_vcb
+                    RETURNING id
+                """, values)
+                new_id = cur.fetchone()[0]
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": str(new_id)})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_finance_journal_update(self, entry_id: str):
+        try:
+            body = self._read_json_body()
+            fields = ("date", "vang_so_luong", "vang_gia", "ck", "tiet_kiem_vcb", "tiet_kiem_tcb",
+                      "cash_vcb", "cash_tcb", "cash_tpb", "credit_tcb_spent", "credit_tcb_instal", "vay_vcb")
+            if not body.get("date"):
+                self.send_json_response({"error": "Thiếu trường 'date'"}, 400)
+                return
+            values = [body.get(f, 0) if f != "date" else body["date"] for f in fields]
+            values.append(entry_id)
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE finance_journal SET
+                        entry_date = %s, vang_so_luong = %s, vang_gia = %s, ck = %s,
+                        tiet_kiem_vcb = %s, tiet_kiem_tcb = %s, cash_vcb = %s, cash_tcb = %s, cash_tpb = %s,
+                        credit_tcb_spent = %s, credit_tcb_instal = %s, vay_vcb = %s
+                    WHERE id = %s
+                    RETURNING id
+                """, values)
+                updated = cur.fetchone()
+                if not updated:
+                    conn.rollback()
+                    conn.close()
+                    self.send_json_response({"error": f"Không tìm thấy bản ghi id={entry_id}"}, 404)
+                    return
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": entry_id})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_finance_journal_delete(self, entry_id: str):
+        try:
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM finance_journal WHERE id = %s RETURNING id", (entry_id,))
+                deleted = cur.fetchone()
+                if not deleted:
+                    conn.rollback()
+                    conn.close()
+                    self.send_json_response({"error": f"Không tìm thấy bản ghi id={entry_id}"}, 404)
+                    return
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": entry_id})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_finance_ck_create(self):
+        try:
+            body = self._read_json_body()
+            if not body.get("symbol"):
+                self.send_json_response({"error": "Thiếu trường 'symbol'"}, 400)
+                return
+            entry_date = body.get("date") or time.strftime("%Y-%m-%d")
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO finance_ck_holdings (entry_date, symbol, tong_sl, gia_von, gia_tt)
+                    VALUES (%s,%s,%s,%s,%s) RETURNING id
+                """, (entry_date, body["symbol"].upper(), body.get("tong_sl", 0), body.get("gia_von", 0), body.get("gia_tt", 0)))
+                new_id = cur.fetchone()[0]
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": str(new_id)})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_finance_ck_update(self, entry_id: str):
+        try:
+            body = self._read_json_body()
+            if not body.get("symbol"):
+                self.send_json_response({"error": "Thiếu trường 'symbol'"}, 400)
+                return
+            entry_date = body.get("date") or time.strftime("%Y-%m-%d")
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE finance_ck_holdings SET
+                        entry_date = %s, symbol = %s, tong_sl = %s, gia_von = %s, gia_tt = %s
+                    WHERE id = %s
+                    RETURNING id
+                """, (entry_date, body["symbol"].upper(), body.get("tong_sl", 0),
+                      body.get("gia_von", 0), body.get("gia_tt", 0), entry_id))
+                updated = cur.fetchone()
+                if not updated:
+                    conn.rollback()
+                    conn.close()
+                    self.send_json_response({"error": f"Không tìm thấy bản ghi id={entry_id}"}, 404)
+                    return
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": entry_id})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_finance_ck_delete(self, entry_id: str):
+        try:
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM finance_ck_holdings WHERE id = %s RETURNING id", (entry_id,))
+                deleted = cur.fetchone()
+                if not deleted:
+                    conn.rollback()
+                    conn.close()
+                    self.send_json_response({"error": f"Không tìm thấy bản ghi id={entry_id}"}, 404)
+                    return
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": entry_id})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_finance_savings_update(self, entry_id: str):
+        try:
+            body = self._read_json_body()
+            if not body.get("bank"):
+                self.send_json_response({"error": "Thiếu trường 'bank'"}, 400)
+                return
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE finance_savings SET
+                        bank = %s, amount = %s, rate = %s, start_date = %s, end_date = %s
+                    WHERE id = %s
+                    RETURNING id
+                """, (body["bank"], body.get("amount", 0), body.get("rate", 0),
+                      body.get("start_date"), body.get("end_date"), entry_id))
+                updated = cur.fetchone()
+                if not updated:
+                    conn.rollback()
+                    conn.close()
+                    self.send_json_response({"error": f"Không tìm thấy bản ghi id={entry_id}"}, 404)
+                    return
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": entry_id})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_finance_savings_delete(self, entry_id: str):
+        try:
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM finance_savings WHERE id = %s RETURNING id", (entry_id,))
+                deleted = cur.fetchone()
+                if not deleted:
+                    conn.rollback()
+                    conn.close()
+                    self.send_json_response({"error": f"Không tìm thấy bản ghi id={entry_id}"}, 404)
+                    return
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": entry_id})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_finance_savings_create(self):
+        try:
+            body = self._read_json_body()
+            if not body.get("bank"):
+                self.send_json_response({"error": "Thiếu trường 'bank'"}, 400)
+                return
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO finance_savings (bank, amount, rate, start_date, end_date)
+                    VALUES (%s,%s,%s,%s,%s) RETURNING id
+                """, (body["bank"], body.get("amount", 0), body.get("rate", 0),
+                      body.get("start_date"), body.get("end_date")))
+                new_id = cur.fetchone()[0]
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": str(new_id)})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_finance_loans_create(self):
+
+        try:
+            body = self._read_json_body()
+            if not body.get("bank"):
+                self.send_json_response({"error": "Thiếu trường 'bank'"}, 400)
+                return
+            conn = psycopg2.connect(**STRATEGY_DB)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO finance_loans (bank, so_tien, thoi_gian, lai_suat)
+                    VALUES (%s,%s,%s,%s) RETURNING id
+                """, (body["bank"], body.get("so_tien", 0), body.get("thoi_gian", ""), body.get("lai_suat", "")))
+                new_id = cur.fetchone()[0]
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "OK", "id": str(new_id)})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
     def handle_strategy_backtest_status(self, strategy: str):
         try:
             from backend.utils.strategy_rank import DDL, STRATEGIES
@@ -645,7 +966,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
         self.end_headers()
 
@@ -717,7 +1038,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()

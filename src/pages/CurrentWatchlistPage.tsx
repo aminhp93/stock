@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, RefreshCw } from "lucide-react";
+import { Briefcase, Search } from "lucide-react";
 import {
   fetchChartData,
   fetchTickerSignals,
@@ -11,79 +11,27 @@ import { ChartDataPoint } from "../types";
 const HOLDING_SYMBOLS = ["MBS", "TCH", "HDG", "PDR"];
 const WIN = 5;
 
-/** Nhận định đã ghi trước đó — dùng để đối chiếu với số liệu hiện tại. */
-const RECORDED_THESIS: Record<
-  string,
-  { stance: string; rrNoted: number; entry: string; note: string }
-> = {
-  MBS: {
-    stance: "Giữ / mua tích lũy",
-    rrNoted: 3.24,
-    entry: "16.8k–17.5k",
-    note: "Tỷ trọng lõi ~30%",
-  },
-  HDG: {
-    stance: "Mua có kỷ luật",
-    rrNoted: 5.0,
-    entry: "15.6k–16.4k",
-    note: "R/R tốt nhất nhóm, tăng dần lên 20%",
-  },
-  PDR: {
-    stance: "Giữ + mua thăm dò",
-    rrNoted: 3.21,
-    entry: "11.45k–12.2k",
-    note: "Tăng nhẹ có kiểm soát lên 15%",
-  },
-  TCH: {
-    stance: "Chưa add — canh giảm tỷ trọng",
-    rrNoted: 1.28,
-    entry: "—",
-    note: "R/R chưa đạt chuẩn, giảm 46% → 25%",
-  },
-};
-
-/** Cập nhật lại nhận định từng mã dựa trên số liệu hiện tại. */
-function reviseStance(s: TickerSignals | null | undefined): {
-  action: string;
-  tone: "pos" | "warn" | "neg" | "muted";
-  why: string;
-} {
-  if (!s) return { action: "Đang tải…", tone: "muted", why: "—" };
-  const rr = s.reward_risk.rr ?? 0;
-  const rsi = s.technical.rsi_14 ?? 50;
-  const aboveMa20 = s.technical.above_ma20;
-  const aboveMa50 = s.technical.above_ma50;
-
-  if (rr >= 2 && aboveMa20 && aboveMa50)
-    return {
-      action: "Giải ngân từng phần theo kế hoạch",
-      tone: "pos",
-      why: `R/R 1:${rr.toFixed(2)} · giá trên MA20 & MA50`,
-    };
-  if (rr >= 2 && aboveMa20)
-    return {
-      action: "Mua thăm dò nhỏ, chờ xác nhận MA50",
-      tone: "pos",
-      why: `R/R 1:${rr.toFixed(2)} · mới lấy lại MA20`,
-    };
-  if (rr >= 2)
-    return {
-      action: "Chờ xác nhận xu hướng trước khi mua",
-      tone: "warn",
-      why: `R/R tốt (1:${rr.toFixed(2)}) nhưng chưa vượt MA20`,
-    };
-  if (rr < 1.5)
-    return {
-      action: "Không add — ưu tiên giảm tỷ trọng khi hồi",
-      tone: "neg",
-      why: `R/R chỉ 1:${rr.toFixed(2)} · RSI ${rsi}`,
-    };
-  return {
-    action: "Giữ nguyên, không hành động mới",
-    tone: "warn",
-    why: `R/R 1:${rr.toFixed(2)} · chưa đủ lợi thế`,
-  };
-}
+/** Universe quét mã tiềm năng 1–2 tháng tới: mã đang cầm + peer cùng ngành (chứng khoán, BĐS). */
+const SCAN_SYMBOLS = [
+  "MBS",
+  "TCH",
+  "HDG",
+  "PDR",
+  "SSI",
+  "VCI",
+  "HCM",
+  "VND",
+  "VIX",
+  "FTS",
+  "SHS",
+  "NLG",
+  "KDH",
+  "DXG",
+  "DIG",
+  "NVL",
+  "KBC",
+  "HDC",
+];
 
 interface SRResult {
   close: number;
@@ -191,14 +139,45 @@ const SIGNAL_COLOR: Record<
   WATCH: "#64748b",
 };
 
-const TONE_STYLE: Record<
-  "pos" | "warn" | "neg" | "muted",
-  { bg: string; border: string; color: string }
-> = {
-  pos: { bg: "#f0fdf4", border: "#bbf7d0", color: "#166534" },
-  warn: { bg: "#fff7ed", border: "#fed7aa", color: "#b45309" },
-  neg: { bg: "#fef2f2", border: "#fecaca", color: "#b91c1c" },
-  muted: { bg: "#f8fafc", border: "#e2e8f0", color: "#64748b" },
+/** Chấm điểm 1 mã để tìm cơ hội 1–2 tháng tới: R/R + cấu trúc MA + RSI. */
+function scoreCandidate(s: TickerSignals) {
+  const rr = s.reward_risk.rr ?? 0;
+  const rsi = s.technical.rsi_14 ?? 50;
+  let score = rr * 10;
+  if (s.technical.above_ma20) score += 6;
+  if (s.technical.above_ma50) score += 6;
+  if (s.technical.above_ma200) score += 4;
+  if (rsi > 70) score -= 12; // quá mua — hạn chế mua đuổi
+  if (rsi < 30) score -= 4; // quá bán sâu — rủi ro gãy đáy tiếp
+  return Math.round(score * 10) / 10;
+}
+
+/** Nhận định ngắn cho từng ứng viên tiềm năng. */
+function candidateVerdict(s: TickerSignals): {
+  text: string;
+  tone: "pos" | "warn" | "neg";
+} {
+  const rr = s.reward_risk.rr ?? 0;
+  const rsi = s.technical.rsi_14 ?? 50;
+  if (rsi > 70)
+    return { text: "Quá mua — chờ nhịp chỉnh trước khi mua", tone: "warn" };
+  if (rr >= 2 && s.technical.above_ma20 && s.technical.above_ma50)
+    return { text: "Đủ điều kiện mua tích luỹ", tone: "pos" };
+  if (rr >= 2 && s.technical.above_ma20)
+    return { text: "Mua thăm dò, chờ xác nhận MA50", tone: "pos" };
+  if (rr >= 2)
+    return {
+      text: "R/R tốt nhưng dưới MA20 — chờ xác nhận xu hướng",
+      tone: "warn",
+    };
+  if (rr < 1.3) return { text: "R/R yếu — chưa nên giải ngân", tone: "neg" };
+  return { text: "Trung tính — theo dõi thêm", tone: "warn" };
+}
+
+const TONE_COLOR: Record<"pos" | "warn" | "neg", string> = {
+  pos: "#059669",
+  warn: "#d97706",
+  neg: "#dc2626",
 };
 
 export const CurrentWatchlistPage: React.FC = () => {
@@ -238,6 +217,9 @@ export const CurrentWatchlistPage: React.FC = () => {
             ),
           );
         });
+    });
+
+    SCAN_SYMBOLS.forEach((symbol) => {
       fetchTickerSignals(symbol)
         .then((s) =>
           setSignals((prev) => ({
@@ -267,38 +249,27 @@ export const CurrentWatchlistPage: React.FC = () => {
     };
   }, [rows]);
 
-  const liveSummary = useMemo(() => {
-    const list = HOLDING_SYMBOLS.map((s) => signals[s]).filter(
-      (s): s is TickerSignals => !!s,
+  /** Xếp hạng toàn bộ universe (đang cầm + peer) theo điểm cơ hội, dùng cho phần "Mã tiềm năng". */
+  const candidates = useMemo(() => {
+    const list = SCAN_SYMBOLS.map((symbol) => ({
+      symbol,
+      s: signals[symbol],
+      isHeld: HOLDING_SYMBOLS.includes(symbol),
+    })).filter(
+      (c): c is { symbol: string; s: TickerSignals; isHeld: boolean } => !!c.s,
     );
-    const rrs = list
-      .map((s) => s.reward_risk.rr)
-      .filter((x): x is number => x != null && Number.isFinite(x))
-      .sort((a, b) => a - b);
-    const mid = Math.floor(rrs.length / 2);
-    let medianRR: number | null = null;
-    if (rrs.length) {
-      medianRR = rrs.length % 2 ? rrs[mid] : (rrs[mid - 1] + rrs[mid]) / 2;
-    }
-    const aboveMa50 = list.filter((s) => s.technical.above_ma50).length;
-    const aboveMa200 = list.filter((s) => s.technical.above_ma200).length;
 
-    let verdict =
-      "Chưa đủ dữ liệu để kết luận — chờ tải xong tín hiệu của cả 4 mã.";
-    if (list.length) {
-      if (aboveMa50 === 0) {
-        verdict =
-          "Toàn bộ danh mục còn dưới MA50 — vẫn ở pha phòng thủ. Ưu tiên giữ tiền mặt, chỉ mua thăm dò tại hỗ trợ mạnh và siết stop; hạ tỷ trọng mã có R/R thấp (TCH) khi có nhịp hồi.";
-      } else if (aboveMa50 === list.length && aboveMa200 >= list.length / 2) {
-        verdict =
-          "Cấu trúc giá đã cải thiện rõ (toàn bộ trên MA50) — có thể thực thi lộ trình tái cơ cấu về tỷ trọng mục tiêu, ưu tiên mã R/R ≥ 2.";
-      } else {
-        verdict = `Phân hoá: ${aboveMa50}/${list.length} mã lấy lại MA50. Chỉ giải ngân vào mã đã trên MA20/MA50 và R/R ≥ 2, chưa tăng tỷ trọng toàn danh mục.`;
-      }
-    }
-
-    return { loaded: list.length, aboveMa50, aboveMa200, medianRR, verdict };
+    return list
+      .map((c) => ({
+        ...c,
+        score: scoreCandidate(c.s),
+        verdict: candidateVerdict(c.s),
+      }))
+      .sort((a, b) => b.score - a.score);
   }, [signals]);
+
+  const newIdeas = candidates.filter((c) => !c.isHeld).slice(0, 8);
+  const loadedCount = Object.values(signals).filter(Boolean).length;
 
   return (
     <div
@@ -334,7 +305,18 @@ export const CurrentWatchlistPage: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Điểm mua/bán cho các mã đang cầm ── */}
       <div className="card" style={{ padding: "16px", background: "#fff" }}>
+        <div
+          style={{
+            fontSize: "14px",
+            fontWeight: 800,
+            color: "#0f172a",
+            marginBottom: "10px",
+          }}
+        >
+          Điểm Mua/Bán — Danh Mục Hiện Tại (Hỗ Trợ/Kháng Cự 1 Năm)
+        </div>
         <div style={{ overflowX: "auto" }}>
           <table
             style={{
@@ -353,8 +335,8 @@ export const CurrentWatchlistPage: React.FC = () => {
                 {[
                   "Mã",
                   "Giá hiện tại",
-                  "Hỗ trợ gần",
-                  "Kháng cự gần",
+                  "Điểm mua (hỗ trợ)",
+                  "Điểm bán (kháng cự)",
                   "R/R",
                   "Tín hiệu",
                   "Lý do",
@@ -477,28 +459,35 @@ export const CurrentWatchlistPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Rà soát nhận định: đã ghi vs hiện tại ── */}
+      {/* ── Mã tiềm năng 1-2 tháng tới ── */}
       <div className="card" style={{ padding: "16px", background: "#fff" }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            marginBottom: "10px",
+            marginBottom: "4px",
           }}
         >
-          <RefreshCw size={15} color="var(--accent-blue)" />
+          <Search size={15} color="var(--accent-blue)" />
           <span style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>
-            Rà Soát Nhận Định — Đã Ghi vs Hiện Tại
+            Mã Tiềm Năng 1–2 Tháng Tới
           </span>
           <span
             style={{ fontSize: "11px", color: "#94a3b8", marginLeft: "auto" }}
           >
-            {Object.values(signals).filter(Boolean).length}/
-            {HOLDING_SYMBOLS.length} mã · dữ liệu{" "}
-            {Object.values(signals).find(Boolean)?.as_of ?? "…"}
+            {loadedCount}/{SCAN_SYMBOLS.length} mã đã quét (chứng khoán + BĐS +
+            đang cầm)
           </span>
         </div>
+        <div
+          style={{ fontSize: "11.5px", color: "#64748b", marginBottom: "12px" }}
+        >
+          Điểm cơ hội = R/R × 10 + cộng điểm khi giá trên MA20/MA50/MA200, trừ
+          điểm nếu RSI quá mua ({">"}70) hoặc quá bán sâu ({"<"}30). Danh sách
+          dưới chỉ gồm mã <b>chưa nắm giữ</b> để tìm cơ hội mới.
+        </div>
+
         <div style={{ overflowX: "auto" }}>
           <table
             style={{
@@ -516,11 +505,15 @@ export const CurrentWatchlistPage: React.FC = () => {
               >
                 {[
                   "Mã",
-                  "Nhận định đã ghi",
-                  "R/R ghi → hiện tại",
-                  "Tâm lý / vị thế",
+                  "Điểm",
+                  "Giá",
+                  "Hỗ trợ (mua)",
+                  "Kháng cự (bán)",
+                  "R/R",
+                  "MA20/50/200",
+                  "RSI",
                   "Cách đỉnh 52T",
-                  "Trạng thái",
+                  "Nhận định",
                 ].map((h) => (
                   <th
                     key={h}
@@ -537,526 +530,91 @@ export const CurrentWatchlistPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {HOLDING_SYMBOLS.map((sym) => {
-                const th = RECORDED_THESIS[sym];
-                const s = signals[sym];
-                const rrNow = s?.reward_risk.rr ?? null;
-                const rrFar = s?.reward_risk.rr_far ?? null;
-                const drift = rrNow != null ? rrNow - th.rrNoted : null;
-                // "cần xem lại" khi: R/R lệch >0.8, hoặc tín hiệu mua nhưng đã gãy MA50, hoặc RSI quá mua
-                const brokeMa50 = s
-                  ? !s.technical.above_ma50 && th.stance.includes("mua")
-                  : false;
-                const bigDrift = drift != null && Math.abs(drift) > 0.8;
-                const overbought = (s?.technical.rsi_14 ?? 0) > 70;
-                const stale = !s ? null : bigDrift || brokeMa50 || overbought;
-                return (
-                  <tr key={sym} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td
-                      style={{
-                        padding: "8px 9px",
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {sym}
-                    </td>
-                    <td style={{ padding: "8px 9px", color: "#475569" }}>
-                      <div style={{ fontWeight: 700, color: "#1e293b" }}>
-                        {th.stance}
-                      </div>
-                      <div style={{ fontSize: "10.5px" }}>
-                        vùng {th.entry} · {th.note}
-                      </div>
-                    </td>
-                    <td
-                      style={{
-                        padding: "8px 9px",
-                        fontFamily: "'JetBrains Mono', monospace",
-                      }}
-                    >
-                      1:{th.rrNoted.toFixed(2)} →{" "}
-                      <strong
-                        style={{
-                          color:
-                            rrNow != null && rrNow >= 2 ? "#059669" : "#dc2626",
-                        }}
-                      >
-                        1:{rrNow?.toFixed(2) ?? "…"}
-                      </strong>
-                      {rrFar != null && (
-                        <span style={{ color: "#94a3b8" }}>
-                          {" "}
-                          (xa 1:{rrFar.toFixed(1)})
-                        </span>
-                      )}
-                      {drift != null && (
-                        <div
-                          style={{
-                            fontSize: "10px",
-                            color:
-                              Math.abs(drift) > 0.8 ? "#d97706" : "#94a3b8",
-                          }}
-                        >
-                          Δ {drift > 0 ? "+" : ""}
-                          {drift.toFixed(2)}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "8px 9px" }}>
-                      {s ? (
-                        <>
-                          <span
-                            style={{
-                              fontWeight: 800,
-                              color:
-                                s.sentiment.composite_gauge < 40
-                                  ? "#ea580c"
-                                  : s.sentiment.composite_gauge >= 60
-                                    ? "#16a34a"
-                                    : "#64748b",
-                            }}
-                          >
-                            {Math.round(s.sentiment.composite_gauge)}{" "}
-                            {s.sentiment.label.replace("_", " ")}
-                          </span>
-                          <div style={{ fontSize: "10px", color: "#64748b" }}>
-                            MA20 {s.technical.above_ma20 ? "✓" : "✗"} · MA50{" "}
-                            {s.technical.above_ma50 ? "✓" : "✗"} · MA200{" "}
-                            {s.technical.above_ma200 ? "✓" : "✗"} · RSI{" "}
-                            {s.technical.rsi_14}
-                          </div>
-                        </>
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>…</span>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        padding: "8px 9px",
-                        fontFamily: "'JetBrains Mono', monospace",
-                        color: "#b91c1c",
-                      }}
-                    >
-                      {s?.technical.pct_from_high_52w != null
-                        ? `${s.technical.pct_from_high_52w}%`
-                        : "…"}
-                    </td>
-                    <td style={{ padding: "8px 9px" }}>
-                      {stale == null ? (
-                        <span style={{ color: "#94a3b8" }}>…</span>
-                      ) : stale ? (
-                        <span style={{ fontWeight: 800, color: "#d97706" }}>
-                          ⚠ Cần xem lại
-                        </span>
-                      ) : (
-                        <span style={{ fontWeight: 800, color: "#059669" }}>
-                          ✓ Còn hiệu lực
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div
-          style={{
-            marginTop: "10px",
-            fontSize: "11px",
-            color: "#64748b",
-            lineHeight: 1.6,
-          }}
-        >
-          Quy tắc "cần xem lại": R/R lệch &gt; 0.8 so với lúc ghi · hoặc nhận
-          định "mua" nhưng giá đã gãy MA50 · hoặc RSI &gt; 70. Cả 4 mã đều dưới
-          MA200 và gần đáy 52 tuần — nhóm BĐS/chứng khoán chu kỳ đang ở pha
-          phòng thủ; các nhận định "mua tích lũy" ở đây là <b>contrarian</b>,
-          cần kỷ luật stop.
-        </div>
-      </div>
-
-      {/* ── Nhận định cập nhật theo số liệu hiện tại ── */}
-      <div className="card" style={{ padding: "16px", background: "#fff" }}>
-        <div
-          style={{
-            fontSize: "14px",
-            fontWeight: 800,
-            color: "#0f172a",
-            marginBottom: "4px",
-          }}
-        >
-          Nhận Định Cập Nhật (tự động theo dữ liệu mới nhất)
-        </div>
-        <div
-          style={{ fontSize: "11px", color: "#64748b", marginBottom: "10px" }}
-        >
-          {liveSummary.loaded}/{HOLDING_SYMBOLS.length} mã có dữ liệu ·{" "}
-          {liveSummary.aboveMa50} mã trên MA50 · R/R trung vị 1:
-          {liveSummary.medianRR?.toFixed(2) ?? "…"}
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))",
-            gap: "10px",
-          }}
-        >
-          {HOLDING_SYMBOLS.map((sym) => {
-            const rev = reviseStance(signals[sym]);
-            const palette = TONE_STYLE[rev.tone];
-            return (
-              <div
-                key={sym}
-                style={{
-                  border: `1px solid ${palette.border}`,
-                  background: palette.bg,
-                  borderRadius: "10px",
-                  padding: "10px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
+              {newIdeas.map((c) => (
+                <tr
+                  key={c.symbol}
+                  style={{ borderBottom: "1px solid #f1f5f9" }}
                 >
-                  <span
+                  <td
                     style={{
+                      padding: "8px 9px",
                       fontFamily: "'JetBrains Mono', monospace",
                       fontWeight: 800,
                     }}
                   >
-                    {sym}
-                  </span>
-                  <span style={{ fontSize: "10.5px", color: "#64748b" }}>
-                    trước: {RECORDED_THESIS[sym].stance}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    marginTop: "6px",
-                    fontSize: "12.5px",
-                    fontWeight: 800,
-                    color: palette.color,
-                  }}
-                >
-                  {rev.action}
-                </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "#475569",
-                    marginTop: "3px",
-                  }}
-                >
-                  {rev.why}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div
-          style={{
-            marginTop: "10px",
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
-            borderRadius: "8px",
-            padding: "9px 11px",
-            fontSize: "11.5px",
-            color: "#475569",
-            lineHeight: 1.6,
-          }}
-        >
-          <b>Kết luận danh mục:</b> {liveSummary.verdict}
-        </div>
-      </div>
-
-      <div
-        className="card"
-        style={{
-          padding: "16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "14px",
-            fontWeight: 800,
-            color: "#0f172a",
-          }}
-        >
-          Đánh giá danh mục hiện tại (lọc mã {"<"} 2 triệu)
-        </div>
-
-        <div
-          style={{
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
-            borderRadius: "10px",
-            padding: "12px",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
-            gap: "10px",
-          }}
-        >
-          <div>
-            <div style={{ fontSize: "11px", color: "#64748b" }}>
-              Nguồn số liệu
-            </div>
-            <div
-              style={{ fontSize: "12.5px", fontWeight: 700, color: "#1e293b" }}
-            >
-              finance/personal/raw trong FinancePage.tsx (defaultCK)
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: "11px", color: "#64748b" }}>
-              Danh mục sau lọc
-            </div>
-            <div
-              style={{ fontSize: "12.5px", fontWeight: 700, color: "#1e293b" }}
-            >
-              MBS, TCH, HDG, PDR
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: "11px", color: "#64748b" }}>
-              Giá trị sau lọc
-            </div>
-            <div
-              style={{ fontSize: "12.5px", fontWeight: 700, color: "#1e293b" }}
-            >
-              ~296.38 triệu
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: "11px", color: "#64748b" }}>Tỷ trọng</div>
-            <div
-              style={{ fontSize: "12.5px", fontWeight: 700, color: "#1e293b" }}
-            >
-              TCH 46.25% · MBS 29.24% · PDR 13.39% · HDG 11.12%
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: "11px", color: "#64748b" }}>
-              P/L tạm tính
-            </div>
-            <div
-              style={{ fontSize: "12.5px", fontWeight: 700, color: "#b91c1c" }}
-            >
-              Cả 4 mã đang âm; nặng nhất HDG (~-37.7%) và TCH (~-33.35%)
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            border: "1px solid #fecaca",
-            background: "#fef2f2",
-            borderRadius: "10px",
-            padding: "12px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: 800,
-              color: "#991b1b",
-              marginBottom: "6px",
-            }}
-          >
-            Vấn đề chính
-          </div>
-          <ul
-            style={{
-              margin: 0,
-              paddingLeft: "18px",
-              color: "#7f1d1d",
-              fontSize: "12.5px",
-              lineHeight: 1.7,
-            }}
-          >
-            <li>
-              Concentration risk cao: Top 1 = 46%, Top 2 = 75.5%, Top 3 = 88.9%.
-            </li>
-            <li>
-              Style/Sector risk: nghiêng nhiều vào nhóm BĐS/chu kỳ, biến động
-              cùng pha.
-            </li>
-            <li>
-              Gần như full equity trong book cổ phiếu, thiếu buffer phòng thủ.
-            </li>
-            <li>
-              Chênh dữ liệu nhẹ: tổng theo mã ~296.84 triệu vs snapshot raw ~303
-              triệu (~6.16 triệu).
-            </li>
-          </ul>
-        </div>
-
-        <div
-          style={{
-            border: "1px solid #bfdbfe",
-            background: "#eff6ff",
-            borderRadius: "10px",
-            padding: "12px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: 800,
-              color: "#1e40af",
-              marginBottom: "6px",
-            }}
-          >
-            Kế hoạch mua/bán ngắn hạn (2–6 tuần)
-          </div>
-          <ul
-            style={{
-              margin: 0,
-              paddingLeft: "18px",
-              color: "#1e3a8a",
-              fontSize: "12.5px",
-              lineHeight: 1.7,
-            }}
-          >
-            <li>
-              MBS: ưu tiên giữ/mua tích lũy khi về vùng hỗ trợ ~16.8k–17.5k, R/R
-              ~3.24.
-            </li>
-            <li>
-              HDG: mua có kỷ luật quanh hỗ trợ ~15.6k–16.4k, R/R ~5.0 (tốt nhất
-              nhóm).
-            </li>
-            <li>PDR: giữ + mua thăm dò quanh ~11.45k–12.2k, R/R ~3.21.</li>
-            <li>
-              TCH: chưa add vội (R/R ~1.28 chưa đạt chuẩn), canh hồi để giảm tỷ
-              trọng.
-            </li>
-            <li>
-              Kỷ luật lệnh: chia 3 phần 40/30/30; stop cứng theo plan backend
-              (MBS 16,736 · HDG 15,568 · PDR 11,594); TCH ưu tiên phòng thủ.
-            </li>
-          </ul>
-        </div>
-
-        <div
-          style={{
-            border: "1px solid #bbf7d0",
-            background: "#f0fdf4",
-            borderRadius: "10px",
-            padding: "12px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: 800,
-              color: "#166534",
-              marginBottom: "8px",
-            }}
-          >
-            Kế hoạch trung hạn (3–6 tháng) — target tái cấu trúc book 4 mã
-          </div>
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: "12.5px",
-              }}
-            >
-              <thead>
-                <tr style={{ borderBottom: "1px solid #bbf7d0" }}>
-                  <th
+                    <button
+                      onClick={() =>
+                        navigate(`/finance/stock/symbol/${c.symbol}`)
+                      }
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        fontWeight: 800,
+                        color: "#1e40af",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      {c.symbol}
+                    </button>
+                  </td>
+                  <td style={{ padding: "8px 9px", fontWeight: 800 }}>
+                    {c.score}
+                  </td>
+                  <td style={{ padding: "8px 9px" }}>{fmt(c.s.price)}</td>
+                  <td style={{ padding: "8px 9px", color: "#059669" }}>
+                    {fmt(c.s.reward_risk.support)}
+                  </td>
+                  <td style={{ padding: "8px 9px", color: "#dc2626" }}>
+                    {fmt(c.s.reward_risk.resistance_near)}
+                  </td>
+                  <td style={{ padding: "8px 9px", fontWeight: 700 }}>
+                    {c.s.reward_risk.rr != null
+                      ? `1:${c.s.reward_risk.rr.toFixed(2)}`
+                      : "—"}
+                  </td>
+                  <td style={{ padding: "8px 9px", color: "#64748b" }}>
+                    {c.s.technical.above_ma20 ? "✓" : "✗"}/
+                    {c.s.technical.above_ma50 ? "✓" : "✗"}/
+                    {c.s.technical.above_ma200 ? "✓" : "✗"}
+                  </td>
+                  <td style={{ padding: "8px 9px" }}>
+                    {c.s.technical.rsi_14 ?? "—"}
+                  </td>
+                  <td style={{ padding: "8px 9px", color: "#b91c1c" }}>
+                    {c.s.technical.pct_from_high_52w != null
+                      ? `${c.s.technical.pct_from_high_52w}%`
+                      : "…"}
+                  </td>
+                  <td
                     style={{
-                      textAlign: "left",
-                      padding: "6px 8px",
-                      color: "#166534",
+                      padding: "8px 9px",
+                      fontWeight: 700,
+                      color: TONE_COLOR[c.verdict.tone],
                     }}
                   >
-                    Mã
-                  </th>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "6px 8px",
-                      color: "#166534",
-                    }}
-                  >
-                    Hiện tại
-                  </th>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "6px 8px",
-                      color: "#166534",
-                    }}
-                  >
-                    Target gợi ý
-                  </th>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "6px 8px",
-                      color: "#166534",
-                    }}
-                  >
-                    Định hướng
-                  </th>
+                    {c.verdict.text}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {[
-                  {
-                    symbol: "MBS",
-                    current: "29.24%",
-                    target: "30%",
-                    action: "Giữ tỷ trọng lõi",
-                  },
-                  {
-                    symbol: "HDG",
-                    current: "11.12%",
-                    target: "20%",
-                    action: "Tăng dần theo nhịp hỗ trợ",
-                  },
-                  {
-                    symbol: "PDR",
-                    current: "13.39%",
-                    target: "15%",
-                    action: "Tăng nhẹ có kiểm soát",
-                  },
-                  {
-                    symbol: "TCH",
-                    current: "46.25%",
-                    target: "25%",
-                    action: "Giảm tỷ trọng khi hồi",
-                  },
-                ].map((item) => (
-                  <tr
-                    key={item.symbol}
-                    style={{ borderBottom: "1px solid #dcfce7" }}
+              ))}
+              {newIdeas.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={10}
+                    style={{
+                      padding: "16px",
+                      textAlign: "center",
+                      color: "#94a3b8",
+                    }}
                   >
-                    <td style={{ padding: "7px 8px", fontWeight: 800 }}>
-                      {item.symbol}
-                    </td>
-                    <td style={{ padding: "7px 8px" }}>{item.current}</td>
-                    <td style={{ padding: "7px 8px", fontWeight: 700 }}>
-                      {item.target}
-                    </td>
-                    <td style={{ padding: "7px 8px" }}>{item.action}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    Đang tải dữ liệu quét thị trường…
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

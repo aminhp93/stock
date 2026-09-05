@@ -129,13 +129,24 @@ export interface TickerSignals {
     room_left_pct?: number | null;
   };
   fundamentals: {
-    pe?: number | null; pb?: number | null; ps?: number | null;
-    dividend_yield?: number | null; eps_ttm?: number | null; eps_growth_yoy?: number | null;
-    net_margin_ttm?: number | null; gross_margin_ttm?: number | null;
-    roe?: number | null; roa?: number | null; roic?: number | null;
-    revenue_growth_yoy?: number | null; profit_growth_yoy?: number | null;
-    debt_to_equity?: number | null; current_ratio?: number | null;
-    interest_coverage?: number | null; foreign_ownership?: number | null; beta?: number | null;
+    pe?: number | null;
+    pb?: number | null;
+    ps?: number | null;
+    dividend_yield?: number | null;
+    eps_ttm?: number | null;
+    eps_growth_yoy?: number | null;
+    net_margin_ttm?: number | null;
+    gross_margin_ttm?: number | null;
+    roe?: number | null;
+    roa?: number | null;
+    roic?: number | null;
+    revenue_growth_yoy?: number | null;
+    profit_growth_yoy?: number | null;
+    debt_to_equity?: number | null;
+    current_ratio?: number | null;
+    interest_coverage?: number | null;
+    foreign_ownership?: number | null;
+    beta?: number | null;
     as_of_date?: string | null;
     risk_flags?: string[];
     not_too_risky?: boolean;
@@ -236,7 +247,9 @@ export interface StrategyRankResult {
   error?: string;
 }
 
-export async function fetchStrategyList(): Promise<{ strategies: StrategyListItem[] }> {
+export async function fetchStrategyList(): Promise<{
+  strategies: StrategyListItem[];
+}> {
   const res = await fetch(`${API_BASE}/strategy/list`);
   return res.json();
 }
@@ -257,9 +270,12 @@ export async function triggerStrategyBacktest(strategy: string): Promise<{
   run_id: number;
   message: string;
 }> {
-  const res = await fetch(`${API_BASE}/strategy/backtest?strategy=${encodeURIComponent(strategy)}`, {
-    method: "POST",
-  });
+  const res = await fetch(
+    `${API_BASE}/strategy/backtest?strategy=${encodeURIComponent(strategy)}`,
+    {
+      method: "POST",
+    },
+  );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `HTTP ${res.status}`);
@@ -267,10 +283,13 @@ export async function triggerStrategyBacktest(strategy: string): Promise<{
   return res.json();
 }
 
-export async function fetchStrategyBacktestStatus(
-  strategy: string,
-): Promise<{ status: "running" | "done" | "error" | "none"; error: string | null }> {
-  const res = await fetch(`${API_BASE}/strategy/backtest-status?strategy=${encodeURIComponent(strategy)}`);
+export async function fetchStrategyBacktestStatus(strategy: string): Promise<{
+  status: "running" | "done" | "error" | "none";
+  error: string | null;
+}> {
+  const res = await fetch(
+    `${API_BASE}/strategy/backtest-status?strategy=${encodeURIComponent(strategy)}`,
+  );
   return res.json();
 }
 
@@ -631,6 +650,207 @@ export async function triggerObsSeedSample(): Promise<{
   const res = await fetch(`${API_BASE}/observation/seed-sample`, {
     method: "POST",
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ─── Personal Finance (/finance/personal/raw) ──────────────────────────────
+export interface FinanceRow {
+  id: string;
+  date: string;
+  vang_so_luong: number;
+  vang_gia: number;
+  ck: number;
+  tiet_kiem_vcb: number;
+  tiet_kiem_tcb: number;
+  cash_vcb: number;
+  cash_tcb: number;
+  cash_tpb: number;
+  credit_tcb_spent: number;
+  credit_tcb_instal: number;
+  vay_vcb: number;
+}
+export interface CKHolding {
+  id: string;
+  date: string;
+  symbol: string;
+  tong_sl: number;
+  gia_von: number;
+  gia_tt: number;
+}
+export interface TietKiemDetail {
+  id: string;
+  bank: string;
+  amount: number;
+  rate: number;
+  start_date: string;
+  end_date: string;
+}
+export interface VayDetail {
+  id: string;
+  bank: string;
+  so_tien: number;
+  thoi_gian: string;
+  lai_suat: string;
+}
+export interface FinanceRawResponse {
+  rows: FinanceRow[];
+  ck: CKHolding[];
+  tietKiem: TietKiemDetail[];
+  vay: VayDetail[];
+}
+
+export async function fetchFinanceRaw(): Promise<FinanceRawResponse> {
+  const res = await fetch(`${API_BASE}/finance/raw`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({
+      error: "Không thể kết nối cơ sở dữ liệu PostgreSQL (finance).",
+    }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function addFinanceJournalEntry(
+  entry: Omit<FinanceRow, "id">,
+): Promise<{ status: string; id: string }> {
+  const res = await fetch(`${API_BASE}/finance/journal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateFinanceJournalEntry(
+  id: string,
+  entry: Omit<FinanceRow, "id">,
+): Promise<{ status: string; id: string }> {
+  const res = await fetch(
+    `${API_BASE}/finance/journal?id=${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteFinanceJournalEntry(
+  id: string,
+): Promise<{ status: string; id: string }> {
+  const res = await fetch(
+    `${API_BASE}/finance/journal?id=${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function addCkHolding(
+  entry: Omit<CKHolding, "id">,
+): Promise<{ status: string; id: string }> {
+  const res = await fetch(`${API_BASE}/finance/ck-holdings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateCkHolding(
+  id: string,
+  entry: Omit<CKHolding, "id">,
+): Promise<{ status: string; id: string }> {
+  const res = await fetch(
+    `${API_BASE}/finance/ck-holdings?id=${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteCkHolding(
+  id: string,
+): Promise<{ status: string; id: string }> {
+  const res = await fetch(
+    `${API_BASE}/finance/ck-holdings?id=${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function addSavingsEntry(
+  entry: Omit<TietKiemDetail, "id">,
+): Promise<{ status: string; id: string }> {
+  const res = await fetch(`${API_BASE}/finance/savings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateSavingsEntry(
+  id: string,
+  entry: Omit<TietKiemDetail, "id">,
+): Promise<{ status: string; id: string }> {
+  const res = await fetch(
+    `${API_BASE}/finance/savings?id=${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteSavingsEntry(
+  id: string,
+): Promise<{ status: string; id: string }> {
+  const res = await fetch(
+    `${API_BASE}/finance/savings?id=${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `HTTP ${res.status}`);

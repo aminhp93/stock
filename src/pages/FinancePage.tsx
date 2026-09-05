@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Calculator } from "../components/Calculator";
 import {
   Wallet,
@@ -8,6 +8,7 @@ import {
   Target,
   Plus,
   Trash2,
+  Pencil,
   TrendingUp,
   TrendingDown,
   Building2,
@@ -16,11 +17,25 @@ import {
   CheckCircle2,
   HelpCircle,
   FileText,
+  Check,
+  X,
 } from "lucide-react";
 import {
   INSURANCE_RAW_DATA,
   getInsuranceCalculations,
 } from "../data/insurance_raw";
+import {
+  fetchFinanceRaw,
+  addFinanceJournalEntry,
+  updateFinanceJournalEntry,
+  deleteFinanceJournalEntry,
+  addCkHolding,
+  updateCkHolding,
+  deleteCkHolding,
+  addSavingsEntry,
+  updateSavingsEntry,
+  deleteSavingsEntry,
+} from "../services/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface FinanceRow {
@@ -40,6 +55,7 @@ interface FinanceRow {
 }
 interface CKHolding {
   id: string;
+  date: string;
   symbol: string;
   tong_sl: number;
   gia_von: number;
@@ -95,13 +111,62 @@ const defaultRows: FinanceRow[] = [
   },
 ];
 const defaultCK: CKHolding[] = [
-  { id: "1", symbol: "C4G", tong_sl: 60, gia_von: 20869, gia_tt: 5600 },
-  { id: "2", symbol: "HDG", tong_sl: 1980, gia_von: 26727, gia_tt: 16650 },
-  { id: "3", symbol: "HHV", tong_sl: 4, gia_von: 11366, gia_tt: 10050 },
-  { id: "4", symbol: "IDI", tong_sl: 16, gia_von: 0, gia_tt: 5000 },
-  { id: "5", symbol: "MBS", tong_sl: 4841, gia_von: 26351, gia_tt: 17900 },
-  { id: "6", symbol: "PDR", tong_sl: 3200, gia_von: 16000, gia_tt: 12400 },
-  { id: "7", symbol: "TCH", tong_sl: 11236, gia_von: 18304, gia_tt: 12200 },
+  {
+    id: "1",
+    date: "2026-08-29",
+    symbol: "C4G",
+    tong_sl: 60,
+    gia_von: 20869,
+    gia_tt: 5600,
+  },
+  {
+    id: "2",
+    date: "2026-08-29",
+    symbol: "HDG",
+    tong_sl: 1980,
+    gia_von: 26727,
+    gia_tt: 16650,
+  },
+  {
+    id: "3",
+    date: "2026-08-29",
+    symbol: "HHV",
+    tong_sl: 4,
+    gia_von: 11366,
+    gia_tt: 10050,
+  },
+  {
+    id: "4",
+    date: "2026-08-29",
+    symbol: "IDI",
+    tong_sl: 16,
+    gia_von: 0,
+    gia_tt: 5000,
+  },
+  {
+    id: "5",
+    date: "2026-08-29",
+    symbol: "MBS",
+    tong_sl: 4841,
+    gia_von: 26351,
+    gia_tt: 17900,
+  },
+  {
+    id: "6",
+    date: "2026-08-29",
+    symbol: "PDR",
+    tong_sl: 3200,
+    gia_von: 16000,
+    gia_tt: 12400,
+  },
+  {
+    id: "7",
+    date: "2026-08-29",
+    symbol: "TCH",
+    tong_sl: 11236,
+    gia_von: 18304,
+    gia_tt: 12200,
+  },
 ];
 const defaultTietKiem: TietKiemDetail[] = [
   {
@@ -156,22 +221,379 @@ const fmtVND = (n: number) =>
 // ─── Raw Data Tab ─────────────────────────────────────────────────────────────
 // ─── Raw Data Tab (View Only) ──────────────────────────────────────────────────
 export const RawDataTab: React.FC = () => {
-  const rows = load<FinanceRow[]>("finance_rows", defaultRows);
-  const ckHoldings = load<CKHolding[]>("finance_ck", defaultCK);
-  const tietKiem = load<TietKiemDetail[]>("finance_tietkiem", defaultTietKiem);
-  const vay = load<VayDetail[]>("finance_vay", defaultVay);
+  const [rows, setRows] = useState<FinanceRow[]>(defaultRows);
+  const [ckHoldings, setCkHoldings] = useState<CKHolding[]>(defaultCK);
+  const [tietKiem, setTietKiem] = useState<TietKiemDetail[]>(defaultTietKiem);
+  const [vay, setVay] = useState<VayDetail[]>(defaultVay);
+  const [dbError, setDbError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [savingRow, setSavingRow] = useState(false);
+  // Global edit mode: when on, all sections below reveal their inline
+  // add/edit/delete controls; when off, everything is read-only.
+  const [editMode, setEditMode] = useState(false);
+  // "new" => an inline empty row is being added; otherwise the id of the
+  // FinanceRow currently being edited in-place, or null when no row is being edited.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // Form values are kept as raw strings while editing so that partial
+  // decimal input like "1." or "0.5" isn't clobbered by premature Number()
+  // conversion on every keystroke. Values are parsed to numbers on save.
+  type EditFormState = Record<keyof Omit<FinanceRow, "id">, string>;
+  const emptyForm: EditFormState = {
+    date: new Date().toISOString().slice(0, 10),
+    vang_so_luong: "0",
+    vang_gia: "0",
+    ck: "0",
+    tiet_kiem_vcb: "0",
+    tiet_kiem_tcb: "0",
+    cash_vcb: "0",
+    cash_tcb: "0",
+    cash_tpb: "0",
+    credit_tcb_spent: "0",
+    credit_tcb_instal: "0",
+    vay_vcb: "0",
+  };
+  const [editForm, setEditForm] = useState<EditFormState>(emptyForm);
+
+  const loadFromDb = () => {
+    setLoading(true);
+    fetchFinanceRaw()
+      .then((data) => {
+        if (data.rows?.length) setRows(data.rows);
+        if (data.ck?.length) setCkHoldings(data.ck);
+        if (data.tietKiem?.length) setTietKiem(data.tietKiem);
+        if (data.vay?.length) setVay(data.vay);
+        setDbError(null);
+      })
+      .catch((e: Error) => {
+        setDbError(
+          e.message ||
+            "Không thể tải dữ liệu từ PostgreSQL, đang hiển thị dữ liệu mặc định.",
+        );
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadFromDb();
+  }, []);
+
+  // ── CK Holdings: view-by-date filter ──
+  const ckDates = useMemo(
+    () =>
+      Array.from(new Set(ckHoldings.map((r) => r.date))).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [ckHoldings],
+  );
+  const [selectedCkDate, setSelectedCkDate] = useState<string>("");
+  useEffect(() => {
+    if (ckDates.length && !ckDates.includes(selectedCkDate)) {
+      setSelectedCkDate(ckDates[ckDates.length - 1]);
+    }
+  }, [ckDates, selectedCkDate]);
+  const filteredCk = selectedCkDate
+    ? ckHoldings.filter((r) => r.date === selectedCkDate)
+    : ckHoldings;
+
+  // ── CK Holdings: inline edit state ──
+  const [editingCkId, setEditingCkId] = useState<string | null>(null);
+  const [savingCk, setSavingCk] = useState(false);
+  type CkEditFormState = Record<keyof Omit<CKHolding, "id">, string>;
+  const emptyCkForm: CkEditFormState = {
+    date: selectedCkDate || new Date().toISOString().slice(0, 10),
+    symbol: "",
+    tong_sl: "0",
+    gia_von: "0",
+    gia_tt: "0",
+  };
+  const [ckEditForm, setCkEditForm] = useState<CkEditFormState>(emptyCkForm);
+  const handleCkFormChange = (
+    field: keyof Omit<CKHolding, "id">,
+    value: string,
+  ) => {
+    setCkEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+  const startEditCkRow = (row: CKHolding) => {
+    setEditingCkId(row.id);
+    setCkEditForm({
+      date: row.date,
+      symbol: row.symbol,
+      tong_sl: String(row.tong_sl),
+      gia_von: String(row.gia_von),
+      gia_tt: String(row.gia_tt),
+    });
+  };
+  const cancelEditCkRow = () => {
+    setEditingCkId(null);
+    setCkEditForm(emptyCkForm);
+  };
+  const saveEditCkRow = () => {
+    if (!editingCkId) return;
+    setSavingCk(true);
+    const payload: Omit<CKHolding, "id"> = {
+      date: ckEditForm.date,
+      symbol: ckEditForm.symbol.toUpperCase(),
+      tong_sl: Number(ckEditForm.tong_sl) || 0,
+      gia_von: Number(ckEditForm.gia_von) || 0,
+      gia_tt: Number(ckEditForm.gia_tt) || 0,
+    };
+    const action =
+      editingCkId === "new"
+        ? addCkHolding(payload)
+        : updateCkHolding(editingCkId, payload);
+    action
+      .then(() => {
+        setEditingCkId(null);
+        setCkEditForm(emptyCkForm);
+        loadFromDb();
+      })
+      .catch((e: Error) => {
+        alert(e.message || "Lỗi khi lưu mã cổ phiếu vào PostgreSQL.");
+      })
+      .finally(() => setSavingCk(false));
+  };
+  const deleteCkRow = (row: CKHolding) => {
+    if (!confirm(`Xóa mã ${row.symbol} ngày ${row.date}? Không thể hoàn tác.`))
+      return;
+    setSavingCk(true);
+    deleteCkHolding(row.id)
+      .then(() => {
+        if (editingCkId === row.id) {
+          setEditingCkId(null);
+          setCkEditForm(emptyCkForm);
+        }
+        loadFromDb();
+      })
+      .catch((e: Error) => {
+        alert(e.message || "Lỗi khi xóa mã cổ phiếu trong PostgreSQL.");
+      })
+      .finally(() => setSavingCk(false));
+  };
+  // Duplicates the currently viewed portfolio (filteredCk) as a brand-new
+  // dated batch so the user can then inline-edit each row (e.g. update giá TT).
+  const duplicateCkPortfolio = () => {
+    if (filteredCk.length === 0) {
+      alert("Không có danh mục nào để nhân bản.");
+      return;
+    }
+    const newDate = new Date().toISOString().slice(0, 10);
+    if (
+      !confirm(
+        `Nhân bản ${filteredCk.length} mã cổ phiếu sang ngày ${newDate}?`,
+      )
+    )
+      return;
+    setSavingCk(true);
+    Promise.all(
+      filteredCk.map((r) =>
+        addCkHolding({
+          date: newDate,
+          symbol: r.symbol,
+          tong_sl: r.tong_sl,
+          gia_von: r.gia_von,
+          gia_tt: r.gia_tt,
+        }),
+      ),
+    )
+      .then(() => {
+        setSelectedCkDate(newDate);
+        loadFromDb();
+      })
+      .catch((e: Error) => {
+        alert(e.message || "Lỗi khi nhân bản danh mục vào PostgreSQL.");
+      })
+      .finally(() => setSavingCk(false));
+  };
+
+  // ── Savings: inline edit state ──
+  const [editingSavingsId, setEditingSavingsId] = useState<string | null>(null);
+  const [savingSavings, setSavingSavings] = useState(false);
+  type SavingsEditFormState = Record<keyof Omit<TietKiemDetail, "id">, string>;
+  const emptySavingsForm: SavingsEditFormState = {
+    bank: "",
+    amount: "0",
+    rate: "0",
+    start_date: new Date().toISOString().slice(0, 10),
+    end_date: new Date().toISOString().slice(0, 10),
+  };
+  const [savingsEditForm, setSavingsEditForm] =
+    useState<SavingsEditFormState>(emptySavingsForm);
+  const handleSavingsFormChange = (
+    field: keyof Omit<TietKiemDetail, "id">,
+    value: string,
+  ) => {
+    setSavingsEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+  const startAddSavingsRow = () => {
+    setEditingSavingsId("new");
+    setSavingsEditForm(emptySavingsForm);
+  };
+  const startEditSavingsRow = (row: TietKiemDetail) => {
+    setEditingSavingsId(row.id);
+    setSavingsEditForm({
+      bank: row.bank,
+      amount: String(row.amount),
+      rate: String(row.rate),
+      start_date: row.start_date,
+      end_date: row.end_date,
+    });
+  };
+  const cancelEditSavingsRow = () => {
+    setEditingSavingsId(null);
+    setSavingsEditForm(emptySavingsForm);
+  };
+  const saveEditSavingsRow = () => {
+    if (!editingSavingsId) return;
+    setSavingSavings(true);
+    const payload: Omit<TietKiemDetail, "id"> = {
+      bank: savingsEditForm.bank,
+      amount: Number(savingsEditForm.amount) || 0,
+      rate: Number(savingsEditForm.rate) || 0,
+      start_date: savingsEditForm.start_date,
+      end_date: savingsEditForm.end_date,
+    };
+    const action =
+      editingSavingsId === "new"
+        ? addSavingsEntry(payload)
+        : updateSavingsEntry(editingSavingsId, payload);
+    action
+      .then(() => {
+        setEditingSavingsId(null);
+        setSavingsEditForm(emptySavingsForm);
+        loadFromDb();
+      })
+      .catch((e: Error) => {
+        alert(e.message || "Lỗi khi lưu sổ tiết kiệm vào PostgreSQL.");
+      })
+      .finally(() => setSavingSavings(false));
+  };
+  const deleteSavingsRow = (row: TietKiemDetail) => {
+    if (!confirm(`Xóa sổ tiết kiệm ${row.bank}? Không thể hoàn tác.`)) return;
+    setSavingSavings(true);
+    deleteSavingsEntry(row.id)
+      .then(() => {
+        if (editingSavingsId === row.id) {
+          setEditingSavingsId(null);
+          setSavingsEditForm(emptySavingsForm);
+        }
+        loadFromDb();
+      })
+      .catch((e: Error) => {
+        alert(e.message || "Lỗi khi xóa sổ tiết kiệm trong PostgreSQL.");
+      })
+      .finally(() => setSavingSavings(false));
+  };
+
+  const handleEditFormChange = (
+    field: keyof Omit<FinanceRow, "id">,
+    value: string,
+  ) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const startAddRow = () => {
+    setEditingId("new");
+    setEditForm(emptyForm);
+  };
+
+  const startEditRow = (row: FinanceRow) => {
+    setEditingId(row.id);
+    setEditForm({
+      date: row.date,
+      vang_so_luong: String(row.vang_so_luong),
+      vang_gia: String(row.vang_gia),
+      ck: String(row.ck),
+      tiet_kiem_vcb: String(row.tiet_kiem_vcb),
+      tiet_kiem_tcb: String(row.tiet_kiem_tcb),
+      cash_vcb: String(row.cash_vcb),
+      cash_tcb: String(row.cash_tcb),
+      cash_tpb: String(row.cash_tpb),
+      credit_tcb_spent: String(row.credit_tcb_spent),
+      credit_tcb_instal: String(row.credit_tcb_instal),
+      vay_vcb: String(row.vay_vcb),
+    });
+  };
+
+  const cancelEditRow = () => {
+    setEditingId(null);
+    setEditForm(emptyForm);
+  };
+
+  const saveEditRow = () => {
+    if (!editingId) return;
+    setSavingRow(true);
+    const payload: Omit<FinanceRow, "id"> = {
+      date: editForm.date,
+      vang_so_luong: Number(editForm.vang_so_luong) || 0,
+      vang_gia: Number(editForm.vang_gia) || 0,
+      ck: Number(editForm.ck) || 0,
+      tiet_kiem_vcb: Number(editForm.tiet_kiem_vcb) || 0,
+      tiet_kiem_tcb: Number(editForm.tiet_kiem_tcb) || 0,
+      cash_vcb: Number(editForm.cash_vcb) || 0,
+      cash_tcb: Number(editForm.cash_tcb) || 0,
+      cash_tpb: Number(editForm.cash_tpb) || 0,
+      credit_tcb_spent: Number(editForm.credit_tcb_spent) || 0,
+      credit_tcb_instal: Number(editForm.credit_tcb_instal) || 0,
+      vay_vcb: Number(editForm.vay_vcb) || 0,
+    };
+    const action =
+      editingId === "new"
+        ? addFinanceJournalEntry(payload)
+        : updateFinanceJournalEntry(editingId, payload);
+    action
+      .then(() => {
+        setEditingId(null);
+        setEditForm(emptyForm);
+        loadFromDb();
+      })
+      .catch((e: Error) => {
+        alert(e.message || "Lỗi khi lưu bản ghi vào PostgreSQL.");
+      })
+      .finally(() => setSavingRow(false));
+  };
+
+  const deleteRow = (row: FinanceRow) => {
+    if (
+      !confirm(
+        `Xóa bản ghi ngày ${row.date}? Hành động này không thể hoàn tác.`,
+      )
+    )
+      return;
+    setSavingRow(true);
+    deleteFinanceJournalEntry(row.id)
+      .then(() => {
+        if (editingId === row.id) {
+          setEditingId(null);
+          setEditForm(emptyForm);
+        }
+        loadFromDb();
+      })
+      .catch((e: Error) => {
+        alert(e.message || "Lỗi khi xóa bản ghi trong PostgreSQL.");
+      })
+      .finally(() => setSavingRow(false));
+  };
 
   // Latest snapshot metrics
   const latest = rows.length > 0 ? rows[rows.length - 1] : null;
   const vangTotal = latest ? latest.vang_so_luong * latest.vang_gia : 0;
   const ckTotal = latest ? latest.ck : 0;
   const tkTotal = latest ? latest.tiet_kiem_vcb + latest.tiet_kiem_tcb : 0;
-  const cashTotal = latest ? latest.cash_vcb + latest.cash_tcb + latest.cash_tpb : 0;
+  const cashTotal = latest
+    ? latest.cash_vcb + latest.cash_tcb + latest.cash_tpb
+    : 0;
   const grossAssets = vangTotal + ckTotal + tkTotal + cashTotal;
-  const debtTotal = latest ? latest.credit_tcb_spent + latest.credit_tcb_instal + latest.vay_vcb : 0;
+  const debtTotal = latest
+    ? latest.credit_tcb_spent + latest.credit_tcb_instal + latest.vay_vcb
+    : 0;
   const netWorth = grossAssets - debtTotal;
 
-  const hcell = (label: string, span = 1, bg = "#f1f5f9", align: "left" | "center" | "right" = "center") => (
+  const hcell = (
+    label: string,
+    span = 1,
+    bg = "#f1f5f9",
+    align: "left" | "center" | "right" = "center",
+  ) => (
     <th
       colSpan={span}
       style={{
@@ -189,11 +611,31 @@ export const RawDataTab: React.FC = () => {
     </th>
   );
 
-  const sectionHeader = (title: string, subtitle?: string, icon?: React.ReactNode) => (
+  const sectionHeader = (
+    title: string,
+    subtitle?: string,
+    icon?: React.ReactNode,
+    badgeLabel: string = "Chế độ xem (View Only)",
+    action?: React.ReactNode,
+  ) => (
     <div style={{ marginBottom: "12px", marginTop: "24px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          flexWrap: "wrap",
+        }}
+      >
         {icon}
-        <h3 style={{ fontSize: "14px", fontWeight: 800, color: "#1e293b", margin: 0 }}>
+        <h3
+          style={{
+            fontSize: "14px",
+            fontWeight: 800,
+            color: "#1e293b",
+            margin: 0,
+          }}
+        >
           {title}
         </h3>
         <span
@@ -207,16 +649,498 @@ export const RawDataTab: React.FC = () => {
             border: "1px solid #e2e8f0",
           }}
         >
-          Chế độ xem (View Only)
+          {badgeLabel}
         </span>
+        {action && <div style={{ marginLeft: "auto" }}>{action}</div>}
       </div>
-      {subtitle && <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "2px" }}>{subtitle}</div>}
+      {subtitle && (
+        <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "2px" }}>
+          {subtitle}
+        </div>
+      )}
     </div>
+  );
+
+  const editModeToggle = (
+    <button
+      onClick={() => setEditMode((prev) => !prev)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        fontSize: "12px",
+        fontWeight: 800,
+        color: editMode ? "#fff" : "#334155",
+        background: editMode ? "#dc2626" : "#f1f5f9",
+        border: editMode ? "1px solid #dc2626" : "1px solid #cbd5e1",
+        borderRadius: "8px",
+        padding: "8px 16px",
+        cursor: "pointer",
+      }}
+    >
+      {editMode ? <X size={14} /> : <Pencil size={14} />}
+      {editMode ? "Thoát Chế Độ Chỉnh Sửa" : "Bật Chế Độ Chỉnh Sửa"}
+    </button>
+  );
+
+  const addRowButton = (
+    <button
+      onClick={startAddRow}
+      disabled={editingId !== null}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        fontSize: "11.5px",
+        fontWeight: 700,
+        color: "#fff",
+        background: editingId !== null ? "#93c5fd" : "#2563eb",
+        border: "none",
+        borderRadius: "6px",
+        padding: "6px 12px",
+        cursor: editingId !== null ? "not-allowed" : "pointer",
+      }}
+    >
+      <Plus size={13} /> Thêm Dòng Mới
+    </button>
+  );
+
+  // Fields rendered BEFORE the read-only computed "Tổng" (Vàng total) column.
+  const journalFieldMetaBeforeTotal: {
+    key: keyof EditFormState;
+    type: string;
+    bg: string;
+  }[] = [
+    { key: "date", type: "date", bg: "#f1f5f9" },
+    { key: "vang_so_luong", type: "number", bg: "#fffde7" },
+    { key: "vang_gia", type: "number", bg: "#fffde7" },
+  ];
+  // Fields rendered AFTER the computed "Tổng" column, in header order.
+  const journalFieldMetaAfterTotal: {
+    key: keyof EditFormState;
+    type: string;
+    bg: string;
+  }[] = [
+    { key: "ck", type: "number", bg: "#f0fdf4" },
+    { key: "cash_vcb", type: "number", bg: "#fffde7" },
+    { key: "cash_tcb", type: "number", bg: "#fffde7" },
+    { key: "cash_tpb", type: "number", bg: "#fffde7" },
+    { key: "credit_tcb_spent", type: "number", bg: "#fff1f2" },
+    { key: "credit_tcb_instal", type: "number", bg: "#fff1f2" },
+  ];
+
+  const journalEditableCell = (
+    field: keyof EditFormState,
+    type: string,
+    bg: string,
+  ) => (
+    <td key={field} style={{ background: bg, padding: "4px 6px" }}>
+      <input
+        type={type}
+        value={editForm[field]}
+        step="any"
+        onChange={(e) => handleEditFormChange(field, e.target.value)}
+        style={{
+          width: type === "date" ? "108px" : "64px",
+          border: "1px solid #93c5fd",
+          borderRadius: "4px",
+          padding: "4px 6px",
+          fontSize: "11.5px",
+          fontFamily: "monospace",
+          textAlign: type === "date" ? "left" : "right",
+        }}
+      />
+    </td>
+  );
+
+  // Read-only computed "Tổng" (Vàng total) cell shown in edit mode so the
+  // column count/order stays aligned with the header row.
+  const journalTotalCell = (key: string) => {
+    const total =
+      (Number(editForm.vang_so_luong) || 0) * (Number(editForm.vang_gia) || 0);
+    return (
+      <td
+        key={key}
+        style={{
+          background: "#fffde7",
+          padding: "8px 10px",
+          textAlign: "right",
+          fontFamily: "monospace",
+          fontWeight: 800,
+          color: "#b45309",
+        }}
+      >
+        {fmt(total)}
+      </td>
+    );
+  };
+
+  const journalEditableRowCells = () => [
+    ...journalFieldMetaBeforeTotal.map((f) =>
+      journalEditableCell(f.key, f.type, f.bg),
+    ),
+    journalTotalCell("computed-tong"),
+    ...journalFieldMetaAfterTotal.map((f) =>
+      journalEditableCell(f.key, f.type, f.bg),
+    ),
+  ];
+
+  const journalActionCell = (row: FinanceRow | null) => {
+    const isEditingThisRow = row ? editingId === row.id : editingId === "new";
+    if (isEditingThisRow) {
+      return (
+        <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button
+              onClick={saveEditRow}
+              disabled={savingRow}
+              title="Lưu"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "26px",
+                height: "26px",
+                border: "none",
+                borderRadius: "5px",
+                background: "#059669",
+                color: "#fff",
+                cursor: savingRow ? "wait" : "pointer",
+              }}
+            >
+              <Check size={13} />
+            </button>
+            <button
+              onClick={cancelEditRow}
+              disabled={savingRow}
+              title="Hủy"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "26px",
+                height: "26px",
+                border: "none",
+                borderRadius: "5px",
+                background: "#f1f5f9",
+                color: "#64748b",
+                cursor: savingRow ? "wait" : "pointer",
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        </td>
+      );
+    }
+    if (!row || !editMode) return null;
+    return (
+      <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button
+            onClick={() => startEditRow(row)}
+            disabled={editingId !== null}
+            title="Sửa"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "26px",
+              height: "26px",
+              border: "none",
+              borderRadius: "5px",
+              background: editingId !== null ? "#e2e8f0" : "#eff6ff",
+              color: editingId !== null ? "#94a3b8" : "#2563eb",
+              cursor: editingId !== null ? "not-allowed" : "pointer",
+            }}
+          >
+            <Pencil size={12} />
+          </button>
+          <button
+            onClick={() => deleteRow(row)}
+            disabled={editingId !== null || savingRow}
+            title="Xóa"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "26px",
+              height: "26px",
+              border: "none",
+              borderRadius: "5px",
+              background: editingId !== null ? "#e2e8f0" : "#fef2f2",
+              color: editingId !== null ? "#94a3b8" : "#dc2626",
+              cursor: editingId !== null ? "not-allowed" : "pointer",
+            }}
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      </td>
+    );
+  };
+
+  // ── Generic small action-cell button style helper ──
+  const actionBtnStyle = (bg: string, color: string, disabled: boolean) => ({
+    display: "flex" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    width: "26px",
+    height: "26px",
+    border: "none",
+    borderRadius: "5px",
+    background: disabled ? "#e2e8f0" : bg,
+    color: disabled ? "#94a3b8" : color,
+    cursor: disabled ? "not-allowed" : "pointer",
+  });
+
+  const ckEditableCell = (
+    field: keyof CkEditFormState,
+    type: string,
+    bg: string,
+  ) => (
+    <td key={field} style={{ background: bg, padding: "4px 6px" }}>
+      <input
+        type={type}
+        value={ckEditForm[field]}
+        step="any"
+        onChange={(e) => handleCkFormChange(field, e.target.value)}
+        style={{
+          width: type === "date" ? "108px" : type === "text" ? "70px" : "90px",
+          border: "1px solid #93c5fd",
+          borderRadius: "4px",
+          padding: "4px 6px",
+          fontSize: "11.5px",
+          fontFamily: "monospace",
+          textAlign: type === "date" || type === "text" ? "left" : "right",
+          textTransform: field === "symbol" ? "uppercase" : "none",
+        }}
+      />
+    </td>
+  );
+
+  const ckActionCell = (row: CKHolding | null) => {
+    const isEditingThisRow = row
+      ? editingCkId === row.id
+      : editingCkId === "new";
+    if (isEditingThisRow) {
+      return (
+        <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button
+              onClick={saveEditCkRow}
+              disabled={savingCk}
+              title="Lưu"
+              style={{
+                ...actionBtnStyle("#059669", "#fff", false),
+                cursor: savingCk ? "wait" : "pointer",
+              }}
+            >
+              <Check size={13} />
+            </button>
+            <button
+              onClick={cancelEditCkRow}
+              disabled={savingCk}
+              title="Hủy"
+              style={{
+                ...actionBtnStyle("#f1f5f9", "#64748b", false),
+                cursor: savingCk ? "wait" : "pointer",
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        </td>
+      );
+    }
+    if (!row || !editMode) return null;
+    return (
+      <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button
+            onClick={() => startEditCkRow(row)}
+            disabled={editingCkId !== null}
+            title="Sửa"
+            style={actionBtnStyle("#eff6ff", "#2563eb", editingCkId !== null)}
+          >
+            <Pencil size={12} />
+          </button>
+          <button
+            onClick={() => deleteCkRow(row)}
+            disabled={editingCkId !== null || savingCk}
+            title="Xóa"
+            style={actionBtnStyle(
+              "#fef2f2",
+              "#dc2626",
+              editingCkId !== null || savingCk,
+            )}
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      </td>
+    );
+  };
+
+  const savingsEditableCell = (
+    field: keyof SavingsEditFormState,
+    type: string,
+    bg: string,
+  ) => (
+    <td key={field} style={{ background: bg, padding: "4px 6px" }}>
+      <input
+        type={type}
+        value={savingsEditForm[field]}
+        step="any"
+        onChange={(e) => handleSavingsFormChange(field, e.target.value)}
+        style={{
+          width: type === "date" ? "108px" : type === "text" ? "80px" : "90px",
+          border: "1px solid #93c5fd",
+          borderRadius: "4px",
+          padding: "4px 6px",
+          fontSize: "11.5px",
+          fontFamily: "monospace",
+          textAlign: type === "date" || type === "text" ? "left" : "right",
+        }}
+      />
+    </td>
+  );
+
+  const savingsActionCell = (row: TietKiemDetail | null) => {
+    const isEditingThisRow = row
+      ? editingSavingsId === row.id
+      : editingSavingsId === "new";
+    if (isEditingThisRow) {
+      return (
+        <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button
+              onClick={saveEditSavingsRow}
+              disabled={savingSavings}
+              title="Lưu"
+              style={{
+                ...actionBtnStyle("#059669", "#fff", false),
+                cursor: savingSavings ? "wait" : "pointer",
+              }}
+            >
+              <Check size={13} />
+            </button>
+            <button
+              onClick={cancelEditSavingsRow}
+              disabled={savingSavings}
+              title="Hủy"
+              style={{
+                ...actionBtnStyle("#f1f5f9", "#64748b", false),
+                cursor: savingSavings ? "wait" : "pointer",
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        </td>
+      );
+    }
+    if (!row || !editMode) return null;
+    return (
+      <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button
+            onClick={() => startEditSavingsRow(row)}
+            disabled={editingSavingsId !== null}
+            title="Sửa"
+            style={actionBtnStyle(
+              "#eff6ff",
+              "#2563eb",
+              editingSavingsId !== null,
+            )}
+          >
+            <Pencil size={12} />
+          </button>
+          <button
+            onClick={() => deleteSavingsRow(row)}
+            disabled={editingSavingsId !== null || savingSavings}
+            title="Xóa"
+            style={actionBtnStyle(
+              "#fef2f2",
+              "#dc2626",
+              editingSavingsId !== null || savingSavings,
+            )}
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      </td>
+    );
+  };
+
+  const ckAddButton = (
+    <button
+      onClick={duplicateCkPortfolio}
+      disabled={editingCkId !== null || savingCk}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        fontSize: "11.5px",
+        fontWeight: 700,
+        color: "#fff",
+        background: editingCkId !== null || savingCk ? "#93c5fd" : "#2563eb",
+        border: "none",
+        borderRadius: "6px",
+        padding: "6px 12px",
+        cursor: editingCkId !== null || savingCk ? "not-allowed" : "pointer",
+      }}
+    >
+      <Plus size={13} /> Nhân Bản Danh Mục
+    </button>
+  );
+
+  const savingsAddButton = (
+    <button
+      onClick={startAddSavingsRow}
+      disabled={editingSavingsId !== null}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        fontSize: "11.5px",
+        fontWeight: 700,
+        color: "#fff",
+        background: editingSavingsId !== null ? "#93c5fd" : "#2563eb",
+        border: "none",
+        borderRadius: "6px",
+        padding: "6px 12px",
+        cursor: editingSavingsId !== null ? "not-allowed" : "pointer",
+      }}
+    >
+      <Plus size={13} /> Thêm Dòng Mới
+    </button>
   );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {editModeToggle}
+      {dbError && (
+        <div
+          style={{
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            color: "#92400e",
+            fontSize: "11.5px",
+            borderRadius: "8px",
+            padding: "10px 14px",
+          }}
+        >
+          ⚠️ {dbError}
+        </div>
+      )}
+      {loading && (
+        <div style={{ fontSize: "11.5px", color: "#64748b" }}>
+          Đang tải dữ liệu từ PostgreSQL...
+        </div>
+      )}
       {/* ── Summary Snapshot Cards ── */}
+
       {latest && (
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           <div
@@ -232,7 +1156,9 @@ export const RawDataTab: React.FC = () => {
               boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
-            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+            <span
+              style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}
+            >
               🏦 Tài Sản Ròng (Net Worth)
             </span>
             <div
@@ -243,7 +1169,8 @@ export const RawDataTab: React.FC = () => {
                 fontFamily: "monospace",
               }}
             >
-              {netWorth >= 0 ? "+" : ""}{fmt(netWorth)} tr
+              {netWorth >= 0 ? "+" : ""}
+              {fmt(netWorth)} tr
             </div>
             <span style={{ fontSize: "11px", color: "#94a3b8" }}>
               Tổng TS: {fmt(grossAssets)} tr · Tổng Nợ: {fmt(debtTotal)} tr
@@ -263,10 +1190,19 @@ export const RawDataTab: React.FC = () => {
               boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
-            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+            <span
+              style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}
+            >
               🟡 Vàng ({latest.vang_so_luong} cây)
             </span>
-            <div style={{ fontSize: "20px", fontWeight: 900, color: "#b45309", fontFamily: "monospace" }}>
+            <div
+              style={{
+                fontSize: "20px",
+                fontWeight: 900,
+                color: "#b45309",
+                fontFamily: "monospace",
+              }}
+            >
               {fmt(vangTotal)} tr
             </div>
             <span style={{ fontSize: "11px", color: "#94a3b8" }}>
@@ -287,10 +1223,19 @@ export const RawDataTab: React.FC = () => {
               boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
-            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
-              📈 Chứng Khoán ({ckHoldings.length} mã)
+            <span
+              style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}
+            >
+              📈 Chứng Khoán ({filteredCk.length} mã)
             </span>
-            <div style={{ fontSize: "20px", fontWeight: 900, color: "#2563eb", fontFamily: "monospace" }}>
+            <div
+              style={{
+                fontSize: "20px",
+                fontWeight: 900,
+                color: "#2563eb",
+                fontFamily: "monospace",
+              }}
+            >
               {fmt(ckTotal)} tr
             </div>
             <span style={{ fontSize: "11px", color: "#94a3b8" }}>
@@ -311,10 +1256,19 @@ export const RawDataTab: React.FC = () => {
               boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
-            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+            <span
+              style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}
+            >
               💵 Tiền Mặt & Tiết Kiệm
             </span>
-            <div style={{ fontSize: "20px", fontWeight: 900, color: "#0891b2", fontFamily: "monospace" }}>
+            <div
+              style={{
+                fontSize: "20px",
+                fontWeight: 900,
+                color: "#0891b2",
+                fontFamily: "monospace",
+              }}
+            >
               {fmt(cashTotal + tkTotal)} tr
             </div>
             <span style={{ fontSize: "11px", color: "#94a3b8" }}>
@@ -335,22 +1289,45 @@ export const RawDataTab: React.FC = () => {
               boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
-            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+            <span
+              style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}
+            >
               💳 Tổng Dư Nợ & Vay
             </span>
-            <div style={{ fontSize: "20px", fontWeight: 900, color: "#dc2626", fontFamily: "monospace" }}>
+            <div
+              style={{
+                fontSize: "20px",
+                fontWeight: 900,
+                color: "#dc2626",
+                fontFamily: "monospace",
+              }}
+            >
               {fmt(debtTotal)} tr
             </div>
             <span style={{ fontSize: "11px", color: "#94a3b8" }}>
-              Vay VCB: {fmt(latest.vay_vcb)} tr · Thẻ: {fmt(latest.credit_tcb_spent + latest.credit_tcb_instal)} tr
+              Vay VCB: {fmt(latest.vay_vcb)} tr · Thẻ:{" "}
+              {fmt(latest.credit_tcb_spent + latest.credit_tcb_instal)} tr
             </span>
           </div>
         </div>
       )}
 
       {/* ── Section 1: Main Log (View Only) ── */}
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
-        {sectionHeader("📋 Nhật Ký Tài Chính Theo Ngày", "Lịch sử ghi nhận biến động giá trị tài sản và dư nợ theo từng mốc thời gian")}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "12px",
+          padding: "18px 20px",
+        }}
+      >
+        {sectionHeader(
+          "📋 Nhật Ký Tài Chính Theo Ngày",
+          "Lịch sử ghi nhận biến động giá trị tài sản và dư nợ theo từng mốc thời gian. Bấm biểu tượng bút chì để sửa trực tiếp trên bảng.",
+          undefined,
+          editMode ? "Chế độ chỉnh sửa" : "Đồng bộ PostgreSQL",
+          editMode ? addRowButton : undefined,
+        )}
         <div style={{ overflowX: "auto" }}>
           <table
             style={{
@@ -365,13 +1342,9 @@ export const RawDataTab: React.FC = () => {
                 {hcell("Ngày", 1, "#f1f5f9")}
                 {hcell("Vàng (triệu)", 3, "#fef9c3")}
                 {hcell("CK", 1, "#dcfce7")}
-                {hcell("Tiết Kiệm", 2, "#dbeafe")}
                 {hcell("Tiền Mặt (Cash)", 3, "#fef9c3")}
                 {hcell("Thẻ Tín Dụng", 2, "#fee2e2")}
-                {hcell("Vay", 1, "#fecaca")}
-                {hcell("Tổng TS", 1, "#dcfce7")}
-                {hcell("Tổng Nợ", 1, "#fee2e2")}
-                {hcell("Tài Sản Ròng", 1, "#eff6ff")}
+                {hcell("Thao Tác", 1, "#f1f5f9")}
               </tr>
               <tr>
                 {hcell("", 1, "#f1f5f9")}
@@ -379,76 +1352,154 @@ export const RawDataTab: React.FC = () => {
                 {hcell("Giá (tr)", 1, "#fef9c3")}
                 {hcell("Tổng (tr)", 1, "#fef9c3")}
                 {hcell("CK (tr)", 1, "#dcfce7")}
-                {hcell("VCB (tr)", 1, "#dbeafe")}
-                {hcell("TCB (tr)", 1, "#dbeafe")}
                 {hcell("VCB (tr)", 1, "#fef9c3")}
                 {hcell("TCB (tr)", 1, "#fef9c3")}
                 {hcell("TPB (tr)", 1, "#fef9c3")}
                 {hcell("Đã Tiêu", 1, "#fee2e2")}
                 {hcell("Trả Góp", 1, "#fee2e2")}
-                {hcell("VCB (tr)", 1, "#fecaca")}
-                {hcell("(tr)", 1, "#dcfce7")}
-                {hcell("(tr)", 1, "#fee2e2")}
-                {hcell("Net Worth", 1, "#eff6ff")}
+                {hcell("", 1, "#f1f5f9")}
               </tr>
             </thead>
             <tbody>
+              {editingId === "new" && (
+                <tr
+                  style={{
+                    borderBottom: "1px solid #e2e8f0",
+                    background: "#eff6ff",
+                  }}
+                >
+                  {journalEditableRowCells()}
+                  {journalActionCell(null)}
+                </tr>
+              )}
               {rows.map((r, i) => {
+                if (editingId === r.id) {
+                  return (
+                    <tr
+                      key={r.id}
+                      style={{
+                        borderBottom: "1px solid #e2e8f0",
+                        background: "#eff6ff",
+                      }}
+                    >
+                      {journalEditableRowCells()}
+                      {journalActionCell(r)}
+                    </tr>
+                  );
+                }
                 const bg = i % 2 === 0 ? "#fff" : "#f8fafc";
                 const rowVang = r.vang_so_luong * r.vang_gia;
-                const rowTS = rowVang + r.ck + r.tiet_kiem_vcb + r.tiet_kiem_tcb + r.cash_vcb + r.cash_tcb + r.cash_tpb;
-                const rowNo = r.credit_tcb_spent + r.credit_tcb_instal + r.vay_vcb;
-                const rowNet = rowTS - rowNo;
                 return (
                   <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                    <td style={{ background: bg, padding: "8px 10px", fontFamily: "monospace", fontWeight: 700, color: "#1e293b", whiteSpace: "nowrap" }}>
+                    <td
+                      style={{
+                        background: bg,
+                        padding: "8px 10px",
+                        fontFamily: "monospace",
+                        fontWeight: 700,
+                        color: "#1e293b",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {r.date}
                     </td>
-                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                    <td
+                      style={{
+                        background: "#fffde7",
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                      }}
+                    >
                       {r.vang_so_luong}
                     </td>
-                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                    <td
+                      style={{
+                        background: "#fffde7",
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                      }}
+                    >
                       {fmt(r.vang_gia)}
                     </td>
-                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#b45309" }}>
+                    <td
+                      style={{
+                        background: "#fffde7",
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 800,
+                        color: "#b45309",
+                      }}
+                    >
                       {fmt(rowVang)}
                     </td>
-                    <td style={{ background: "#f0fdf4", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#15803d" }}>
+                    <td
+                      style={{
+                        background: "#f0fdf4",
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 800,
+                        color: "#15803d",
+                      }}
+                    >
                       {fmt(r.ck)}
                     </td>
-                    <td style={{ background: "#eff6ff", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
-                      {fmt(r.tiet_kiem_vcb)}
-                    </td>
-                    <td style={{ background: "#eff6ff", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
-                      {fmt(r.tiet_kiem_tcb)}
-                    </td>
-                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                    <td
+                      style={{
+                        background: "#fffde7",
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                      }}
+                    >
                       {fmt(r.cash_vcb)}
                     </td>
-                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                    <td
+                      style={{
+                        background: "#fffde7",
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                      }}
+                    >
                       {fmt(r.cash_tcb)}
                     </td>
-                    <td style={{ background: "#fffde7", padding: "8px 10px", textAlign: "right", fontFamily: "monospace" }}>
+                    <td
+                      style={{
+                        background: "#fffde7",
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                      }}
+                    >
                       {fmt(r.cash_tpb)}
                     </td>
-                    <td style={{ background: "#fff1f2", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", color: "#b91c1c" }}>
+                    <td
+                      style={{
+                        background: "#fff1f2",
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        color: "#b91c1c",
+                      }}
+                    >
                       {fmt(r.credit_tcb_spent)}
                     </td>
-                    <td style={{ background: "#fff1f2", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", color: "#b91c1c" }}>
+                    <td
+                      style={{
+                        background: "#fff1f2",
+                        padding: "8px 10px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        color: "#b91c1c",
+                      }}
+                    >
                       {fmt(r.credit_tcb_instal)}
                     </td>
-                    <td style={{ background: "#fee2e2", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#b91c1c" }}>
-                      {fmt(r.vay_vcb)}
-                    </td>
-                    <td style={{ background: "#f0fdf4", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#15803d" }}>
-                      {fmt(rowTS)}
-                    </td>
-                    <td style={{ background: "#fee2e2", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#b91c1c" }}>
-                      {fmt(rowNo)}
-                    </td>
-                    <td style={{ background: "#eff6ff", padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: rowNet >= 0 ? "#059669" : "#dc2626" }}>
-                      {rowNet >= 0 ? "+" : ""}{fmt(rowNet)}
-                    </td>
+                    {journalActionCell(r)}
                   </tr>
                 );
               })}
@@ -458,8 +1509,45 @@ export const RawDataTab: React.FC = () => {
       </div>
 
       {/* ── Section 2: CK Holdings (View Only) ── */}
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
-        {sectionHeader("📊 Danh Mục Cổ Phiếu Nắm Giữ", "Bảng thống kê chi tiết khối lượng, giá vốn và tỷ suất sinh lời từng mã cổ phiếu")}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "12px",
+          padding: "18px 20px",
+        }}
+      >
+        {sectionHeader(
+          "📊 Danh Mục Cổ Phiếu Nắm Giữ",
+          "Bảng thống kê chi tiết khối lượng, giá vốn và tỷ suất sinh lời từng mã cổ phiếu",
+          undefined,
+          editMode ? "Chế độ chỉnh sửa" : "Xem theo ngày",
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {ckDates.length > 0 && (
+              <select
+                value={selectedCkDate}
+                onChange={(e) => setSelectedCkDate(e.target.value)}
+                style={{
+                  fontSize: "11.5px",
+                  fontWeight: 700,
+                  color: "#1e293b",
+                  background: "#fff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "6px",
+                  padding: "5px 8px",
+                  fontFamily: "monospace",
+                }}
+              >
+                {ckDates.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            )}
+            {editMode && ckAddButton}
+          </div>,
+        )}
         <div style={{ overflowX: "auto" }}>
           <table
             style={{
@@ -471,6 +1559,7 @@ export const RawDataTab: React.FC = () => {
           >
             <thead>
               <tr style={{ background: "#f8fafc" }}>
+                {hcell("Ngày", 1, "#f1f5f9", "center")}
                 {hcell("Mã CK", 1, "#dcfce7", "left")}
                 {hcell("Tổng Khối Lượng", 1, "#dcfce7", "right")}
                 {hcell("Giá Vốn (đ)", 1, "#fef9c3", "right")}
@@ -479,10 +1568,37 @@ export const RawDataTab: React.FC = () => {
                 {hcell("Giá Trị TT (tr)", 1, "#dbeafe", "right")}
                 {hcell("Lãi/Lỗ (tr)", 1, "#f1f5f9", "right")}
                 {hcell("% Lãi/Lỗ", 1, "#f1f5f9", "right")}
+                {editMode && hcell("Thao Tác", 1, "#f1f5f9")}
               </tr>
             </thead>
             <tbody>
-              {ckHoldings.map((r, i) => {
+              {filteredCk.map((r, i) => {
+                if (editingCkId === r.id) {
+                  return (
+                    <tr
+                      key={r.id}
+                      style={{
+                        borderBottom: "1px solid #e2e8f0",
+                        background: "#eff6ff",
+                      }}
+                    >
+                      {ckEditableCell("date", "date", "#f1f5f9")}
+                      {ckEditableCell("symbol", "text", "#dcfce7")}
+                      {ckEditableCell("tong_sl", "number", "#dcfce7")}
+                      {ckEditableCell("gia_von", "number", "#fef9c3")}
+                      {ckEditableCell("gia_tt", "number", "#dbeafe")}
+                      <td
+                        style={{ background: "#fef9c3", padding: "8px 12px" }}
+                      />
+                      <td
+                        style={{ background: "#dbeafe", padding: "8px 12px" }}
+                      />
+                      <td style={{ padding: "8px 12px" }} />
+                      <td style={{ padding: "8px 12px" }} />
+                      {ckActionCell(r)}
+                    </tr>
+                  );
+                }
                 const gtvon = (r.tong_sl * r.gia_von) / 1000000;
                 const gttt = (r.tong_sl * r.gia_tt) / 1000000;
                 const laiLo = gttt - gtvon;
@@ -491,6 +1607,18 @@ export const RawDataTab: React.FC = () => {
                 const isProfitable = laiLo >= 0;
                 return (
                   <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <td
+                      style={{
+                        background: bg,
+                        padding: "8px 12px",
+                        textAlign: "center",
+                        fontFamily: "monospace",
+                        color: "#64748b",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {r.date}
+                    </td>
                     <td style={{ background: "#f0fdf4", padding: "8px 12px" }}>
                       <span
                         style={{
@@ -506,25 +1634,82 @@ export const RawDataTab: React.FC = () => {
                         {r.symbol}
                       </span>
                     </td>
-                    <td style={{ background: bg, padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700 }}>
+                    <td
+                      style={{
+                        background: bg,
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 700,
+                      }}
+                    >
                       {r.tong_sl.toLocaleString()}
                     </td>
-                    <td style={{ background: "#fffde7", padding: "8px 12px", textAlign: "right", fontFamily: "monospace" }}>
+                    <td
+                      style={{
+                        background: "#fffde7",
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                      }}
+                    >
                       {r.gia_von.toLocaleString()} đ
                     </td>
-                    <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: "#1e40af" }}>
+                    <td
+                      style={{
+                        background: "#eff6ff",
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 700,
+                        color: "#1e40af",
+                      }}
+                    >
                       {r.gia_tt.toLocaleString()} đ
                     </td>
-                    <td style={{ background: "#fffde7", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", color: "#92400e" }}>
+                    <td
+                      style={{
+                        background: "#fffde7",
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        color: "#92400e",
+                      }}
+                    >
                       {fmt(gtvon, 3)} tr
                     </td>
-                    <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: "#1e40af" }}>
+                    <td
+                      style={{
+                        background: "#eff6ff",
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 700,
+                        color: "#1e40af",
+                      }}
+                    >
                       {fmt(gttt, 3)} tr
                     </td>
-                    <td style={{ background: bg, padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: isProfitable ? "#15803d" : "#dc2626" }}>
-                      {isProfitable ? "+" : ""}{fmt(laiLo, 3)} tr
+                    <td
+                      style={{
+                        background: bg,
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 800,
+                        color: isProfitable ? "#15803d" : "#dc2626",
+                      }}
+                    >
+                      {isProfitable ? "+" : ""}
+                      {fmt(laiLo, 3)} tr
                     </td>
-                    <td style={{ background: bg, padding: "8px 12px", textAlign: "right" }}>
+                    <td
+                      style={{
+                        background: bg,
+                        padding: "8px 12px",
+                        textAlign: "right",
+                      }}
+                    >
                       <span
                         style={{
                           fontFamily: "monospace",
@@ -536,38 +1721,94 @@ export const RawDataTab: React.FC = () => {
                           color: isProfitable ? "#15803d" : "#dc2626",
                         }}
                       >
-                        {isProfitable ? "+" : ""}{pct.toFixed(2)}%
+                        {isProfitable ? "+" : ""}
+                        {pct.toFixed(2)}%
                       </span>
                     </td>
+                    {ckActionCell(r)}
                   </tr>
                 );
               })}
             </tbody>
             <tfoot>
-              <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
-                <td colSpan={4} style={{ padding: "10px 12px", fontSize: "12px", fontWeight: 800, color: "#334155" }}>
+              <tr
+                style={{
+                  borderTop: "2px solid #cbd5e1",
+                  background: "#f8fafc",
+                }}
+              >
+                <td
+                  colSpan={5}
+                  style={{
+                    padding: "10px 12px",
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    color: "#334155",
+                  }}
+                >
                   TỔNG DANH MỤC CỔ PHIẾU
                 </td>
                 {(() => {
-                  const totalVon = ckHoldings.reduce((s, r) => s + (r.tong_sl * r.gia_von) / 1000000, 0);
-                  const totalTT = ckHoldings.reduce((s, r) => s + (r.tong_sl * r.gia_tt) / 1000000, 0);
+                  const totalVon = filteredCk.reduce(
+                    (s, r) => s + (r.tong_sl * r.gia_von) / 1000000,
+                    0,
+                  );
+                  const totalTT = filteredCk.reduce(
+                    (s, r) => s + (r.tong_sl * r.gia_tt) / 1000000,
+                    0,
+                  );
                   const ll = totalTT - totalVon;
                   const pct = totalVon > 0 ? (ll / totalVon) * 100 : 0;
                   const isPos = ll >= 0;
                   return (
                     <>
-                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#92400e" }}>
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                          fontWeight: 800,
+                          color: "#92400e",
+                        }}
+                      >
                         {fmt(totalVon, 3)} tr
                       </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#1e40af" }}>
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                          fontWeight: 800,
+                          color: "#1e40af",
+                        }}
+                      >
                         {fmt(totalTT, 3)} tr
                       </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: isPos ? "#15803d" : "#dc2626" }}>
-                        {isPos ? "+" : ""}{fmt(ll, 3)} tr
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                          fontWeight: 900,
+                          color: isPos ? "#15803d" : "#dc2626",
+                        }}
+                      >
+                        {isPos ? "+" : ""}
+                        {fmt(ll, 3)} tr
                       </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: isPos ? "#15803d" : "#dc2626" }}>
-                        {isPos ? "+" : ""}{pct.toFixed(2)}%
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                          fontWeight: 900,
+                          color: isPos ? "#15803d" : "#dc2626",
+                        }}
+                      >
+                        {isPos ? "+" : ""}
+                        {pct.toFixed(2)}%
                       </td>
+                      {editMode && <td />}
                     </>
                   );
                 })()}
@@ -578,8 +1819,21 @@ export const RawDataTab: React.FC = () => {
       </div>
 
       {/* ── Section 3: Tiet Kiem (View Only) ── */}
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
-        {sectionHeader("🏦 Sổ Tiết Kiệm Ngân Hàng", "Chi tiết các khoản tiền gửi kỳ hạn và lãi suất dự kiến")}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "12px",
+          padding: "18px 20px",
+        }}
+      >
+        {sectionHeader(
+          "🏦 Sổ Tiết Kiệm Ngân Hàng",
+          "Chi tiết các khoản tiền gửi kỳ hạn và lãi suất dự kiến",
+          undefined,
+          editMode ? "Chế độ chỉnh sửa" : "Chế độ xem (View Only)",
+          editMode ? savingsAddButton : undefined,
+        )}
         <div style={{ overflowX: "auto" }}>
           <table
             style={{
@@ -597,47 +1851,172 @@ export const RawDataTab: React.FC = () => {
                 {hcell("Ngày Mở Sổ", 1, "#f1f5f9")}
                 {hcell("Ngày Đến Hạn", 1, "#f1f5f9")}
                 {hcell("Tiền Lãi Dự Kiến (tr)", 1, "#f0fdf4", "right")}
+                {editMode && hcell("Thao Tác", 1, "#f1f5f9")}
               </tr>
             </thead>
             <tbody>
+              {editingSavingsId === "new" && (
+                <tr
+                  style={{
+                    borderBottom: "1px solid #e2e8f0",
+                    background: "#eff6ff",
+                  }}
+                >
+                  {savingsEditableCell("bank", "text", "#dbeafe")}
+                  {savingsEditableCell("amount", "number", "#dbeafe")}
+                  {savingsEditableCell("rate", "number", "#dbeafe")}
+                  {savingsEditableCell("start_date", "date", "#f1f5f9")}
+                  {savingsEditableCell("end_date", "date", "#f1f5f9")}
+                  <td style={{ background: "#f0fdf4", padding: "8px 12px" }} />
+                  {savingsActionCell(null)}
+                </tr>
+              )}
               {tietKiem.map((r, i) => {
+                if (editingSavingsId === r.id) {
+                  return (
+                    <tr
+                      key={r.id}
+                      style={{
+                        borderBottom: "1px solid #e2e8f0",
+                        background: "#eff6ff",
+                      }}
+                    >
+                      {savingsEditableCell("bank", "text", "#dbeafe")}
+                      {savingsEditableCell("amount", "number", "#dbeafe")}
+                      {savingsEditableCell("rate", "number", "#dbeafe")}
+                      {savingsEditableCell("start_date", "date", "#f1f5f9")}
+                      {savingsEditableCell("end_date", "date", "#f1f5f9")}
+                      <td
+                        style={{ background: "#f0fdf4", padding: "8px 12px" }}
+                      />
+                      {savingsActionCell(r)}
+                    </tr>
+                  );
+                }
                 const interest = (r.amount * r.rate) / 100;
                 return (
-                  <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0", background: i % 2 === 0 ? "#fff" : "#f8fafc" }}>
-                    <td style={{ background: "#eff6ff", padding: "8px 12px", fontWeight: 800, color: "#1e40af" }}>
+                  <tr
+                    key={r.id}
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      background: i % 2 === 0 ? "#fff" : "#f8fafc",
+                    }}
+                  >
+                    <td
+                      style={{
+                        background: "#eff6ff",
+                        padding: "8px 12px",
+                        fontWeight: 800,
+                        color: "#1e40af",
+                      }}
+                    >
                       {r.bank}
                     </td>
-                    <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800 }}>
+                    <td
+                      style={{
+                        background: "#eff6ff",
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 800,
+                      }}
+                    >
                       {fmt(r.amount)} tr
                     </td>
-                    <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", color: "#2563eb" }}>
+                    <td
+                      style={{
+                        background: "#eff6ff",
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        color: "#2563eb",
+                      }}
+                    >
                       {r.rate}%
                     </td>
-                    <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: "monospace", color: "#64748b" }}>
+                    <td
+                      style={{
+                        padding: "8px 12px",
+                        textAlign: "center",
+                        fontFamily: "monospace",
+                        color: "#64748b",
+                      }}
+                    >
                       {r.start_date}
                     </td>
-                    <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: "monospace", color: "#64748b" }}>
+                    <td
+                      style={{
+                        padding: "8px 12px",
+                        textAlign: "center",
+                        fontFamily: "monospace",
+                        color: "#64748b",
+                      }}
+                    >
                       {r.end_date}
                     </td>
-                    <td style={{ background: "#f0fdf4", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#15803d" }}>
+                    <td
+                      style={{
+                        background: "#f0fdf4",
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 800,
+                        color: "#15803d",
+                      }}
+                    >
                       +{fmt(interest, 2)} tr
                     </td>
+                    {savingsActionCell(r)}
                   </tr>
                 );
               })}
             </tbody>
             <tfoot>
-              <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
-                <td style={{ padding: "10px 12px", fontSize: "12px", fontWeight: 800, color: "#334155" }}>
+              <tr
+                style={{
+                  borderTop: "2px solid #cbd5e1",
+                  background: "#f8fafc",
+                }}
+              >
+                <td
+                  style={{
+                    padding: "10px 12px",
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    color: "#334155",
+                  }}
+                >
                   TỔNG TIẾT KIỆM
                 </td>
-                <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#1e40af" }}>
+                <td
+                  style={{
+                    padding: "10px 12px",
+                    textAlign: "right",
+                    fontFamily: "monospace",
+                    fontWeight: 900,
+                    color: "#1e40af",
+                  }}
+                >
                   {fmt(tietKiem.reduce((s, r) => s + r.amount, 0))} tr
                 </td>
                 <td colSpan={3} />
-                <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#15803d" }}>
-                  +{fmt(tietKiem.reduce((s, r) => s + (r.amount * r.rate) / 100, 0), 2)} tr
+                <td
+                  style={{
+                    padding: "10px 12px",
+                    textAlign: "right",
+                    fontFamily: "monospace",
+                    fontWeight: 900,
+                    color: "#15803d",
+                  }}
+                >
+                  +
+                  {fmt(
+                    tietKiem.reduce((s, r) => s + (r.amount * r.rate) / 100, 0),
+                    2,
+                  )}{" "}
+                  tr
                 </td>
+                {editMode && <td />}
               </tr>
             </tfoot>
           </table>
@@ -645,8 +2024,18 @@ export const RawDataTab: React.FC = () => {
       </div>
 
       {/* ── Section 4: Vay (View Only) ── */}
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
-        {sectionHeader("🏠 Dư Nợ Vay & Khoản Nợ Dài Hạn", "Bảng thống kê các khoản vay ngân hàng, kỳ hạn và lãi suất cam kết")}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "12px",
+          padding: "18px 20px",
+        }}
+      >
+        {sectionHeader(
+          "🏠 Dư Nợ Vay & Khoản Nợ Dài Hạn",
+          "Bảng thống kê các khoản vay ngân hàng, kỳ hạn và lãi suất cam kết",
+        )}
         <div style={{ overflowX: "auto" }}>
           <table
             style={{
@@ -670,20 +2059,58 @@ export const RawDataTab: React.FC = () => {
                 // Approximate monthly interest (5.5% annual rate)
                 const monthlyInterest = (r.so_tien * 0.055) / 12;
                 return (
-                  <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0", background: i % 2 === 0 ? "#fff" : "#f8fafc" }}>
-                    <td style={{ background: "#fff1f2", padding: "8px 12px", fontWeight: 800, color: "#b91c1c" }}>
+                  <tr
+                    key={r.id}
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      background: i % 2 === 0 ? "#fff" : "#f8fafc",
+                    }}
+                  >
+                    <td
+                      style={{
+                        background: "#fff1f2",
+                        padding: "8px 12px",
+                        fontWeight: 800,
+                        color: "#b91c1c",
+                      }}
+                    >
                       {r.bank}
                     </td>
-                    <td style={{ background: "#fff1f2", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#b91c1c" }}>
+                    <td
+                      style={{
+                        background: "#fff1f2",
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 900,
+                        color: "#b91c1c",
+                      }}
+                    >
                       {fmt(r.so_tien)} tr
                     </td>
-                    <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: "monospace", color: "#475569" }}>
+                    <td
+                      style={{
+                        padding: "8px 12px",
+                        textAlign: "center",
+                        fontFamily: "monospace",
+                        color: "#475569",
+                      }}
+                    >
                       {r.thoi_gian}
                     </td>
                     <td style={{ padding: "8px 12px", color: "#475569" }}>
                       {r.lai_suat}
                     </td>
-                    <td style={{ background: "#fee2e2", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#b91c1c" }}>
+                    <td
+                      style={{
+                        background: "#fee2e2",
+                        padding: "8px 12px",
+                        textAlign: "right",
+                        fontFamily: "monospace",
+                        fontWeight: 800,
+                        color: "#b91c1c",
+                      }}
+                    >
                       ~{fmt(monthlyInterest, 2)} tr/tháng
                     </td>
                   </tr>
@@ -691,16 +2118,49 @@ export const RawDataTab: React.FC = () => {
               })}
             </tbody>
             <tfoot>
-              <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
-                <td style={{ padding: "10px 12px", fontSize: "12px", fontWeight: 800, color: "#334155" }}>
+              <tr
+                style={{
+                  borderTop: "2px solid #cbd5e1",
+                  background: "#f8fafc",
+                }}
+              >
+                <td
+                  style={{
+                    padding: "10px 12px",
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    color: "#334155",
+                  }}
+                >
                   TỔNG DƯ NỢ VAY
                 </td>
-                <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#b91c1c" }}>
+                <td
+                  style={{
+                    padding: "10px 12px",
+                    textAlign: "right",
+                    fontFamily: "monospace",
+                    fontWeight: 900,
+                    color: "#b91c1c",
+                  }}
+                >
                   {fmt(vay.reduce((s, r) => s + r.so_tien, 0))} tr
                 </td>
                 <td colSpan={2} />
-                <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#b91c1c" }}>
-                  ~{fmt(vay.reduce((s, r) => s + (r.so_tien * 0.055) / 12, 0), 2)} tr/tháng
+                <td
+                  style={{
+                    padding: "10px 12px",
+                    textAlign: "right",
+                    fontFamily: "monospace",
+                    fontWeight: 900,
+                    color: "#b91c1c",
+                  }}
+                >
+                  ~
+                  {fmt(
+                    vay.reduce((s, r) => s + (r.so_tien * 0.055) / 12, 0),
+                    2,
+                  )}{" "}
+                  tr/tháng
                 </td>
               </tr>
             </tfoot>
@@ -709,14 +2169,26 @@ export const RawDataTab: React.FC = () => {
       </div>
 
       {/* ── Section 5: Luong, BHXH, BHTN (Dữ liệu VssID) ── */}
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
-        {sectionHeader("💼 Quá Trình Đóng BHXH, BHTN & Lịch Sử Thu Nhập Lương", "Dữ liệu đối chiếu từ ứng dụng VssID - Bảo hiểm Xã hội Việt Nam")}
-        
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "12px",
+          padding: "18px 20px",
+        }}
+      >
+        {sectionHeader(
+          "💼 Quá Trình Đóng BHXH, BHTN & Lịch Sử Thu Nhập Lương",
+          "Dữ liệu đối chiếu từ ứng dụng VssID - Bảo hiểm Xã hội Việt Nam",
+        )}
+
         {/* Profile metadata bar */}
         {(() => {
           const calc = getInsuranceCalculations(INSURANCE_RAW_DATA);
           return (
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+            >
               <div
                 style={{
                   display: "flex",
@@ -731,29 +2203,98 @@ export const RawDataTab: React.FC = () => {
                   fontSize: "12px",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "16px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
                     <span style={{ color: "#64748b" }}>Người lao động:</span>
-                    <strong style={{ color: "#0f172a", fontSize: "13px" }}>{INSURANCE_RAW_DATA.employee_name}</strong>
+                    <strong style={{ color: "#0f172a", fontSize: "13px" }}>
+                      {INSURANCE_RAW_DATA.employee_name}
+                    </strong>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
                     <span style={{ color: "#64748b" }}>Mã số BHXH:</span>
-                    <span style={{ fontFamily: "monospace", fontWeight: 800, color: "#2563eb", background: "#eff6ff", padding: "2px 6px", borderRadius: "4px" }}>
+                    <span
+                      style={{
+                        fontFamily: "monospace",
+                        fontWeight: 800,
+                        color: "#2563eb",
+                        background: "#eff6ff",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                      }}
+                    >
                       {INSURANCE_RAW_DATA.social_insurance_code}
                     </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
                     <Building2 size={13} color="#64748b" />
-                    <span style={{ color: "#334155", fontWeight: 600 }}>{INSURANCE_RAW_DATA.company_name}</span>
+                    <span style={{ color: "#334155", fontWeight: 600 }}>
+                      {INSURANCE_RAW_DATA.company_name}
+                    </span>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                  <span style={{ background: "#dcfce7", color: "#166534", padding: "3px 8px", borderRadius: "4px", fontWeight: 700, fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }}>
-                    <CheckCircle2 size={12} /> {INSURANCE_RAW_DATA.total_formatted}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span
+                    style={{
+                      background: "#dcfce7",
+                      color: "#166534",
+                      padding: "3px 8px",
+                      borderRadius: "4px",
+                      fontWeight: 700,
+                      fontSize: "11px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <CheckCircle2 size={12} />{" "}
+                    {INSURANCE_RAW_DATA.total_formatted}
                   </span>
-                  <span style={{ background: "#f1f5f9", color: "#475569", padding: "3px 8px", borderRadius: "4px", fontSize: "11px" }}>
-                    Chậm đóng: <strong>{INSURANCE_RAW_DATA.late_payment_months} tháng</strong>
+                  <span
+                    style={{
+                      background: "#f1f5f9",
+                      color: "#475569",
+                      padding: "3px 8px",
+                      borderRadius: "4px",
+                      fontSize: "11px",
+                    }}
+                  >
+                    Chậm đóng:{" "}
+                    <strong>
+                      {INSURANCE_RAW_DATA.late_payment_months} tháng
+                    </strong>
                   </span>
                   <span style={{ color: "#94a3b8", fontSize: "11px" }}>
                     Cập nhật: {INSURANCE_RAW_DATA.last_updated}
@@ -762,52 +2303,178 @@ export const RawDataTab: React.FC = () => {
               </div>
 
               {/* 4 KPI Summary Cards */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
-                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "14px 16px" }}>
-                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    padding: "14px 16px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "#64748b",
+                      fontWeight: 700,
+                    }}
+                  >
                     💰 Tổng Thu Nhập Lương Đã Nhận
                   </span>
-                  <div style={{ fontSize: "19px", fontWeight: 900, color: "#0f172a", fontFamily: "monospace", marginTop: "4px" }}>
+                  <div
+                    style={{
+                      fontSize: "19px",
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      fontFamily: "monospace",
+                      marginTop: "4px",
+                    }}
+                  >
                     {fmtVND(calc.totalSalaryActual)}
                   </div>
-                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                    Trung bình: <strong>{fmtVND(Math.round(calc.avgSalaryActual))}/tháng</strong>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#64748b",
+                      marginTop: "2px",
+                    }}
+                  >
+                    Trung bình:{" "}
+                    <strong>
+                      {fmtVND(Math.round(calc.avgSalaryActual))}/tháng
+                    </strong>
                   </div>
                 </div>
 
-                <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "8px", padding: "14px 16px" }}>
-                  <span style={{ fontSize: "11px", color: "#1e40af", fontWeight: 700 }}>
+                <div
+                  style={{
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: "8px",
+                    padding: "14px 16px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "#1e40af",
+                      fontWeight: 700,
+                    }}
+                  >
                     🛡️ Tổng Quỹ BHXH + BHYT + BHTN (32%)
                   </span>
-                  <div style={{ fontSize: "19px", fontWeight: 900, color: "#1e40af", fontFamily: "monospace", marginTop: "4px" }}>
+                  <div
+                    style={{
+                      fontSize: "19px",
+                      fontWeight: 900,
+                      color: "#1e40af",
+                      fontFamily: "monospace",
+                      marginTop: "4px",
+                    }}
+                  >
                     {fmtVND(calc.grandTotal)}
                   </div>
-                  <div style={{ fontSize: "11px", color: "#3b82f6", marginTop: "2px" }}>
-                    Cá nhân (10.5%): {fmt(calc.totalEmployeeDeducted / 1000000, 1)} tr · Cty (21.5%): {fmt(calc.totalEmployerContributed / 1000000, 1)} tr
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#3b82f6",
+                      marginTop: "2px",
+                    }}
+                  >
+                    Cá nhân (10.5%):{" "}
+                    {fmt(calc.totalEmployeeDeducted / 1000000, 1)} tr · Cty
+                    (21.5%): {fmt(calc.totalEmployerContributed / 1000000, 1)}{" "}
+                    tr
                   </div>
                 </div>
 
-                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "14px 16px" }}>
-                  <span style={{ fontSize: "11px", color: "#166534", fontWeight: 700 }}>
+                <div
+                  style={{
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: "8px",
+                    padding: "14px 16px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "#166534",
+                      fontWeight: 700,
+                    }}
+                  >
                     🎁 Ước Tính BHXH 1 Lần ({calc.bhxh1LanYears} Năm)
                   </span>
-                  <div style={{ fontSize: "19px", fontWeight: 900, color: "#15803d", fontFamily: "monospace", marginTop: "4px" }}>
+                  <div
+                    style={{
+                      fontSize: "19px",
+                      fontWeight: 900,
+                      color: "#15803d",
+                      fontFamily: "monospace",
+                      marginTop: "4px",
+                    }}
+                  >
                     ~{fmtVND(Math.round(calc.estimatedBHXH1Lan))}
                   </div>
-                  <div style={{ fontSize: "11px", color: "#166534", marginTop: "2px" }}>
-                    2 tháng × {calc.bhxh1LanYears} năm × Mbq {fmt(calc.avgSalaryBHXH / 1000000, 1)} tr (Chưa nhân trượt giá CPI, thực tế ~350–355 tr)
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#166534",
+                      marginTop: "2px",
+                    }}
+                  >
+                    2 tháng × {calc.bhxh1LanYears} năm × Mbq{" "}
+                    {fmt(calc.avgSalaryBHXH / 1000000, 1)} tr (Chưa nhân trượt
+                    giá CPI, thực tế ~350–355 tr)
                   </div>
                 </div>
 
-                <div style={{ background: "#fefce8", border: "1px solid #fef08a", borderRadius: "8px", padding: "14px 16px" }}>
-                  <span style={{ fontSize: "11px", color: "#854d0e", fontWeight: 700 }}>
+                <div
+                  style={{
+                    background: "#fefce8",
+                    border: "1px solid #fef08a",
+                    borderRadius: "8px",
+                    padding: "14px 16px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "#854d0e",
+                      fontWeight: 700,
+                    }}
+                  >
                     🏖️ Trợ Cấp Thất Nghiệp (BHTN {calc.bhtnBenefitMonths} Tháng)
                   </span>
-                  <div style={{ fontSize: "19px", fontWeight: 900, color: "#b45309", fontFamily: "monospace", marginTop: "4px" }}>
+                  <div
+                    style={{
+                      fontSize: "19px",
+                      fontWeight: 900,
+                      color: "#b45309",
+                      fontFamily: "monospace",
+                      marginTop: "4px",
+                    }}
+                  >
                     {fmtVND(Math.round(calc.estimatedMonthlyBHTN))}/tháng
                   </div>
-                  <div style={{ fontSize: "11px", color: "#854d0e", marginTop: "2px" }}>
-                    Tổng nhận {calc.bhtnBenefitMonths} tháng: <strong>{fmtVND(Math.round(calc.estimatedTotalBHTN))}</strong> (Áp trần 5× LTTV vùng I 2026: 26.55 tr/tháng)
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#854d0e",
+                      marginTop: "2px",
+                    }}
+                  >
+                    Tổng nhận {calc.bhtnBenefitMonths} tháng:{" "}
+                    <strong>
+                      {fmtVND(Math.round(calc.estimatedTotalBHTN))}
+                    </strong>{" "}
+                    (Áp trần 5× LTTV vùng I 2026: 26.55 tr/tháng)
                   </div>
                 </div>
               </div>
@@ -836,23 +2503,76 @@ export const RawDataTab: React.FC = () => {
                     {INSURANCE_RAW_DATA.records.map((r, i) => {
                       const bg = i % 2 === 0 ? "#fff" : "#f8fafc";
                       return (
-                        <tr key={r.id} style={{ borderBottom: "1px solid #e2e8f0", background: bg }}>
-                          <td style={{ padding: "8px 12px", fontFamily: "monospace", fontWeight: 700, color: "#1e293b" }}>
+                        <tr
+                          key={r.id}
+                          style={{
+                            borderBottom: "1px solid #e2e8f0",
+                            background: bg,
+                          }}
+                        >
+                          <td
+                            style={{
+                              padding: "8px 12px",
+                              fontFamily: "monospace",
+                              fontWeight: 700,
+                              color: "#1e293b",
+                            }}
+                          >
                             {r.period_from} → {r.period_to}
                           </td>
-                          <td style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: "#475569" }}>
+                          <td
+                            style={{
+                              padding: "8px 12px",
+                              textAlign: "center",
+                              fontWeight: 700,
+                              color: "#475569",
+                            }}
+                          >
                             {r.months} tháng
                           </td>
-                          <td style={{ background: "#f0fdf4", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#15803d" }}>
+                          <td
+                            style={{
+                              background: "#f0fdf4",
+                              padding: "8px 12px",
+                              textAlign: "right",
+                              fontFamily: "monospace",
+                              fontWeight: 800,
+                              color: "#15803d",
+                            }}
+                          >
                             {r.salary_actual.toLocaleString()} đ
                           </td>
-                          <td style={{ background: "#eff6ff", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: "#1e40af" }}>
+                          <td
+                            style={{
+                              background: "#eff6ff",
+                              padding: "8px 12px",
+                              textAlign: "right",
+                              fontFamily: "monospace",
+                              fontWeight: 700,
+                              color: "#1e40af",
+                            }}
+                          >
                             {r.salary_bhxh.toLocaleString()} đ
                           </td>
-                          <td style={{ background: "#fffde7", padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: "#92400e" }}>
+                          <td
+                            style={{
+                              background: "#fffde7",
+                              padding: "8px 12px",
+                              textAlign: "right",
+                              fontFamily: "monospace",
+                              fontWeight: 700,
+                              color: "#92400e",
+                            }}
+                          >
                             {r.salary_bhtn.toLocaleString()} đ
                           </td>
-                          <td style={{ padding: "8px 12px", fontSize: "11px", color: "#64748b" }}>
+                          <td
+                            style={{
+                              padding: "8px 12px",
+                              fontSize: "11px",
+                              color: "#64748b",
+                            }}
+                          >
                             {r.base_salary_cap_note}
                           </td>
                         </tr>
@@ -860,23 +2580,73 @@ export const RawDataTab: React.FC = () => {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
-                      <td style={{ padding: "10px 12px", fontSize: "12px", fontWeight: 800, color: "#334155" }}>
+                    <tr
+                      style={{
+                        borderTop: "2px solid #cbd5e1",
+                        background: "#f8fafc",
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          fontSize: "12px",
+                          fontWeight: 800,
+                          color: "#334155",
+                        }}
+                      >
                         TỔNG CỘNG ({INSURANCE_RAW_DATA.total_months} THÁNG)
                       </td>
-                      <td style={{ padding: "10px 12px", textAlign: "center", fontWeight: 900, color: "#15803d" }}>
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          textAlign: "center",
+                          fontWeight: 900,
+                          color: "#15803d",
+                        }}
+                      >
                         {INSURANCE_RAW_DATA.total_months} tháng
                       </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#15803d" }}>
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                          fontWeight: 900,
+                          color: "#15803d",
+                        }}
+                      >
                         {calc.totalSalaryActual.toLocaleString()} đ
                       </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#1e40af" }}>
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                          fontWeight: 900,
+                          color: "#1e40af",
+                        }}
+                      >
                         {calc.totalSalaryBHXH.toLocaleString()} đ
                       </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", fontFamily: "monospace", fontWeight: 900, color: "#92400e" }}>
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                          fontWeight: 900,
+                          color: "#92400e",
+                        }}
+                      >
                         {calc.totalSalaryBHTN.toLocaleString()} đ
                       </td>
-                      <td style={{ padding: "10px 12px", fontSize: "11px", color: "#15803d", fontWeight: 700 }}>
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          fontSize: "11px",
+                          color: "#15803d",
+                          fontWeight: 700,
+                        }}
+                      >
                         Đã nạp đủ 100% không nợ đọng
                       </td>
                     </tr>
@@ -898,15 +2668,38 @@ export const RawDataTab: React.FC = () => {
                   gap: "6px",
                 }}
               >
-                <div style={{ fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <HelpCircle size={13} color="#2563eb" /> Quy định về trần đóng, bảo hiểm 1 lần & trợ cấp thất nghiệp:
+                <div
+                  style={{
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <HelpCircle size={13} color="#2563eb" /> Quy định về trần
+                  đóng, bảo hiểm 1 lần & trợ cấp thất nghiệp:
                 </div>
                 <div style={{ lineHeight: 1.6 }}>
-                  • <strong>Trần đóng BHXH & BHYT</strong>: Tối đa 20 lần mức lương cơ sở (Trước 07/2023: 29.8 tr; Từ 07/2023: 36.0 tr; Từ 07/2024: 46.8 tr). Do đó các mức lương 50tr, 70tr hay 80tr đều áp mức đóng trần 46.8 tr.
-                  <br />
-                  • <strong>Trợ cấp thất nghiệp (Áp trần 5× LTTV vùng I)</strong>: 60% bình quân 6 tháng gần nhất (60% × 70tr = 42tr) nhưng bị khống chế tối đa không quá 5 lần mức lương tối thiểu vùng I (<strong>5 × 5.310.000 = 26.550.000 đ/tháng</strong> theo Nghị định 293/2025/NĐ-CP). Với 49 tháng đóng, được hưởng <strong>4 tháng</strong> (3 tháng cho 36 tháng đầu + 1 tháng cho 12 tháng tiếp theo; 1 tháng lẻ bảo lưu), tổng nhận: <strong>106.200.000 đ</strong>.
-                  <br />
-                  • <strong>Ước tính BHXH 1 lần</strong>: 49 tháng đóng = 4.5 năm tính hưởng (lẻ 1-6 tháng tính nửa năm). Mức tối thiểu: 2 tháng × 4.5 năm × Mbq (38.33 tr) = <strong>344.957.143 đ</strong>. Khi tính thực tế có nhân hệ số trượt giá CPI từng năm ước đạt <strong>~350–355 triệu đồng</strong>.
+                  • <strong>Trần đóng BHXH & BHYT</strong>: Tối đa 20 lần mức
+                  lương cơ sở (Trước 07/2023: 29.8 tr; Từ 07/2023: 36.0 tr; Từ
+                  07/2024: 46.8 tr). Do đó các mức lương 50tr, 70tr hay 80tr đều
+                  áp mức đóng trần 46.8 tr.
+                  <br />•{" "}
+                  <strong>Trợ cấp thất nghiệp (Áp trần 5× LTTV vùng I)</strong>:
+                  60% bình quân 6 tháng gần nhất (60% × 70tr = 42tr) nhưng bị
+                  khống chế tối đa không quá 5 lần mức lương tối thiểu vùng I (
+                  <strong>5 × 5.310.000 = 26.550.000 đ/tháng</strong> theo Nghị
+                  định 293/2025/NĐ-CP). Với 49 tháng đóng, được hưởng{" "}
+                  <strong>4 tháng</strong> (3 tháng cho 36 tháng đầu + 1 tháng
+                  cho 12 tháng tiếp theo; 1 tháng lẻ bảo lưu), tổng nhận:{" "}
+                  <strong>106.200.000 đ</strong>.
+                  <br />• <strong>Ước tính BHXH 1 lần</strong>: 49 tháng đóng =
+                  4.5 năm tính hưởng (lẻ 1-6 tháng tính nửa năm). Mức tối thiểu:
+                  2 tháng × 4.5 năm × Mbq (38.33 tr) ={" "}
+                  <strong>344.957.143 đ</strong>. Khi tính thực tế có nhân hệ số
+                  trượt giá CPI từng năm ước đạt{" "}
+                  <strong>~350–355 triệu đồng</strong>.
                 </div>
               </div>
             </div>
