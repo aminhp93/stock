@@ -35,11 +35,15 @@ không loại, đánh dấu riêng).
 
 from __future__ import annotations
 
+import os
+import sys
 import warnings
 
 import numpy as np
 import pandas as pd
 import psycopg2
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 warnings.filterwarnings("ignore")
 
@@ -200,6 +204,56 @@ def simulate_symbol(g: pd.DataFrame, vni_uptrend: dict, fund_hist: dict) -> list
     return trades
 
 
+def max_concurrent(df: pd.DataFrame) -> int:
+    """Số lệnh mở đồng thời tối đa (toàn thị trường, không giới hạn vốn)."""
+    events = []
+    for _, t in df.iterrows():
+        events.append((t["entry_date"], 1))
+        events.append((t["exit_date"], -1))
+    events.sort()
+    cur = peak = 0
+    for _, delta in events:
+        cur += delta
+        peak = max(peak, cur)
+    return peak
+
+
+def _block(sub: pd.DataFrame) -> dict | None:
+    if sub.empty:
+        return None
+    w = sub["ret_pct"] > 0
+    pf = -sub.loc[w, "ret_pct"].sum() / sub.loc[~w, "ret_pct"].sum() if (~w).any() else None
+    return dict(n=int(len(sub)), win_rate=float(round(w.mean() * 100, 1)),
+                avg_ret_pct=float(round(sub["ret_pct"].mean(), 2)),
+                avg_r=float(round(sub["r_mult"].mean(), 3)),
+                profit_factor=float(round(pf, 2)) if pf is not None else None)
+
+
+def summarize(df: pd.DataFrame) -> dict:
+    """Gộp toàn bộ số liệu backtest thành 1 dict — dùng để lưu vào
+    trade_backtest_runs (xem backend/utils/trade_backtest.py) cho tab web
+    /finance/stock/test, đồng thời tránh lặp logic đã in ra ở run()."""
+    year_breakdown = {
+        str(yr): _block(g) for yr, g in df.groupby(df["entry_date"].dt.year)
+    }
+    base = _block(df) or {}
+    return dict(
+        sample_start=df["entry_date"].min().date().isoformat(),
+        sample_end=df["entry_date"].max().date().isoformat(),
+        n_trades=int(len(df)), n_symbols=int(df["symbol"].nunique()),
+        win_rate=base.get("win_rate"), avg_ret_pct=base.get("avg_ret_pct"),
+        avg_r=base.get("avg_r"), profit_factor=base.get("profit_factor"),
+        avg_hold_days=float(round(df["hold_days"].mean(), 1)),
+        avg_risk_pct=float(round(df["risk_pct"].mean(), 1)),
+        max_concurrent=int(max_concurrent(df)),
+        exit_reasons={k: int(v) for k, v in df["exit_reason"].value_counts().items()},
+        year_breakdown=year_breakdown,
+        fund_all=base,
+        fund_ok=_block(df[df["fund_ok"] == True]),      # noqa: E712
+        fund_risky=_block(df[df["fund_ok"] == False]),  # noqa: E712
+    )
+
+
 def _stats_block(df: pd.DataFrame, label: str):
     win = df["ret_pct"] > 0
     profit_factor = -df.loc[win, "ret_pct"].sum() / df.loc[~win, "ret_pct"].sum() if (~win).any() else float("inf")
@@ -262,16 +316,7 @@ def run():
           f"trung vị {df['risk_pct'].median():.1f}%  (min {df['risk_pct'].min():.1f}% / max {df['risk_pct'].max():.1f}%)")
 
     # số lệnh mở đồng thời (để biết cần bao nhiêu "suất" vốn song song)
-    events = []
-    for _, t in df.iterrows():
-        events.append((t["entry_date"], 1))
-        events.append((t["exit_date"], -1))
-    events.sort()
-    cur = peak = 0
-    for _, delta in events:
-        cur += delta
-        peak = max(peak, cur)
-    print(f"Số lệnh mở đồng thời tối đa (toàn thị trường, không giới hạn vốn): {peak}")
+    print(f"Số lệnh mở đồng thời tối đa (toàn thị trường, không giới hạn vốn): {max_concurrent(df)}")
 
     print(f"\n{'='*78}")
     print("Lưu ý: entry lấy tại giá ĐÓNG CỬA ngày breakout (không phải giá khớp lúc")
@@ -280,4 +325,23 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    result_df = run()
+    if result_df is not None and "--save-run" in sys.argv:
+        from backend.utils.trade_backtest import save_trade_backtest_run
+
+        run_id = int(sys.argv[sys.argv.index("--save-run") + 1])
+        conn = psycopg2.connect(**DB_CONFIG)
+        try:
+            save_trade_backtest_run(conn, run_id, summarize(result_df))
+        finally:
+            conn.close()
+        print(f"\nĐã lưu trade_backtest_runs id={run_id}")
+    elif result_df is None and "--save-run" in sys.argv:
+        from backend.utils.trade_backtest import save_trade_backtest_run
+
+        run_id = int(sys.argv[sys.argv.index("--save-run") + 1])
+        conn = psycopg2.connect(**DB_CONFIG)
+        try:
+            save_trade_backtest_run(conn, run_id, {"error": "Không tìm thấy giao dịch nào khớp toàn bộ điều kiện."})
+        finally:
+            conn.close()

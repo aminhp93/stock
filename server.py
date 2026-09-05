@@ -311,12 +311,16 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             }, status_code=503)
 
     def handle_strategy_list(self):
-        """Danh sách chiến lược khả dụng (tab 'Test Chiến Lược') + kết quả backtest gần nhất."""
+        """Danh sách chiến lược khả dụng (tab 'Test Chiến Lược') + kết quả backtest gần nhất.
+        Gồm 2 loại: 'rank' (xếp hạng cắt ngang, strategy_rank.py) và 'trade' (mô phỏng
+        từng giao dịch entry/stop/target, trade_backtest.py)."""
         try:
             from backend.utils.strategy_rank import STRATEGIES, DDL
+            from backend.utils.trade_backtest import TRADE_STRATEGIES, DDL as TRADE_DDL
             conn = psycopg2.connect(**STRATEGY_DB)
             with conn.cursor() as cur:
                 cur.execute(DDL)
+                cur.execute(TRADE_DDL)
                 conn.commit()
                 out = []
                 for code, meta in STRATEGIES.items():
@@ -338,7 +342,36 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                             "n_samples": n, "top20_ret5d": t5, "universe_ret5d": u5,
                             "edge_5d": edge, "top20_ret10d": t10, "hit_rate_5d": hit, "error": err,
                         }
-                    out.append({"code": code, "label": meta["label"], "desc": meta["desc"], "latest_backtest": latest})
+                    out.append({"code": code, "kind": "rank", "label": meta["label"], "desc": meta["desc"], "latest_backtest": latest})
+
+                for code, meta in TRADE_STRATEGIES.items():
+                    cur.execute("""
+                        SELECT id, status, started_at, finished_at, sample_start, sample_end, n_trades, n_symbols,
+                               win_rate, avg_ret_pct, avg_r, profit_factor, avg_hold_days, avg_risk_pct,
+                               max_concurrent, exit_reasons, year_breakdown, fund_all, fund_ok, fund_risky, error
+                        FROM trade_backtest_runs WHERE strategy=%s ORDER BY id DESC LIMIT 1
+                    """, (code,))
+                    row = cur.fetchone()
+                    latest = None
+                    if row:
+                        (rid, status, started, finished, sstart, send, n_trades, n_symbols, win_rate, avg_ret,
+                         avg_r, pf, avg_hold, avg_risk, max_conc, exit_reasons, year_breakdown,
+                         fund_all, fund_ok, fund_risky, err) = row
+                        latest = {
+                            "run_id": rid, "status": status,
+                            "started_at": started.isoformat() if started else None,
+                            "finished_at": finished.isoformat() if finished else None,
+                            "sample_start": sstart.isoformat() if sstart else None,
+                            "sample_end": send.isoformat() if send else None,
+                            "n_trades": n_trades, "n_symbols": n_symbols,
+                            "win_rate": win_rate, "avg_ret_pct": avg_ret, "avg_r": avg_r,
+                            "profit_factor": pf, "avg_hold_days": avg_hold, "avg_risk_pct": avg_risk,
+                            "max_concurrent": max_conc,
+                            "exit_reasons": exit_reasons, "year_breakdown": year_breakdown,
+                            "fund_all": fund_all, "fund_ok": fund_ok, "fund_risky": fund_risky,
+                            "error": err,
+                        }
+                    out.append({"code": code, "kind": "trade", "label": meta["label"], "desc": meta["desc"], "latest_backtest": latest})
             conn.close()
             self.send_json_response({"strategies": out})
         except Exception as e:
@@ -359,26 +392,43 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"error": str(e)}, 500)
 
     def handle_strategy_backtest_start(self, strategy: str):
-        """Tạo 1 run 'running' rồi chạy backtest trong subprocess nền (mất ~1-2 phút)."""
+        """Tạo 1 run 'running' rồi chạy backtest trong subprocess nền (mất ~1-2 phút).
+        Tự phát hiện chiến lược thuộc loại 'rank' (strategy_rank.py) hay 'trade'
+        (trade_backtest.py, mô phỏng từng giao dịch)."""
         import subprocess
         import sys as _sys
         try:
             from backend.utils.strategy_rank import DDL, STRATEGIES
-            if strategy not in STRATEGIES:
+            from backend.utils.trade_backtest import DDL as TRADE_DDL, TRADE_STRATEGIES
+
+            root = os.path.dirname(os.path.abspath(__file__))
+            conn = psycopg2.connect(**STRATEGY_DB)
+            if strategy in STRATEGIES:
+                with conn.cursor() as cur:
+                    cur.execute(DDL)
+                    cur.execute("INSERT INTO strategy_backtest_runs (strategy, status) VALUES (%s, 'running') RETURNING id",
+                                (strategy,))
+                    run_id = cur.fetchone()[0]
+                conn.commit()
+                conn.close()
+                script = os.path.join(root, "scripts", "rank_momentum.py")
+                args = [_sys.executable, script, "--backtest", "--strategy", strategy, "--save-run", str(run_id)]
+            elif strategy in TRADE_STRATEGIES:
+                with conn.cursor() as cur:
+                    cur.execute(TRADE_DDL)
+                    cur.execute("INSERT INTO trade_backtest_runs (strategy, status) VALUES (%s, 'running') RETURNING id",
+                                (strategy,))
+                    run_id = cur.fetchone()[0]
+                conn.commit()
+                conn.close()
+                script = os.path.join(root, TRADE_STRATEGIES[strategy]["script"])
+                args = [_sys.executable, script, "--save-run", str(run_id)]
+            else:
+                conn.close()
                 self.send_json_response({"error": f"Không rõ chiến lược '{strategy}'"}, 400)
                 return
-            conn = psycopg2.connect(**STRATEGY_DB)
-            with conn.cursor() as cur:
-                cur.execute(DDL)
-                cur.execute("INSERT INTO strategy_backtest_runs (strategy, status) VALUES (%s, 'running') RETURNING id",
-                            (strategy,))
-                run_id = cur.fetchone()[0]
-            conn.commit()
-            conn.close()
 
-            script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts", "rank_momentum.py")
-            args = [_sys.executable, script, "--backtest", "--strategy", strategy, "--save-run", str(run_id)]
-            subprocess.Popen(args, env={**os.environ})
+            subprocess.Popen(args, env={**os.environ}, cwd=root)
             self.send_json_response({"status": "started", "run_id": run_id,
                                       "message": "Backtest đang chạy nền (~1-2 phút). Poll /api/strategy/backtest-status."})
         except Exception as e:
@@ -386,31 +436,24 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def handle_strategy_backtest_status(self, strategy: str):
         try:
-            from backend.utils.strategy_rank import DDL
+            from backend.utils.strategy_rank import DDL, STRATEGIES
+            from backend.utils.trade_backtest import DDL as TRADE_DDL, TRADE_STRATEGIES
             conn = psycopg2.connect(**STRATEGY_DB)
             with conn.cursor() as cur:
-                cur.execute(DDL)
-                conn.commit()
-                cur.execute("""
-                    SELECT id, status, started_at, finished_at, sample_start, sample_end, n_samples,
-                           top20_ret5d, universe_ret5d, edge_5d, top20_ret10d, hit_rate_5d, error
-                    FROM strategy_backtest_runs WHERE strategy=%s ORDER BY id DESC LIMIT 1
-                """, (strategy,))
+                if strategy in TRADE_STRATEGIES:
+                    cur.execute(TRADE_DDL)
+                    conn.commit()
+                    cur.execute("SELECT status, error FROM trade_backtest_runs WHERE strategy=%s ORDER BY id DESC LIMIT 1", (strategy,))
+                else:
+                    cur.execute(DDL)
+                    conn.commit()
+                    cur.execute("SELECT status, error FROM strategy_backtest_runs WHERE strategy=%s ORDER BY id DESC LIMIT 1", (strategy,))
                 row = cur.fetchone()
             conn.close()
             if not row:
                 self.send_json_response({"status": "none"})
                 return
-            (rid, status, started, finished, sstart, send, n, t5, u5, edge, t10, hit, err) = row
-            self.send_json_response({
-                "run_id": rid, "status": status,
-                "started_at": started.isoformat() if started else None,
-                "finished_at": finished.isoformat() if finished else None,
-                "sample_start": sstart.isoformat() if sstart else None,
-                "sample_end": send.isoformat() if send else None,
-                "n_samples": n, "top20_ret5d": t5, "universe_ret5d": u5,
-                "edge_5d": edge, "top20_ret10d": t10, "hit_rate_5d": hit, "error": err,
-            })
+            self.send_json_response({"status": row[0], "error": row[1]})
         except Exception as e:
             self.send_json_response({"error": str(e)}, 500)
 

@@ -174,11 +174,44 @@ export interface StrategyBacktestResult {
   error: string | null;
 }
 
+export interface TradeBacktestBlock {
+  n: number;
+  win_rate: number;
+  avg_ret_pct: number;
+  avg_r: number;
+  profit_factor: number | null;
+}
+
+export interface TradeBacktestResult {
+  run_id: number;
+  status: "running" | "done" | "error" | "none";
+  started_at: string | null;
+  finished_at: string | null;
+  sample_start: string | null;
+  sample_end: string | null;
+  n_trades: number | null;
+  n_symbols: number | null;
+  win_rate: number | null;
+  avg_ret_pct: number | null;
+  avg_r: number | null;
+  profit_factor: number | null;
+  avg_hold_days: number | null;
+  avg_risk_pct: number | null;
+  max_concurrent: number | null;
+  exit_reasons: Record<string, number> | null;
+  year_breakdown: Record<string, TradeBacktestBlock> | null;
+  fund_all: TradeBacktestBlock | null;
+  fund_ok: TradeBacktestBlock | null;
+  fund_risky: TradeBacktestBlock | null;
+  error: string | null;
+}
+
 export interface StrategyListItem {
   code: string;
+  kind: "rank" | "trade";
   label: string;
   desc: string;
-  latest_backtest: StrategyBacktestResult | null;
+  latest_backtest: StrategyBacktestResult | TradeBacktestResult | null;
 }
 
 export interface StrategyMetric {
@@ -234,7 +267,9 @@ export async function triggerStrategyBacktest(strategy: string): Promise<{
   return res.json();
 }
 
-export async function fetchStrategyBacktestStatus(strategy: string): Promise<StrategyBacktestResult> {
+export async function fetchStrategyBacktestStatus(
+  strategy: string,
+): Promise<{ status: "running" | "done" | "error" | "none"; error: string | null }> {
   const res = await fetch(`${API_BASE}/strategy/backtest-status?strategy=${encodeURIComponent(strategy)}`);
   return res.json();
 }

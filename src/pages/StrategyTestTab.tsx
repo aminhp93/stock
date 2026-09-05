@@ -14,6 +14,8 @@ import {
   fetchStrategyBacktestStatus,
   StrategyListItem,
   StrategyRankRow,
+  StrategyBacktestResult,
+  TradeBacktestResult,
 } from "../services/api";
 
 const fmtPx = (n: number) => n.toLocaleString("vi-VN");
@@ -55,6 +57,40 @@ const EdgeBadge: React.FC<{ edge: number | null | undefined; hit: number | null 
   );
 };
 
+const TradeBadge: React.FC<{ bt: TradeBacktestResult | null | undefined }> = ({ bt }) => {
+  if (!bt || bt.status !== "done" || bt.win_rate == null) {
+    return (
+      <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700 }}>
+        Chưa backtest
+      </span>
+    );
+  }
+  const r = bt.avg_r ?? 0;
+  const positive = r > 0.03;
+  const negative = r < -0.03;
+  const color = positive ? "var(--bull-green)" : negative ? "var(--bear-red)" : "#94a3b8";
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "4px",
+        fontSize: "11px",
+        fontWeight: 800,
+        padding: "2px 8px",
+        borderRadius: "5px",
+        background: positive ? "var(--bull-green-bg)" : negative ? "var(--bear-red-bg)" : "#f1f5f9",
+        color,
+      }}
+      title={`Win rate ${bt.win_rate.toFixed(0)}% · Profit factor ${bt.profit_factor?.toFixed(2) ?? "?"} · ${bt.n_trades} lệnh`}
+    >
+      {positive ? <TrendingUp size={11} /> : negative ? <TrendingDown size={11} /> : null}
+      thắng {bt.win_rate.toFixed(0)}% · {r >= 0 ? "+" : ""}
+      {r.toFixed(2)}R
+    </span>
+  );
+};
+
 const StrategyCard: React.FC<{
   s: StrategyListItem;
   active: boolean;
@@ -63,6 +99,8 @@ const StrategyCard: React.FC<{
   running: boolean;
 }> = ({ s, active, onSelect, onRunBacktest, running }) => {
   const bt = s.latest_backtest;
+  const rankBt = s.kind === "rank" ? (bt as StrategyBacktestResult | null) : null;
+  const tradeBt = s.kind === "trade" ? (bt as TradeBacktestResult | null) : null;
   return (
     <div
       onClick={onSelect}
@@ -87,8 +125,10 @@ const StrategyCard: React.FC<{
           <span style={{ fontSize: "11px", color: "#d97706", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
             <RefreshCw size={11} className="spin" /> Đang backtest…
           </span>
+        ) : s.kind === "trade" ? (
+          <TradeBadge bt={tradeBt} />
         ) : (
-          <EdgeBadge edge={bt?.edge_5d} hit={bt?.hit_rate_5d} />
+          <EdgeBadge edge={rankBt?.edge_5d} hit={rankBt?.hit_rate_5d} />
         )}
         <button
           className="btn btn-secondary"
@@ -105,12 +145,204 @@ const StrategyCard: React.FC<{
       </div>
       {bt && bt.status === "done" && (
         <div style={{ marginTop: "6px", fontSize: "10px", color: "#94a3b8" }}>
-          {bt.n_samples} mẫu · {bt.sample_start} → {bt.sample_end}
+          {s.kind === "trade" ? `${tradeBt?.n_trades} lệnh` : `${rankBt?.n_samples} mẫu`} · {bt.sample_start} → {bt.sample_end}
         </div>
       )}
       {bt?.status === "error" && (
         <div style={{ marginTop: "6px", fontSize: "10.5px", color: "var(--bear-red)" }}>Lỗi: {bt.error}</div>
       )}
+    </div>
+  );
+};
+
+const StatBox: React.FC<{ label: string; value: string; tone?: "up" | "down" | "neutral" }> = ({
+  label,
+  value,
+  tone = "neutral",
+}) => (
+  <div style={{ padding: "10px 12px", background: "#f8fafc", borderRadius: "8px", minWidth: "110px" }}>
+    <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, marginBottom: "3px" }}>{label}</div>
+    <div
+      style={{
+        fontSize: "16px",
+        fontWeight: 800,
+        color: tone === "up" ? "var(--bull-green)" : tone === "down" ? "var(--bear-red)" : "var(--text-main)",
+      }}
+    >
+      {value}
+    </div>
+  </div>
+);
+
+const FUND_ROWS: { key: "fund_all" | "fund_ok" | "fund_risky"; label: string }[] = [
+  { key: "fund_all", label: "Tất cả giao dịch" },
+  { key: "fund_ok", label: "Cơ bản ổn (có lãi, Nợ/VCSH ≤ 3)" },
+  { key: "fund_risky", label: "Bị cờ kiệt quệ (lỗ ròng hoặc Nợ/VCSH > 3)" },
+];
+
+const TradeResultPanel: React.FC<{ bt: TradeBacktestResult | null }> = ({ bt }) => {
+  if (!bt || bt.status === "none") {
+    return (
+      <div className="card" style={{ padding: "20px", textAlign: "center", fontSize: "12.5px", color: "#94a3b8" }}>
+        Chưa có kết quả backtest — bấm "Chạy backtest" ở thẻ chiến lược phía trên (~1-2 phút).
+      </div>
+    );
+  }
+  if (bt.status === "running") {
+    return (
+      <div className="card" style={{ padding: "20px", textAlign: "center", fontSize: "12.5px", color: "#d97706" }}>
+        <RefreshCw size={13} className="spin" style={{ marginRight: "6px", verticalAlign: "-2px" }} />
+        Đang chạy backtest mô phỏng từng giao dịch (~1-2 phút)…
+      </div>
+    );
+  }
+  if (bt.status === "error") {
+    return (
+      <div className="card" style={{ padding: "16px 20px", fontSize: "12.5px", color: "var(--bear-red)" }}>
+        Lỗi backtest: {bt.error}
+      </div>
+    );
+  }
+
+  const years = Object.keys(bt.year_breakdown || {}).sort();
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+      <div className="card" style={{ padding: "16px 20px" }}>
+        <div className="card-header" style={{ marginBottom: "10px" }}>
+          <div className="card-title">
+            <TrendingUp size={16} color="var(--accent-blue)" />
+            <span>Kết quả backtest — mô phỏng từng giao dịch</span>
+          </div>
+          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+            {bt.sample_start} → {bt.sample_end} · {bt.n_trades} lệnh trên {bt.n_symbols} mã
+          </span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+          <StatBox label="Tỷ lệ thắng" value={`${bt.win_rate?.toFixed(1)}%`} tone={(bt.win_rate ?? 0) >= 50 ? "up" : "down"} />
+          <StatBox
+            label="R trung bình/lệnh"
+            value={`${(bt.avg_r ?? 0) >= 0 ? "+" : ""}${bt.avg_r?.toFixed(2)}R`}
+            tone={(bt.avg_r ?? 0) > 0 ? "up" : "down"}
+          />
+          <StatBox
+            label="Profit factor"
+            value={bt.profit_factor != null ? bt.profit_factor.toFixed(2) : "—"}
+            tone={(bt.profit_factor ?? 0) >= 1 ? "up" : "down"}
+          />
+          <StatBox label="Lãi/lỗ TB mỗi lệnh" value={`${(bt.avg_ret_pct ?? 0) >= 0 ? "+" : ""}${bt.avg_ret_pct?.toFixed(1)}%`} tone={(bt.avg_ret_pct ?? 0) >= 0 ? "up" : "down"} />
+          <StatBox label="Số phiên giữ TB" value={`${bt.avg_hold_days?.toFixed(0)} phiên`} />
+          <StatBox label="Khoảng cách chặn lỗ TB" value={`${bt.avg_risk_pct?.toFixed(1)}%`} />
+          <StatBox label="Lệnh mở đồng thời tối đa" value={`${bt.max_concurrent}`} />
+        </div>
+        {bt.exit_reasons && (
+          <div style={{ marginTop: "12px", fontSize: "11.5px", color: "var(--text-muted)" }}>
+            Lý do thoát lệnh:{" "}
+            {Object.entries(bt.exit_reasons)
+              .map(([k, v]) => `${k === "TARGET" ? "Chốt lời" : k === "STOP" ? "Chặn lỗ" : "Hết thời gian"} ${v}`)
+              .join(" · ")}
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ padding: "16px 20px" }}>
+        <div className="card-title" style={{ marginBottom: "10px" }}>
+          <span>Tác động của bộ lọc cơ bản (point-in-time, trễ công bố 45 ngày)</span>
+        </div>
+        <div style={{ fontSize: "11.5px", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "10px" }}>
+          Chỉ loại 2 dấu hiệu kiệt quệ thật: đang lỗ ròng TTM, hoặc đòn bẩy cực đoan (Nợ/VCSH &gt; 3x kiểu
+          HVN/Novaland). Bản đầu có thêm điều kiện "doanh thu YoY ≥ -20%" và ngưỡng Nợ/VCSH &gt; 2 nhưng bị bỏ vì
+          gắn cờ sai hàng loạt cổ phiếu chu kỳ (thép, BĐS — so sánh với nền 2022 bất thường cao) và nhóm chứng
+          khoán (đòn bẩy cao là đặc thù ngành, không phải kiệt quệ).
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px" }}>
+            <thead>
+              <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
+                {["Nhóm", "Số lệnh", "Tỷ lệ thắng", "R trung bình", "Profit factor"].map((h) => (
+                  <th key={h} style={{ textAlign: "left", padding: "7px 9px", fontSize: "10.5px", color: "#64748b" }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {FUND_ROWS.map(({ key, label }) => {
+                const b = bt[key];
+                if (!b) return null;
+                return (
+                  <tr key={key} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "7px 9px", fontWeight: 700 }}>{label}</td>
+                    <td style={{ padding: "7px 9px" }}>{b.n}</td>
+                    <td style={{ padding: "7px 9px" }}>{b.win_rate.toFixed(1)}%</td>
+                    <td style={{ padding: "7px 9px", color: b.avg_r >= 0 ? "var(--bull-green)" : "var(--bear-red)" }}>
+                      {b.avg_r >= 0 ? "+" : ""}
+                      {b.avg_r.toFixed(2)}R
+                    </td>
+                    <td style={{ padding: "7px 9px" }}>{b.profit_factor != null ? b.profit_factor.toFixed(2) : "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {bt.fund_risky && bt.fund_risky.n < 15 && (
+          <div style={{ marginTop: "8px", fontSize: "10.5px", color: "#94a3b8" }}>
+            Nhóm "bị cờ kiệt quệ" chỉ có {bt.fund_risky.n} lệnh — mẫu quá nhỏ để kết luận chắc chắn. Mẫu hình tích
+            lũy sạch vốn đã tự loại phần lớn công ty kiệt quệ, nên bộ lọc này chủ yếu mang tính quản trị rủi ro
+            (tránh các ca như HVN/Novaland) hơn là tạo thêm lợi thế thống kê rõ rệt.
+          </div>
+        )}
+      </div>
+
+      {years.length > 0 && (
+        <div className="card" style={{ padding: "16px 20px" }}>
+          <div className="card-title" style={{ marginBottom: "10px" }}>
+            <span>Theo năm (kiểm tra edge có ổn định qua các giai đoạn thị trường không)</span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
+                  {["Năm", "Số lệnh", "Tỷ lệ thắng", "Lãi/lỗ TB", "R trung bình", "Profit factor"].map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "7px 9px", fontSize: "10.5px", color: "#64748b" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {years.map((y) => {
+                  const b = bt.year_breakdown![y];
+                  return (
+                    <tr key={y} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "7px 9px", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{y}</td>
+                      <td style={{ padding: "7px 9px" }}>{b.n}</td>
+                      <td style={{ padding: "7px 9px" }}>{b.win_rate.toFixed(1)}%</td>
+                      <td style={{ padding: "7px 9px", color: b.avg_ret_pct >= 0 ? "var(--bull-green)" : "var(--bear-red)" }}>
+                        {b.avg_ret_pct >= 0 ? "+" : ""}
+                        {b.avg_ret_pct.toFixed(1)}%
+                      </td>
+                      <td style={{ padding: "7px 9px", color: b.avg_r >= 0 ? "var(--bull-green)" : "var(--bear-red)" }}>
+                        {b.avg_r >= 0 ? "+" : ""}
+                        {b.avg_r.toFixed(2)}R
+                      </td>
+                      <td style={{ padding: "7px 9px" }}>{b.profit_factor != null ? b.profit_factor.toFixed(2) : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div style={{ fontSize: "11px", color: "var(--text-muted)", padding: "0 4px", lineHeight: 1.6 }}>
+        ⚠️ Kết quả sàng lọc/backtest kỹ thuật trên dữ liệu quá khứ — không phải khuyến nghị đầu tư. Gợi ý cỡ lệnh:
+        rủi ro 1-1.5% vốn/lệnh ÷ khoảng cách chặn lỗ (~{bt.avg_risk_pct?.toFixed(0)}%) → với vốn 300 triệu, mỗi lệnh
+        full-size khoảng 19-28 triệu, chia 8-10 lệnh song song là hợp lý (tối đa quan sát được:{" "}
+        {bt.max_concurrent} lệnh mở đồng thời toàn thị trường).
+      </div>
     </div>
   );
 };
@@ -149,9 +381,11 @@ export const StrategyTestTab: React.FC = () => {
   };
 
   useEffect(() => {
+    const s = strategies.find((x) => x.code === active);
+    if (s && s.kind === "trade") return; // chiến lược trade không có xếp hạng cắt ngang
     loadRank(active, dateInput || undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [active, strategies]);
 
   const handleRunBacktest = (code: string) => {
     setRunningBacktest((p) => ({ ...p, [code]: true }));
@@ -189,11 +423,11 @@ export const StrategyTestTab: React.FC = () => {
           </div>
         </div>
         <div style={{ fontSize: "11.5px", color: "var(--text-muted)", lineHeight: 1.6 }}>
-          Mỗi chiến lược chấm điểm 0–100 cho toàn bộ cổ phiếu đủ thanh khoản, xếp hạng, và{" "}
-          <b>kiểm định lịch sử</b> (backtest): so return 5 phiên sau của top-20 mã điểm cao nhất với
-          return trung bình toàn thị trường. <b>Edge dương</b> = mô hình có lợi thế dự báo thật;{" "}
-          <b>edge âm/gần 0</b> = mô hình không dự báo được, chỉ là mô tả trạng thái hiện tại.
-          Output là công cụ nghiên cứu, không phải khuyến nghị đầu tư.
+          Có 2 loại chiến lược. <b>Xếp hạng cắt ngang</b> (Động lượng, Ngược chiều, PP2) chấm điểm 0–100 cho toàn
+          bộ cổ phiếu đủ thanh khoản rồi so return 5 phiên sau của top-20 điểm cao nhất với return trung bình toàn
+          thị trường — <b>edge dương</b> là có lợi thế dự báo thật. <b>Mô phỏng từng giao dịch</b> (Tích lũy →
+          Breakout) có điểm mua/chặn lỗ/chốt lời cụ thể, backtest ra tỷ lệ thắng và R trung bình/lệnh thật. Output
+          là công cụ nghiên cứu, không phải khuyến nghị đầu tư.
         </div>
       </div>
 
@@ -213,8 +447,9 @@ export const StrategyTestTab: React.FC = () => {
         )}
       </div>
 
-      {activeStrategy?.latest_backtest?.status === "done" &&
-        (activeStrategy.latest_backtest.edge_5d ?? 0) <= 0.15 && (
+      {activeStrategy?.kind === "rank" &&
+        activeStrategy.latest_backtest?.status === "done" &&
+        ((activeStrategy.latest_backtest as StrategyBacktestResult).edge_5d ?? 0) <= 0.15 && (
           <div
             style={{
               display: "flex",
@@ -230,12 +465,17 @@ export const StrategyTestTab: React.FC = () => {
           >
             <AlertTriangle size={15} />
             Chiến lược này chưa cho thấy lợi thế dự báo trong kiểm định lịch sử (edge{" "}
-            {fmtPct(activeStrategy.latest_backtest.edge_5d)}, thắng{" "}
-            {activeStrategy.latest_backtest.hit_rate_5d?.toFixed(0)}%). Bảng xếp hạng dưới đây mô tả
+            {fmtPct((activeStrategy.latest_backtest as StrategyBacktestResult).edge_5d)}, thắng{" "}
+            {(activeStrategy.latest_backtest as StrategyBacktestResult).hit_rate_5d?.toFixed(0)}%). Bảng xếp hạng dưới đây mô tả
             "mã nào đang mạnh nhất/yếu nhất theo mô hình" — không phải dự báo đáng tin cậy.
           </div>
         )}
 
+      {activeStrategy?.kind === "trade" && (
+        <TradeResultPanel bt={activeStrategy.latest_backtest as TradeBacktestResult | null} />
+      )}
+
+      {activeStrategy?.kind === "rank" && (
       <div className="card" style={{ padding: "16px 20px" }}>
         <div
           style={{
@@ -320,6 +560,7 @@ export const StrategyTestTab: React.FC = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };
