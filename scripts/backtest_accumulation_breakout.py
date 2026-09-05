@@ -19,6 +19,17 @@ QUY TẮC (đúng theo mô tả):
                     giá đóng cửa hiện tại (tránh giữ lệnh vô thời hạn)
   Mỗi mã chỉ giữ 1 vị thế tại 1 thời điểm.
 
+CƠ BẢN "không quá risk" — dùng dữ liệu ĐÚNG THỜI ĐIỂM (point-in-time) từ
+fundamentals_raw (xem fetch_fundamentals_history.py), KHÔNG dùng snapshot hiện
+tại để tránh nhìn trước tương lai. Tại mỗi điểm mua, tra giá trị đã CÔNG BỐ
+gần nhất (trễ 45 ngày sau ngày báo cáo, mô phỏng thời gian công bố thực tế):
+    - Biên LN ròng TTM > 0 (có lãi)
+    - Nợ/VCSH <= 2.0
+    - Tăng trưởng doanh thu YoY >= -20%
+Script tính CẢ 2: toàn bộ giao dịch, và tập con "cơ bản ổn" — để thấy lọc cơ
+bản có cải thiện win-rate/R hay không (mã thiếu dữ liệu cơ bản: giữ nguyên,
+không loại, đánh dấu riêng).
+
     python3 scripts/backtest_accumulation_breakout.py
 """
 
@@ -43,6 +54,9 @@ MAX_HOLD_DAYS = 60
 MIN_TURNOVER_BN = 20.0
 MIN_AVG_VOLUME = 1_000_000
 
+FUND_METRICS = ["NET_MARGIN_TR", "DEBT_TO_EQUITY_AQ", "NET_SALES_TR_GRYOY"]
+FUND_LAG_DAYS = 45          # độ trễ công bố BCTC thực tế, tránh nhìn trước tương lai
+
 
 def load():
     conn = psycopg2.connect(**DB_CONFIG)
@@ -55,13 +69,63 @@ def load():
         SELECT trading_date AS date, close_price AS close
         FROM stock_prices WHERE symbol='VNINDEX' ORDER BY trading_date
     """, conn, parse_dates=["date"])
+    fund = pd.read_sql("""
+        SELECT symbol, report_date, ratio_code, value FROM fundamentals_raw
+        WHERE ratio_code = ANY(%(codes)s) ORDER BY symbol, ratio_code, report_date
+    """, conn, params={"codes": FUND_METRICS}, parse_dates=["report_date"])
     conn.close()
     vni["ma50"] = vni["close"].rolling(50).mean()
     vni["uptrend"] = vni["close"] > vni["ma50"]
-    return px, vni
+
+    fund_hist: dict[tuple[str, str], list[tuple]] = {}
+    for (sym, rc), gg in fund.groupby(["symbol", "ratio_code"]):
+        avail = gg["report_date"] + pd.Timedelta(days=FUND_LAG_DAYS)
+        fund_hist[(sym, rc)] = list(zip(avail.to_numpy(), gg["value"].to_numpy()))
+    return px, vni, fund_hist
 
 
-def simulate_symbol(g: pd.DataFrame, vni_uptrend: dict) -> list[dict]:
+def fund_value_asof(fund_hist: dict, symbol: str, ratio_code: str, asof) -> float | None:
+    series = fund_hist.get((symbol, ratio_code))
+    if not series:
+        return None
+    val = None
+    for avail_date, v in series:
+        if avail_date <= asof:
+            val = v
+        else:
+            break
+    return val
+
+
+def fund_check(fund_hist: dict, symbol: str, asof) -> tuple[bool | None, list[str]]:
+    """(fund_ok, flags). fund_ok=None nếu thiếu hết dữ liệu (không đánh giá được).
+
+    LƯU Ý: bản đầu dùng thêm ngưỡng "DT YoY >= -20%" và "Nợ/VCSH <= 2.0" nhưng
+    THỬ NGHIỆM CHO THẤY NÓ PHẢN TÁC DỤNG trên backtest 2021-2026 — vì:
+      - So sánh DT YoY quý 2023 bị nhiễu nặng bởi nền cao bất thường 2022 (đỉnh
+        chu kỳ thép/BĐS) -> hàng loạt mã chu kỳ (HPG, HSG, NKG, DXG, KDH, NLG...)
+        bị gắn cờ "risk" đúng lúc chúng breakout phục hồi tốt nhất.
+      - D/E > 2.0 gắn cờ sai nhóm chứng khoán (SSI, VND, VCI, CTS...) vì đòn bẩy
+        cao là ĐẶC THÙ ngành (cho vay margin), không phải dấu hiệu kiệt quệ.
+    Gate ở đây SIẾT LẠI: chỉ chặn 2 dấu hiệu kiệt quệ thật (lỗ ròng TTM, đòn bẩy
+    CỰC ĐOAN D/E>3 kiểu HVN/Novaland) — kết quả: risk-gate không còn phản tác
+    dụng, nhưng biên độ cải thiện nhỏ vì mẫu hình tích lũy sạch vốn đã tự loại
+    phần lớn công ty kiệt quệ (chúng hiếm khi tạo được nền giá gọn + khối lượng
+    cạn cung). Xem README trong report cuối bài để so cả 2 phiên bản.
+    """
+    nm = fund_value_asof(fund_hist, symbol, "NET_MARGIN_TR", asof)
+    de = fund_value_asof(fund_hist, symbol, "DEBT_TO_EQUITY_AQ", asof)
+    if nm is None and de is None:
+        return None, []
+    flags = []
+    if nm is not None and nm <= 0:
+        flags.append("lỗ ròng TTM")
+    if de is not None and de > 3.0:
+        flags.append(f"đòn bẩy cực đoan (Nợ/VCSH {de:.1f}x)")
+    return len(flags) == 0, flags
+
+
+def simulate_symbol(g: pd.DataFrame, vni_uptrend: dict, fund_hist: dict) -> list[dict]:
     g = g.sort_values("date").reset_index(drop=True)
     n = len(g)
     if n < N_BASE + 150:
@@ -122,11 +186,13 @@ def simulate_symbol(g: pd.DataFrame, vni_uptrend: dict) -> list[dict]:
             ret_pct = (exit_price / entry_price - 1) * 100
             risk_pct = (entry_price - stop) / entry_price * 100
             r_mult = ret_pct / risk_pct if risk_pct > 0 else 0.0
+            fund_ok, fund_flags = fund_check(fund_hist, g["symbol"].iloc[0], entry_date)
             trades.append(dict(
                 symbol=g["symbol"].iloc[0], entry_date=entry_date, entry_price=entry_price,
                 exit_date=pd.Timestamp(exit_date), exit_price=exit_price, exit_reason=exit_reason,
                 hold_days=j - i, ret_pct=ret_pct, r_mult=r_mult, risk_pct=risk_pct,
                 range_low=range_low, range_high=range_high,
+                fund_ok=fund_ok, fund_flags=",".join(fund_flags),
             ))
             i = j + 1
         else:
@@ -134,14 +200,25 @@ def simulate_symbol(g: pd.DataFrame, vni_uptrend: dict) -> list[dict]:
     return trades
 
 
+def _stats_block(df: pd.DataFrame, label: str):
+    win = df["ret_pct"] > 0
+    profit_factor = -df.loc[win, "ret_pct"].sum() / df.loc[~win, "ret_pct"].sum() if (~win).any() else float("inf")
+    print(f"\n--- {label} (n={len(df)}) ---")
+    print(f"Tỷ lệ thắng       : {win.mean()*100:.1f}%")
+    print(f"Lãi TB (lệnh thắng): {df.loc[win,'ret_pct'].mean():+.1f}%   "
+          f"Lỗ TB (lệnh thua): {df.loc[~win,'ret_pct'].mean():+.1f}%")
+    print(f"R trung bình/lệnh : {df['r_mult'].mean():+.2f}R")
+    print(f"Profit factor     : {profit_factor:.2f}")
+
+
 def run():
     print("Đang tải dữ liệu + quét toàn bộ lịch sử tìm mẫu hình tích lũy→breakout (~1-2 phút)...")
-    px, vni = load()
+    px, vni, fund_hist = load()
     vni_uptrend = dict(zip(vni["date"], vni["uptrend"]))
 
     all_trades = []
     for sym, g in px.groupby("symbol"):
-        all_trades.extend(simulate_symbol(g, vni_uptrend))
+        all_trades.extend(simulate_symbol(g, vni_uptrend, fund_hist))
 
     if not all_trades:
         print("Không tìm thấy giao dịch nào khớp toàn bộ điều kiện.")
@@ -162,6 +239,16 @@ def run():
     print(f"Lý do thoát       : " + ", ".join(f"{k}={v}" for k, v in df["exit_reason"].value_counts().items()))
     profit_factor = -df.loc[win, "ret_pct"].sum() / df.loc[~win, "ret_pct"].sum() if (~win).any() else float("inf")
     print(f"Profit factor     : {profit_factor:.2f}  (tổng % lãi / tổng % lỗ, >1 là có lời)")
+
+    print(f"\n{'='*78}\nTÁC ĐỘNG CỦA BỘ LỌC CƠ BẢN (point-in-time, trễ {FUND_LAG_DAYS} ngày công bố)\n{'='*78}")
+    has_fund = df["fund_ok"].notna()
+    print(f"Có dữ liệu cơ bản tại thời điểm mua: {has_fund.sum()}/{len(df)} lệnh "
+          f"({df.loc[has_fund,'fund_ok'].mean()*100:.0f}% trong số đó đạt \"không quá risk\")")
+    _stats_block(df, "TẤT CẢ giao dịch (không lọc cơ bản)")
+    if (df["fund_ok"] == True).any():  # noqa: E712
+        _stats_block(df[df["fund_ok"] == True], "CHỈ giao dịch cơ bản ổn (có lãi, Nợ/VCSH<=3)")
+    if (df["fund_ok"] == False).any():  # noqa: E712
+        _stats_block(df[df["fund_ok"] == False], "CHỈ giao dịch bị cờ kiệt quệ (lỗ ròng hoặc Nợ/VCSH>3)")
 
     print(f"\nTheo năm:")
     yr = df.groupby("year").agg(n=("ret_pct", "size"), win_rate=("ret_pct", lambda s: (s > 0).mean() * 100),
