@@ -128,6 +128,18 @@ export interface TickerSignals {
     net_5d_bn?: number;
     room_left_pct?: number | null;
   };
+  fundamentals: {
+    pe?: number | null; pb?: number | null; ps?: number | null;
+    dividend_yield?: number | null; eps_ttm?: number | null; eps_growth_yoy?: number | null;
+    net_margin_ttm?: number | null; gross_margin_ttm?: number | null;
+    roe?: number | null; roa?: number | null; roic?: number | null;
+    revenue_growth_yoy?: number | null; profit_growth_yoy?: number | null;
+    debt_to_equity?: number | null; current_ratio?: number | null;
+    interest_coverage?: number | null; foreign_ownership?: number | null; beta?: number | null;
+    as_of_date?: string | null;
+    risk_flags?: string[];
+    not_too_risky?: boolean;
+  };
   sentiment: {
     technical_score: number;
     composite_gauge: number;

@@ -251,16 +251,18 @@ const SignalStrip: React.FC<{ s: TickerSignals | null }> = ({ s }) => {
       {children}
     </span>
   );
+  const f = s.fundamentals || {};
+  const hasFund = f.pe != null || f.roe != null;
+  const pct = (v?: number | null) => (v == null ? "--" : `${(v * 100).toFixed(1)}%`);
   return (
+    <div style={{ borderBottom: "1px solid var(--border-color)", background: "#fbfbfa" }}>
     <div
       style={{
         display: "flex",
         alignItems: "center",
         gap: "20px",
         flexWrap: "wrap",
-        padding: "9px 20px",
-        borderBottom: "1px solid var(--border-color)",
-        background: "#fbfbfa",
+        padding: "9px 20px 6px",
         fontFamily: "'Inter', sans-serif",
       }}
     >
@@ -379,6 +381,36 @@ const SignalStrip: React.FC<{ s: TickerSignals | null }> = ({ s }) => {
           ` · room NN ${s.foreign.room_left_pct}%`}
         <span style={{ marginLeft: "6px", color: "#cbd5e1" }}>· {s.as_of}</span>
       </div>
+    </div>
+    {/* Cơ bản (VNDirect v4/ratios) */}
+    {hasFund && (
+      <div
+        style={{
+          display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap",
+          padding: "0 20px 9px", fontFamily: "'Inter', sans-serif", fontSize: "11px",
+        }}
+      >
+        <span style={{ fontSize: "10px", color: "var(--text-dim)", fontWeight: 700 }}>CƠ BẢN</span>
+        <span>P/E <b className="mono">{f.pe?.toFixed(1) ?? "--"}</b></span>
+        <span>P/B <b className="mono">{f.pb?.toFixed(2) ?? "--"}</b></span>
+        <span>ROE <b className="mono">{pct(f.roe)}</b></span>
+        <span>ROA <b className="mono">{pct(f.roa)}</b></span>
+        <span>Nợ/VCSH <b className="mono">{f.debt_to_equity?.toFixed(2) ?? "--"}</b></span>
+        <span>Tăng trưởng DT (YoY) <b className="mono" style={{ color: (f.revenue_growth_yoy ?? 0) < 0 ? "var(--bear-red)" : "var(--bull-green)" }}>{pct(f.revenue_growth_yoy)}</b></span>
+        <span>Sở hữu NN <b className="mono">{pct(f.foreign_ownership)}</b></span>
+        {f.not_too_risky ? (
+          <span style={{ fontSize: "10.5px", fontWeight: 700, padding: "1px 6px", borderRadius: "4px", background: "var(--bull-green-bg)", color: "var(--bull-green)" }}>
+            Cơ bản ổn
+          </span>
+        ) : (
+          (f.risk_flags || []).map((flag, i) => (
+            <span key={i} style={{ fontSize: "10.5px", fontWeight: 700, padding: "1px 6px", borderRadius: "4px", background: "#fef2f2", color: "var(--bear-red)" }}>
+              ⚠ {flag}
+            </span>
+          ))
+        )}
+      </div>
+    )}
     </div>
   );
 };

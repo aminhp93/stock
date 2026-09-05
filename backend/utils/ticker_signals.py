@@ -120,6 +120,20 @@ def compute_ticker_signals(symbol: str) -> Dict[str, Any]:
             cur.execute("SELECT company_name, sector FROM stocks WHERE symbol = %s", (symbol,))
             meta = cur.fetchone() or (None, None)
 
+            # Cơ bản thật (VNDirect v4/ratios) — xem fetch_fundamentals.py
+            cur.execute(
+                """
+                SELECT pe, pb, ps, dividend_yield, eps_ttm, eps_growth_yoy,
+                       net_margin_ttm, gross_margin_ttm, roe, roa, roic,
+                       revenue_growth_yoy, profit_growth_yoy, debt_to_equity,
+                       current_ratio, interest_coverage, foreign_ownership, beta, as_of_date
+                FROM fundamentals_snapshot WHERE symbol = %s
+                """,
+                (symbol,),
+            )
+            frow = cur.fetchone()
+            fcols = [c[0] for c in cur.description] if frow else []
+
             # CFA99 mentions (30/60 ngày gần nhất trong dữ liệu observation)
             cur.execute(
                 """
@@ -166,6 +180,25 @@ def compute_ticker_signals(symbol: str) -> Dict[str, Any]:
 
     foreign = _fetch_foreign(symbol)
 
+    fund: Dict[str, Any] = dict(zip(fcols, frow)) if frow else {}
+    for k, v in list(fund.items()):
+        if k != "as_of_date" and v is not None:
+            fund[k] = round(float(v), 4)
+    if "as_of_date" in fund and fund["as_of_date"] is not None:
+        fund["as_of_date"] = str(fund["as_of_date"])
+    # Cờ rủi ro cơ bản đơn giản: có lãi, không đòn bẩy quá cao, doanh thu không sập
+    risk_flags = []
+    if fund.get("net_margin_ttm") is not None and fund["net_margin_ttm"] <= 0:
+        risk_flags.append("Biên LN ròng âm (đang lỗ)")
+    if fund.get("debt_to_equity") is not None and fund["debt_to_equity"] > 2.0:
+        risk_flags.append(f"Nợ/VCSH cao ({fund['debt_to_equity']:.1f}x)")
+    if fund.get("revenue_growth_yoy") is not None and fund["revenue_growth_yoy"] < -0.20:
+        risk_flags.append(f"Doanh thu giảm sâu YoY ({fund['revenue_growth_yoy']*100:.0f}%)")
+    if fund.get("current_ratio") is not None and fund["current_ratio"] < 1.0:
+        risk_flags.append(f"Thanh khoản hiện hành < 1 ({fund['current_ratio']:.2f})")
+    fund["risk_flags"] = risk_flags
+    fund["not_too_risky"] = len(risk_flags) == 0 and bool(fund)
+
     return {
         "symbol": symbol,
         "company_name": meta[0],
@@ -210,6 +243,7 @@ def compute_ticker_signals(symbol: str) -> Dict[str, Any]:
             "net_bull_pct": net_bull_pct,
         },
         "foreign": foreign,
+        "fundamentals": fund,
         "sentiment": {
             "technical_score": tech,
             "composite_gauge": gauge,
