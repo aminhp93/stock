@@ -578,7 +578,11 @@ export const RawDataTab: React.FC = () => {
   const latest = rows.length > 0 ? rows[rows.length - 1] : null;
   const vangTotal = latest ? latest.vang_so_luong * latest.vang_gia : 0;
   const ckTotal = latest ? latest.ck : 0;
-  const tkTotal = latest ? latest.tiet_kiem_vcb + latest.tiet_kiem_tcb : 0;
+  // Tiết Kiệm columns were removed from the journal table (its per-row
+  // tiet_kiem_vcb/tiet_kiem_tcb fields are now stale/unused for new rows),
+  // so the savings total is sourced directly from the Savings section
+  // (finance_savings table) instead.
+  const tkTotal = tietKiem.reduce((sum, r) => sum + r.amount, 0);
   const cashTotal = latest
     ? latest.cash_vcb + latest.cash_tcb + latest.cash_tpb
     : 0;
