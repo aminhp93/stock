@@ -1,13 +1,6 @@
 import React from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import {
-  Database,
-  BarChart3,
-  Bot,
-  Briefcase,
-  Zap,
-  Youtube,
-} from "lucide-react";
+import { Database, BarChart3, Bot, Briefcase, Zap } from "lucide-react";
 
 const SUB_TABS = [
   { to: "/finance/stock/data", label: "Dữ Liệu", icon: <Database size={13} /> },
@@ -30,11 +23,6 @@ const SUB_TABS = [
     to: "/finance/stock/test",
     label: "Test",
     icon: <Zap size={13} />,
-  },
-  {
-    to: "/finance/stock/observation",
-    label: "CFA99 Observation",
-    icon: <Youtube size={13} />,
   },
 ];
 

@@ -374,6 +374,52 @@ export async function fetchNavHistory(
   return { navHistories };
 }
 
+export interface FundTopHolding {
+  stockCode: string;
+  industry: string | null;
+  netAssetPercent: number | null;
+  price: number | null;
+  changeFromPreviousPercent: number | null;
+}
+
+export interface FundDetail {
+  productId: number;
+  name: string;
+  shortName: string;
+  nav: number;
+  navUpdateAt: number | null;
+  totalAssetValueStr: string | null;
+  fundReportTime: number | null;
+  managementFee: number | null;
+  avgAnnualReturn: number | null;
+  navToPrevious: number | null;
+  navToLastYear: number | null;
+  navTo1Months: number | null;
+  navTo3Months: number | null;
+  navTo6Months: number | null;
+  navTo12Months: number | null;
+  navTo24Months: number | null;
+  navTo36Months: number | null;
+  navTo60Months: number | null;
+  navToEstablish: number | null;
+  topHoldings: FundTopHolding[];
+  assetHoldings: { name: string | null; assetPercent: number | null }[];
+  ownerName: string | null;
+}
+
+export async function fetchFundDetail(productId: number): Promise<FundDetail> {
+  const res = await fetch(`${API_BASE}/fund-detail?productId=${productId}`);
+  if (!res.ok) {
+    const err = await res
+      .json()
+      .catch(() => ({ error: "Không thể tải thông tin quỹ." }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  const payload = await res.json();
+  if (payload?.error) throw new Error(payload.error);
+  return payload.data as FundDetail;
+}
+
 export async function fetchFullResync(symbol: string): Promise<{
   status: string;
   message: string;
@@ -856,4 +902,73 @@ export async function deleteSavingsEntry(
     throw new Error(err.error || `HTTP ${res.status}`);
   }
   return res.json();
+}
+
+// ─── TCKD (Tài Chính & Kinh Doanh) Macro Sentiment Analysis ────────────────
+// Pre-computed from 40 YouTube videos (2 playlists) via data/tckd/*.json —
+// gauges macro stance (defensive/neutral/expansion), hot themes, and
+// asset-class attention (stocks/gold/real-estate/bonds).
+export interface TckdThemeScore {
+  name: string;
+  hits: number;
+  density_per_1k: number;
+}
+
+export interface TckdVideo {
+  index: number;
+  video_id: string;
+  title: string;
+  playlist_name: string;
+  url: string;
+  upload_date: string;
+  duration_formatted: string;
+  total_words: number;
+  theme_scores: Record<string, TckdThemeScore>;
+  top_theme: string;
+  top_theme_key: string;
+  expansion_hits: number;
+  defensive_hits: number;
+  stance_score: number;
+  stance_label: string;
+  stance_type: "DEFENSIVE" | "NEUTRAL" | "EXPANSION";
+  asset_hits: Record<string, number>;
+  top_asset: string;
+  has_data: boolean;
+}
+
+export interface TckdPlaylistSummary {
+  video_count: number;
+  total_words: number;
+  avg_stance_score: number;
+  top_themes: [string, number][];
+  asset_breakdown: [string, number][];
+}
+
+export interface TckdAnalysis {
+  analyzed_at: string;
+  total_videos_analyzed: number;
+  total_words_analyzed: number;
+  macro_stance_summary: {
+    average_score: number;
+    overall_label: string;
+    defensive_video_count: number;
+    neutral_video_count: number;
+    expansion_video_count: number;
+  };
+  overall_theme_ranking: [string, number][];
+  overall_asset_ranking: [string, number][];
+  playlists: Record<string, TckdPlaylistSummary>;
+  videos: TckdVideo[];
+}
+
+export async function fetchTckdAnalysis(): Promise<TckdAnalysis> {
+  const res = await fetch(`${API_BASE}/tckd/analysis`);
+  if (!res.ok) {
+    const err = await res
+      .json()
+      .catch(() => ({ error: "Không thể tải dữ liệu phân tích TCKD." }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  const json = await res.json();
+  return json.data;
 }

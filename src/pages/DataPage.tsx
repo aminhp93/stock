@@ -1,7 +1,13 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchStocks, fetchDataStats, fetchNavHistory } from "../services/api";
+import {
+  fetchStocks,
+  fetchDataStats,
+  fetchNavHistory,
+  fetchFundDetail,
+} from "../services/api";
 import { StockItem, DataStats } from "../types";
+import type { FundDetail } from "../services/api";
 import {
   Search,
   Filter,
@@ -34,14 +40,16 @@ const SvgLineChart: React.FC<{
   yMax?: number;
   color?: string;
   height?: number;
+  zoomable?: boolean;
 }> = ({
-  points,
+  points: allPoints,
   title,
   yUnit = "",
   yMin,
   yMax,
   color = "#3b82f6",
   height = 220,
+  zoomable = false,
 }) => {
   const [tooltip, setTooltip] = useState<{
     x: number;
@@ -50,8 +58,18 @@ const SvgLineChart: React.FC<{
     value: number;
   } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  // Zoom range as [startIndex, endIndex] into `allPoints` (inclusive).
+  // null => showing full range (no zoom applied).
+  const [zoomRange, setZoomRange] = useState<[number, number] | null>(null);
+  const [dragStartX, setDragStartX] = useState<number | null>(null);
+  const [dragCurrentX, setDragCurrentX] = useState<number | null>(null);
 
-  if (!points.length) return null;
+  if (!allPoints.length) return null;
+
+  const points =
+    zoomable && zoomRange
+      ? allPoints.slice(zoomRange[0], zoomRange[1] + 1)
+      : allPoints;
 
   const PAD = { top: 20, right: 20, bottom: 40, left: 52 };
   const W = 900;
@@ -64,7 +82,10 @@ const SvgLineChart: React.FC<{
   const dataMax = yMax ?? Math.max(...vals);
   const range = dataMax - dataMin || 1;
 
-  const toX = (i: number) => PAD.left + (i / (points.length - 1)) * innerW;
+  const toX = (i: number) =>
+    points.length > 1
+      ? PAD.left + (i / (points.length - 1)) * innerW
+      : PAD.left + innerW / 2;
   const toY = (v: number) =>
     PAD.top + innerH - ((v - dataMin) / range) * innerH;
 
@@ -79,22 +100,35 @@ const SvgLineChart: React.FC<{
   // Y grid lines (5 ticks)
   const yTicks = Array.from({ length: 6 }, (_, i) => dataMin + (range / 5) * i);
   // X labels: show every N-th to avoid clutter
-  const step = Math.ceil(points.length / 10);
+  const step = Math.max(1, Math.ceil(points.length / 10));
+
+  const mouseXToSvg = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return 0;
+    const rect = svgRef.current.getBoundingClientRect();
+    return ((e.clientX - rect.left) / rect.width) * W;
+  };
+
+  const nearestIndex = (mx: number) => {
+    let best = 0,
+      bestDist = Infinity;
+    points.forEach((_, i) => {
+      const d = Math.abs(toX(i) - mx);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    });
+    return best;
+  };
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!svgRef.current) return;
-      const rect = svgRef.current.getBoundingClientRect();
-      const mx = ((e.clientX - rect.left) / rect.width) * W;
-      let best = 0,
-        bestDist = Infinity;
-      points.forEach((_, i) => {
-        const d = Math.abs(toX(i) - mx);
-        if (d < bestDist) {
-          bestDist = d;
-          best = i;
-        }
-      });
+      const mx = mouseXToSvg(e);
+      if (dragStartX !== null) {
+        setDragCurrentX(mx);
+        return;
+      }
+      const best = nearestIndex(mx);
       const p = points[best];
       setTooltip({
         x: toX(best),
@@ -103,8 +137,35 @@ const SvgLineChart: React.FC<{
         value: p.value,
       });
     },
-    [points],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [points, dragStartX],
   );
+
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!zoomable) return;
+    const mx = mouseXToSvg(e);
+    setDragStartX(mx);
+    setDragCurrentX(mx);
+  };
+
+  const handleMouseUp = () => {
+    if (!zoomable || dragStartX === null || dragCurrentX === null) {
+      setDragStartX(null);
+      setDragCurrentX(null);
+      return;
+    }
+    const iStart = nearestIndex(Math.min(dragStartX, dragCurrentX));
+    const iEnd = nearestIndex(Math.max(dragStartX, dragCurrentX));
+    setDragStartX(null);
+    setDragCurrentX(null);
+    if (iEnd - iStart < 2) return; // too small a drag, ignore
+    // Translate indices (within the currently-zoomed `points` subset) back
+    // to absolute indices into `allPoints`.
+    const base = zoomRange ? zoomRange[0] : 0;
+    setZoomRange([base + iStart, base + iEnd]);
+  };
+
+  const resetZoom = () => setZoomRange(null);
 
   return (
     <div
@@ -117,13 +178,41 @@ const SvgLineChart: React.FC<{
     >
       <div
         style={{
-          fontSize: "12.5px",
-          fontWeight: 700,
-          color: "#1e293b",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           marginBottom: "10px",
+          gap: "8px",
+          flexWrap: "wrap",
         }}
       >
-        {title}
+        <div style={{ fontSize: "12.5px", fontWeight: 700, color: "#1e293b" }}>
+          {title}
+        </div>
+        {zoomable && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "10.5px", color: "#94a3b8" }}>
+              🔍 Kéo chọn vùng trên biểu đồ để zoom in
+            </span>
+            {zoomRange && (
+              <button
+                onClick={resetZoom}
+                style={{
+                  fontSize: "10.5px",
+                  fontWeight: 700,
+                  color: "#fff",
+                  background: "#2563eb",
+                  border: "none",
+                  borderRadius: "5px",
+                  padding: "3px 9px",
+                  cursor: "pointer",
+                }}
+              >
+                Reset Zoom
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <div style={{ overflowX: "auto" }}>
         <svg
@@ -135,9 +224,16 @@ const SvgLineChart: React.FC<{
             height: `${height}px`,
             cursor: "crosshair",
             display: "block",
+            userSelect: "none",
           }}
           onMouseMove={handleMouseMove}
-          onMouseLeave={() => setTooltip(null)}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={() => {
+            setTooltip(null);
+            setDragStartX(null);
+            setDragCurrentX(null);
+          }}
         >
           <defs>
             <linearGradient
@@ -211,8 +307,22 @@ const SvgLineChart: React.FC<{
               opacity="0.7"
             />
           ))}
+          {/* Drag-select zoom rectangle */}
+          {zoomable && dragStartX !== null && dragCurrentX !== null && (
+            <rect
+              x={Math.min(dragStartX, dragCurrentX)}
+              y={PAD.top}
+              width={Math.abs(dragCurrentX - dragStartX)}
+              height={innerH}
+              fill="#2563eb"
+              opacity="0.12"
+              stroke="#2563eb"
+              strokeWidth="1"
+              strokeDasharray="4,3"
+            />
+          )}
           {/* Tooltip */}
-          {tooltip && (
+          {tooltip && dragStartX === null && (
             <g>
               <line
                 x1={tooltip.x}
@@ -581,60 +691,158 @@ const LaiSuatTab: React.FC = () => {
 };
 
 // ─── Chứng Chỉ Quỹ Tab ────────────────────────────────────────────────────────
-// Fmarket product IDs: VCBF-BCF = 48  (verify at https://fmarket.vn/quy/VCBFBCF)
+// Fmarket product IDs confirmed via each fund's "Mua ngay" link
+// (https://fmarket.vn/trade/login?productId=X) on its official fund page:
+//   VCBF-BCF = 32   (https://fmarket.vn/quy/VCBFBCF)
+//   BVFED    = 12   (https://fmarket.vn/quy/BVFED)
+//   MAGEF    = 35   (https://fmarket.vn/quy/MAGEF)
+//   MBVF     = 47   (https://fmarket.vn/quy/MBVF)
+//   DCDS     = 28   (https://fmarket.vn/quy/DCDS)
 const CCQ_PRODUCTS = [
   {
-    id: 48,
+    id: 32,
     name: "VCBF-BCF",
     color: "#10b981",
     note: "Quỹ cổ phiếu bluechip VCBF",
   },
-];
-
-const bcfInfo = [
-  { label: "NAV / CCQ (28/8/2026)", value: "42.753,74 đ" },
-  { label: "Quy mô (7/2026)", value: "~1.528,7 tỷ đ" },
-  { label: "Cơ cấu", value: "~100% cổ phiếu bluechip" },
-  { label: "Phí mua", value: "0%" },
-  { label: "Phí bán ≤1 năm", value: "3%" },
-  { label: "Phí bán 1–2 năm", value: "0,5%" },
-  { label: "Phí bán >2 năm", value: "0%" },
-  { label: "LN bình quân từ lập quỹ", value: "~13,1%/năm" },
+  {
+    id: 12,
+    name: "BVFED",
+    color: "#f59e0b",
+    note: "Quỹ cổ phiếu năng động BAOVIETFUND",
+  },
+  {
+    id: 35,
+    name: "MAGEF",
+    color: "#0ea5e9",
+    note: "Quỹ cổ phiếu tăng trưởng Mirae Asset",
+  },
+  {
+    id: 47,
+    name: "MBVF",
+    color: "#ef4444",
+    note: "Quỹ đầu tư giá trị MB Capital",
+  },
+  {
+    id: 28,
+    name: "DCDS",
+    color: "#8b5cf6",
+    note: "Quỹ đầu tư chứng khoán năng động Dragon Capital",
+  },
 ];
 
 const ChungChiQuyTab: React.FC = () => {
+  const [rawHistories, setRawHistories] = useState<any[]>([]);
   const [navPoints, setNavPoints] = useState<LinePoint[]>([]);
+  const [viewRange, setViewRange] = useState<"1y" | "all">("1y");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState(CCQ_PRODUCTS[0].id);
+  const [detail, setDetail] = useState<FundDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(true);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
+    setViewRange("1y"); // reset to default 1-year view whenever fund changes
     fetchNavHistory(selectedId)
       .then((data) => {
         const histories = data?.navHistories ?? [];
         if (!histories.length) throw new Error("Không có dữ liệu NAV");
-        // Sample to keep chart readable (max 300 points)
-        const sampled =
-          histories.length > 300
-            ? histories.filter(
-                (_: any, i: number) =>
-                  i % Math.ceil(histories.length / 300) === 0,
-              )
-            : histories;
-        const pts: LinePoint[] = sampled.map((h: any) => {
-          const d = new Date(h.navDate);
-          const label = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
-          return { x: 0, y: 0, label, value: Math.round(h.nav) };
-        });
-        setNavPoints(pts);
+        setRawHistories(histories);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [selectedId]);
 
+  // Re-derive the chart's displayed points whenever the raw history or the
+  // selected view range (1 năm / tất cả) changes.
+  useEffect(() => {
+    if (!rawHistories.length) {
+      setNavPoints([]);
+      return;
+    }
+    let source = rawHistories;
+    if (viewRange === "1y") {
+      const lastDate = new Date(rawHistories[rawHistories.length - 1].navDate);
+      const cutoff = new Date(lastDate);
+      cutoff.setDate(cutoff.getDate() - 365);
+      const windowed = rawHistories.filter(
+        (h: any) => new Date(h.navDate) >= cutoff,
+      );
+      // Fall back to full history if somehow too little data in the window.
+      source = windowed.length >= 2 ? windowed : rawHistories;
+    }
+    // Sample to keep chart readable (max 300 points)
+    const sampled =
+      source.length > 300
+        ? source.filter(
+            (_: any, i: number) => i % Math.ceil(source.length / 300) === 0,
+          )
+        : source;
+    const fineLabel = viewRange === "1y";
+    const pts: LinePoint[] = sampled.map((h: any) => {
+      const d = new Date(h.navDate);
+      const label = fineLabel
+        ? `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`
+        : `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
+      return { x: 0, y: 0, label, value: Math.round(h.nav) };
+    });
+    setNavPoints(pts);
+  }, [rawHistories, viewRange]);
+
+  useEffect(() => {
+    setDetailLoading(true);
+    setDetailError(null);
+    fetchFundDetail(selectedId)
+      .then((d) => setDetail(d))
+      .catch((e) => setDetailError(e.message))
+      .finally(() => setDetailLoading(false));
+  }, [selectedId]);
+
   const product = CCQ_PRODUCTS.find((p) => p.id === selectedId)!;
+
+  const fmtPct = (v: number | null | undefined) =>
+    v == null ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+  const fmtDate = (ms: number | null | undefined) =>
+    ms ? new Date(ms).toLocaleDateString("vi-VN") : "—";
+
+  const infoItems = detail
+    ? [
+        {
+          label: `NAV / CCQ (${fmtDate(detail.navUpdateAt)})`,
+          value: `${detail.nav.toLocaleString("vi-VN")} đ`,
+        },
+        {
+          label: "Quy mô quỹ",
+          value: detail.totalAssetValueStr
+            ? `~${detail.totalAssetValueStr} đ`
+            : "—",
+        },
+        { label: "Đơn vị quản lý", value: detail.ownerName || "—" },
+        {
+          label: "Phí quản lý",
+          value:
+            detail.managementFee != null ? `${detail.managementFee}%/năm` : "—",
+        },
+        {
+          label: "LN bình quân từ lập quỹ",
+          value:
+            detail.avgAnnualReturn != null
+              ? `~${detail.avgAnnualReturn}%/năm`
+              : "—",
+        },
+        {
+          label: "% NAV so với hôm trước",
+          value: fmtPct(detail.navToPrevious),
+        },
+        { label: "% NAV 12 tháng", value: fmtPct(detail.navTo12Months) },
+        { label: "% NAV 3 năm", value: fmtPct(detail.navTo36Months) },
+        { label: "% NAV 5 năm", value: fmtPct(detail.navTo60Months) },
+        { label: "% NAV từ lúc lập quỹ", value: fmtPct(detail.navToEstablish) },
+      ]
+    : [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -650,7 +858,8 @@ const ChungChiQuyTab: React.FC = () => {
       >
         ⚠️{" "}
         <em>
-          Dữ liệu NAV thực tế từ Fmarket API — cập nhật theo ngày giao dịch.
+          Dữ liệu NAV và danh mục đầu tư thực tế từ Fmarket API — cập nhật theo
+          ngày giao dịch.
         </em>
       </div>
 
@@ -677,44 +886,74 @@ const ChungChiQuyTab: React.FC = () => {
         ))}
       </div>
 
-      {/* Fund info */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
-          gap: "8px",
-        }}
-      >
-        {bcfInfo.map((item) => (
-          <div
-            key={item.label}
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: "8px",
-              padding: "9px 12px",
-            }}
-          >
-            <span
+      {/* Fund info (live) */}
+      {detailLoading && (
+        <div
+          style={{
+            padding: "20px",
+            textAlign: "center",
+            color: "#64748b",
+            fontSize: "12.5px",
+            background: "#f8fafc",
+            borderRadius: "10px",
+          }}
+        >
+          ⏳ Đang tải thông tin quỹ...
+        </div>
+      )}
+      {detailError && (
+        <div
+          style={{
+            padding: "12px 14px",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: "8px",
+            color: "#dc2626",
+            fontSize: "12px",
+          }}
+        >
+          ❌ {detailError}
+        </div>
+      )}
+      {!detailLoading && !detailError && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+            gap: "8px",
+          }}
+        >
+          {infoItems.map((item) => (
+            <div
+              key={item.label}
               style={{
-                fontSize: "10.5px",
-                color: "#64748b",
-                display: "block",
-                marginBottom: "2px",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+                padding: "9px 12px",
               }}
             >
-              {item.label}
-            </span>
-            <div
-              style={{ fontSize: "13px", fontWeight: 800, color: "#1e293b" }}
-            >
-              {item.value}
+              <span
+                style={{
+                  fontSize: "10.5px",
+                  color: "#64748b",
+                  display: "block",
+                  marginBottom: "2px",
+                }}
+              >
+                {item.label}
+              </span>
+              <div
+                style={{ fontSize: "13px", fontWeight: 800, color: "#1e293b" }}
+              >
+                {item.value}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* NAV Line Chart */}
+      {/* NAV Line Chart (zoomable) */}
       {loading && (
         <div
           style={{
@@ -744,32 +983,194 @@ const ChungChiQuyTab: React.FC = () => {
         </div>
       )}
       {!loading && !error && navPoints.length > 0 && (
-        <SvgLineChart
-          points={navPoints}
-          title={`NAV lịch sử — ${product.name} (đồng/chứng chỉ quỹ)`}
-          yUnit=" đ"
-          color={product.color}
-          height={250}
-        />
+        <>
+          <div style={{ display: "flex", gap: "6px" }}>
+            {(
+              [
+                { key: "1y", label: "1 Năm Gần Nhất" },
+                { key: "all", label: "Toàn Bộ Lịch Sử" },
+              ] as const
+            ).map((r) => (
+              <button
+                key={r.key}
+                onClick={() => setViewRange(r.key)}
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: "16px",
+                  border: "1.5px solid",
+                  borderColor: viewRange === r.key ? product.color : "#e2e8f0",
+                  background: viewRange === r.key ? product.color : "#fff",
+                  color: viewRange === r.key ? "#fff" : "#64748b",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <SvgLineChart
+            points={navPoints}
+            title={`NAV lịch sử — ${product.name} (đồng/chứng chỉ quỹ)`}
+            yUnit=" đ"
+            color={product.color}
+            height={250}
+            zoomable
+          />
+        </>
       )}
 
-      <div
-        style={{
-          background: "#f0fdf4",
-          border: "1px solid #bbf7d0",
-          borderRadius: "8px",
-          padding: "12px 14px",
-          fontSize: "12.5px",
-          color: "#166534",
-          lineHeight: "1.7",
-        }}
-      >
-        💡 <strong>Đọc nhanh:</strong> BCF là quỹ cổ phiếu thuần — năm tốt +26
-        đến +34%, năm xấu −19%. Điểm mạnh là{" "}
-        <strong>giảm ít hơn thị trường khi sập</strong> (2022: −19% vs −33%) và{" "}
-        <strong>vượt chỉ số đều trong 2023–2024</strong>. Rủi ro cao, chỉ hợp
-        vốn dài hạn ≥3–5 năm, nên vào DCA, giữ &gt;2 năm để tránh phí bán 3%.
-      </div>
+      {/* Top Holdings (live) */}
+      {!detailLoading &&
+        !detailError &&
+        detail &&
+        detail.topHoldings.length > 0 && (
+          <div
+            style={{
+              background: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "10px",
+              padding: "14px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "12.5px",
+                fontWeight: 700,
+                color: "#1e293b",
+                marginBottom: "10px",
+              }}
+            >
+              📊 Danh Mục Đầu Tư Lớn — {product.name}
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  borderCollapse: "collapse",
+                  width: "100%",
+                  fontSize: "12px",
+                }}
+              >
+                <thead>
+                  <tr style={{ background: "#f8fafc" }}>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "6px 10px",
+                        fontSize: "10.5px",
+                        color: "#64748b",
+                      }}
+                    >
+                      Mã CP
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "6px 10px",
+                        fontSize: "10.5px",
+                        color: "#64748b",
+                      }}
+                    >
+                      Ngành
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "right",
+                        padding: "6px 10px",
+                        fontSize: "10.5px",
+                        color: "#64748b",
+                      }}
+                    >
+                      % GAV
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "right",
+                        padding: "6px 10px",
+                        fontSize: "10.5px",
+                        color: "#64748b",
+                      }}
+                    >
+                      Giá (ngàn đ)
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "right",
+                        padding: "6px 10px",
+                        fontSize: "10.5px",
+                        color: "#64748b",
+                      }}
+                    >
+                      % Thay đổi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detail.topHoldings.map((h) => (
+                    <tr
+                      key={h.stockCode}
+                      style={{ borderBottom: "1px solid #f1f5f9" }}
+                    >
+                      <td
+                        style={{
+                          padding: "6px 10px",
+                          fontWeight: 800,
+                          color: "#1e293b",
+                        }}
+                      >
+                        {h.stockCode}
+                      </td>
+                      <td style={{ padding: "6px 10px", color: "#64748b" }}>
+                        {h.industry || "—"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "6px 10px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {h.netAssetPercent != null
+                          ? h.netAssetPercent.toFixed(2)
+                          : "—"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "6px 10px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                        }}
+                      >
+                        {h.price != null
+                          ? h.price.toLocaleString("vi-VN")
+                          : "—"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "6px 10px",
+                          textAlign: "right",
+                          fontFamily: "monospace",
+                          color:
+                            h.changeFromPreviousPercent == null
+                              ? "#64748b"
+                              : h.changeFromPreviousPercent > 0
+                                ? "#16a34a"
+                                : h.changeFromPreviousPercent < 0
+                                  ? "#dc2626"
+                                  : "#64748b",
+                        }}
+                      >
+                        {fmtPct(h.changeFromPreviousPercent)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
         <p
@@ -783,34 +1184,22 @@ const ChungChiQuyTab: React.FC = () => {
           Nguồn:
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-          {[
-            {
-              label: "Fmarket – VCBF-BCF",
-              url: "https://fmarket.vn/quy/VCBFBCF",
-            },
-            {
-              label: "VCBF – Trang quỹ BCF",
-              url: "https://www.vcbf.com/quy-mo/cac-quy-mo/quy-dau-tu-co-phieu-hang-dau-vcbf/",
-            },
-          ].map((s) => (
-            <a
-              key={s.url}
-              href={s.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontSize: "11px",
-                color: "#3b82f6",
-                background: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                padding: "3px 8px",
-                borderRadius: "4px",
-                textDecoration: "none",
-              }}
-            >
-              {s.label} ↗
-            </a>
-          ))}
+          <a
+            href={`https://fmarket.vn/quy/${product.name.replace("-", "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: "11px",
+              color: "#3b82f6",
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              padding: "3px 8px",
+              borderRadius: "4px",
+              textDecoration: "none",
+            }}
+          >
+            Fmarket – {product.name} ↗
+          </a>
         </div>
       </div>
     </div>

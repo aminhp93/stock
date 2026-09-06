@@ -1,11 +1,23 @@
 import React, { useState } from "react";
-import { Bot, FlaskConical } from "lucide-react";
+import { Bot, FlaskConical, Youtube, Newspaper } from "lucide-react";
 import { TestAgentPage } from "./TestAgentPage";
 import { StrategyTestTab } from "./StrategyTestTab";
+import { ObservationPage } from "./ObservationPage";
+import { TckdTab } from "./TckdTab";
 
 const TABS = [
   { id: "agent", label: "Test Agent", icon: <Bot size={13} /> },
-  { id: "strategy", label: "Test Chiến Lược", icon: <FlaskConical size={13} /> },
+  {
+    id: "strategy",
+    label: "Test Chiến Lược",
+    icon: <FlaskConical size={13} />,
+  },
+  {
+    id: "observation",
+    label: "CFA99 Observation",
+    icon: <Youtube size={13} />,
+  },
+  { id: "tckd", label: "Tài Chính Kinh Doanh", icon: <Newspaper size={13} /> },
 ] as const;
 
 export const TestPage: React.FC = () => {
@@ -58,9 +70,26 @@ export const TestPage: React.FC = () => {
       {tab === "strategy" && (
         <div
           className="page-wrapper animate-fade-in"
-          style={{ padding: "0 32px 24px", maxWidth: "1440px", margin: "0 auto" }}
+          style={{
+            padding: "0 32px 24px",
+            maxWidth: "1440px",
+            margin: "0 auto",
+          }}
         >
           <StrategyTestTab />
+        </div>
+      )}
+      {tab === "observation" && <ObservationPage />}
+      {tab === "tckd" && (
+        <div
+          className="page-wrapper animate-fade-in"
+          style={{
+            padding: "0 32px 24px",
+            maxWidth: "1440px",
+            margin: "0 auto",
+          }}
+        >
+          <TckdTab />
         </div>
       )}
     </div>

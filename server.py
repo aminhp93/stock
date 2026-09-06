@@ -42,8 +42,13 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/api/data/stats":
             self.handle_api_data_stats()
         elif path == "/api/nav-history":
-            product_id = int(query.get("productId", [48])[0])
+            # NOTE: 32 = VCBF-BCF (Quỹ Đầu Tư Cổ Phiếu Hàng Đầu VCBF).
+            # productId=48 was WRONG (points to a different, much smaller-growth fund).
+            product_id = int(query.get("productId", [32])[0])
             self.handle_nav_history(product_id)
+        elif path == "/api/fund-detail":
+            product_id = int(query.get("productId", [32])[0])
+            self.handle_fund_detail(product_id)
         elif path == "/api/data/raw-prices":
             symbol = query.get("symbol", ["TCH"])[0].upper()
             limit = int(query.get("limit", [100])[0])
@@ -89,6 +94,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_strategy_backtest_status(strategy)
         elif path == "/api/finance/raw":
             self.handle_finance_raw()
+        elif path == "/api/tckd/analysis":
+            self.handle_tckd_analysis()
         else:
             # SPA fallback: if file does not exist, serve index.html
             local_path = self.translate_path(self.path)
@@ -1003,7 +1010,96 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json_response({"error": str(e)}, status_code=500)
 
+    def handle_tckd_analysis(self):
+        """Serves the pre-computed 'Tài Chính & Kinh Doanh' (TCKD) macro
+        sentiment/theme analysis (data/tckd/tckd_analysis_results.json),
+        derived from 40 YouTube videos (2 playlists: 'Đi Theo Dòng Tiền' &
+        'Góc Nhìn TCKD') — includes per-video macro stance score, theme
+        density and asset-class attention metrics."""
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            json_path = os.path.join(base_dir, "data", "tckd", "tckd_analysis_results.json")
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.send_json_response({"data": data})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, status_code=500)
+
+    def handle_fund_detail(self, product_id: int):
+        """Proxies Fmarket's product detail API to get live NAV, fund size,
+        fees, historical performance (%YTD/1Y/3Y/5Y...), and the fund's
+        current top-holding stocks (productTopHoldingList)."""
+        try:
+            import urllib.request
+            url = f"https://api.fmarket.vn/res/products/{product_id}"
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept": "application/json, text/plain, */*",
+                    "Origin": "https://fmarket.vn",
+                    "Referer": "https://fmarket.vn/",
+                },
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                raw = json.loads(resp.read().decode("utf-8"))
+            d = raw.get("data", {}) or {}
+            nav_change = d.get("productNavChange", {}) or {}
+            fund_report = d.get("fundReport", {}) or {}
+            top_holdings = [
+                {
+                    "stockCode": h.get("stockCode"),
+                    "industry": h.get("industry"),
+                    "netAssetPercent": h.get("netAssetPercent"),
+                    "price": h.get("price"),
+                    "changeFromPreviousPercent": h.get("changeFromPreviousPercent"),
+                }
+                for h in (d.get("productTopHoldingList") or [])
+            ]
+            asset_holdings = [
+                {
+                    "name": a.get("assetType", {}).get("name"),
+                    "assetPercent": a.get("assetPercent"),
+                }
+                for a in (d.get("productAssetHoldingList") or [])
+            ]
+            result = {
+                "productId": product_id,
+                "name": d.get("name"),
+                "shortName": d.get("shortName"),
+                "nav": d.get("nav"),
+                "navUpdateAt": nav_change.get("updateAt"),
+                "totalAssetValueStr": fund_report.get("totalAssetValueStr"),
+                "fundReportTime": fund_report.get("reportTime"),
+                "managementFee": d.get("managementFee"),
+                "avgAnnualReturn": d.get("avgAnnualReturn"),
+                "navToPrevious": nav_change.get("navToPrevious"),
+                "navToLastYear": nav_change.get("navToLastYear"),
+                "navTo1Months": nav_change.get("navTo1Months"),
+                "navTo3Months": nav_change.get("navTo3Months"),
+                "navTo6Months": nav_change.get("navTo6Months"),
+                "navTo12Months": nav_change.get("navTo12Months"),
+                "navTo24Months": nav_change.get("navTo24Months"),
+                "navTo36Months": nav_change.get("navTo36Months"),
+                "navTo60Months": nav_change.get("navTo60Months"),
+                "navToEstablish": nav_change.get("navToEstablish"),
+                "topHoldings": top_holdings,
+                "assetHoldings": asset_holdings,
+                "ownerName": (d.get("owner") or {}).get("name"),
+            }
+            self.send_json_response({"data": result})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, status_code=500)
+
     def handle_nav_history(self, product_id: int):
+        """Proxies Fmarket's nav-history API. NOTE: Fmarket's endpoint ignores
+        fromDate/toDate and simply returns its full static dataset, which can
+        lag several months behind today (observed: stops ~2025-12-09 while
+        today is 2026-09). To bridge that gap we append the *live* current
+        NAV (sourced from the products/{id} detail endpoint, which IS kept
+        up-to-date daily) as a synthetic final point when it's newer than the
+        last historical record, so the chart's endpoint reflects reality."""
         try:
             import urllib.request
             from datetime import datetime, timedelta
@@ -1029,6 +1125,48 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             )
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
+
+            history = data.get("data") or []
+            last_date = None
+            if history:
+                try:
+                    last_date = max(h.get("navDate", "") for h in history if h.get("navDate"))
+                except ValueError:
+                    last_date = None
+
+            # Bridge the gap with the live current NAV, if it's fresher.
+            try:
+                detail_req = urllib.request.Request(
+                    f"https://api.fmarket.vn/res/products/{product_id}",
+                    headers={
+                        "User-Agent": "Mozilla/5.0",
+                        "Accept": "application/json, text/plain, */*",
+                        "Origin": "https://fmarket.vn",
+                        "Referer": "https://fmarket.vn/",
+                    },
+                    method="GET",
+                )
+                with urllib.request.urlopen(detail_req, timeout=10) as resp:
+                    detail_raw = json.loads(resp.read().decode("utf-8"))
+                d = detail_raw.get("data", {}) or {}
+                nav_change = d.get("productNavChange", {}) or {}
+                live_nav = d.get("nav")
+                update_at_ms = nav_change.get("updateAt")
+                if live_nav and update_at_ms:
+                    live_date = datetime.fromtimestamp(update_at_ms / 1000).strftime("%Y-%m-%d")
+                    if not last_date or live_date > last_date:
+                        history.append({
+                            "id": None,
+                            "createdAt": update_at_ms,
+                            "nav": live_nav,
+                            "navDate": live_date,
+                            "productId": product_id,
+                            "isLive": True,
+                        })
+                        data["data"] = history
+            except Exception:
+                pass  # If live-bridge fails, just return the raw history as-is.
+
             self.send_json_response(data)
         except Exception as e:
             self.send_json_response({"error": str(e)}, status_code=500)

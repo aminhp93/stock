@@ -1,31 +1,26 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Wallet, Table2, BarChart2, TrendingUp, Target } from "lucide-react";
+import { Table2, BarChart2, TrendingUp, Target } from "lucide-react";
 
 export const PERSONAL_SUB_TABS = [
   {
-    to: "/finance/personal/tool",
-    label: "1. Công Cụ Tài Chính",
-    icon: <Wallet size={13} />,
-  },
-  {
     to: "/finance/personal/raw",
-    label: "2. Dữ Liệu Thô",
+    label: "1. Dữ Liệu Thô",
     icon: <Table2 size={13} />,
   },
   {
     to: "/finance/personal/visual",
-    label: "3. Trực Quan Hoá",
+    label: "2. Trực Quan Hoá",
     icon: <BarChart2 size={13} />,
   },
   {
     to: "/finance/personal/assess",
-    label: "4. Đánh Giá Chung",
+    label: "3. Đánh Giá Chung",
     icon: <TrendingUp size={13} />,
   },
   {
     to: "/finance/personal/recommend",
-    label: "5. Khuyến Nghị",
+    label: "4. Khuyến Nghị",
     icon: <Target size={13} />,
   },
 ];
