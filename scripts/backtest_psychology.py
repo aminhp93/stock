@@ -97,10 +97,14 @@ def main():
         m5, w5 = _stats(hits, "fwd_ret_5d")
         m10, w10 = _stats(hits, "fwd_ret_10d")
         edge5 = round(m5 - base["fwd_ret_5d"][0], 2) if m5 is not None else None
+
+        def f(v):  # một số phiên gần nhất chưa đủ forward return -> None
+            return f"{v:+}%" if v is not None else "n/a"
+
         print(f"\n▸ {name}")
         print(f"  {desc}")
-        print(f"  n={len(hits)}  fwd: 1d {m1:+}%  3d {m3:+}%  5d {m5:+}%  10d {m10:+}%"
-              f"   win5d {w5}%   edge5d vs baseline {edge5:+}%")
+        print(f"  n={len(hits)}  fwd: 1d {f(m1)}  3d {f(m3)}  5d {f(m5)}  10d {f(m10)}"
+              f"   win5d {w5 if w5 is not None else 'n/a'}%   edge5d vs baseline {f(edge5)}")
 
     print("\n" + "=" * 88)
     print("Cửa sổ ngắn — coi là gợi ý giả thuyết, chưa phải bằng chứng thống kê.")
