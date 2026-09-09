@@ -9,7 +9,12 @@ Các bước (mỗi bước độc lập; lỗi 1 bước không chặn các bư
                                 phân loại CFA99, market_psychology_daily, backtest edges
                                 (bỏ qua bước thu thập livestream nếu chưa có YOUTUBE_API_KEY)
 
-    python3 scripts/sync_daily.py            # đồng bộ hàng ngày
+Bảo vệ: nếu chạy TRƯỚC 15:15 (giờ máy) vào ngày làm việc, script sẽ BỎ QUA để
+không nạp dữ liệu giữa phiên (giá/khối ngoại/tâm lý sẽ sai). Dùng --force/--full
+để bỏ qua bảo vệ này.
+
+    python3 scripts/sync_daily.py            # đồng bộ hàng ngày (chỉ chạy sau giờ đóng cửa)
+    python3 scripts/sync_daily.py --force    # đồng bộ ngay dù phiên chưa kết thúc
     python3 scripts/sync_daily.py --full     # + re-sync giá đầy đủ từ 2021 (chậm, dễ bị rate-limit)
 
 Lịch cron gợi ý (T2–T6, 16:00):
@@ -23,7 +28,7 @@ import os
 import subprocess
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -32,10 +37,19 @@ sys.path.insert(0, ROOT)
 DB = dict(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
 INCREMENTAL_DAYS = 100      # cửa sổ fetch giá incremental
 BACKFILL_DAYS = 80          # vá chỉ báo cho các phiên trong khoảng này
+CLOSE_HH, CLOSE_MM = 15, 15  # sau giờ này (giờ máy) mới coi dữ liệu phiên hôm nay là chốt
 
 
 def log(msg: str) -> None:
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
+
+
+def market_closed(now: datetime | None = None) -> bool:
+    """True nếu phiên hôm nay đã kết thúc (hoặc hôm nay là cuối tuần → không có phiên)."""
+    now = now or datetime.now()
+    if now.weekday() >= 5:
+        return True
+    return (now.hour, now.minute) >= (CLOSE_HH, CLOSE_MM)
 
 
 def step_prices(full: bool) -> None:
@@ -125,6 +139,14 @@ def step_psychology() -> None:
 
 def main() -> int:
     full = "--full" in sys.argv
+    force = "--force" in sys.argv or full
+
+    if not force and not market_closed():
+        log(f"⏸  Phiên giao dịch hôm nay chưa kết thúc ({datetime.now():%H:%M}) — bỏ qua để "
+            f"tránh nạp dữ liệu trong phiên. Chạy sau {CLOSE_HH:02d}:{CLOSE_MM:02d}, hoặc "
+            f"thêm --force / --full để đồng bộ ngay.")
+        return 0
+
     t0 = time.time()
     log(f"════ SYNC HÀNG NGÀY — {date.today()} {'(FULL)' if full else ''} ════")
 
