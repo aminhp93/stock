@@ -9,17 +9,18 @@ Các bước (mỗi bước độc lập; lỗi 1 bước không chặn các bư
                                 phân loại CFA99, market_psychology_daily, backtest edges
                                 (bỏ qua bước thu thập livestream nếu chưa có YOUTUBE_API_KEY)
 
-Bảo vệ: nếu chạy TRƯỚC 15:15 (giờ máy) vào ngày làm việc, script sẽ BỎ QUA để
-không nạp dữ liệu giữa phiên (giá/khối ngoại/tâm lý sẽ sai). Dùng --force/--full
-để bỏ qua bảo vệ này.
+Bảo vệ: nếu chạy TRONG PHIÊN (T2–T6, 08:45–15:15 giờ máy) script BỎ QUA để không
+nạp bar dở dang của hôm nay. Trước/sau phiên và cuối tuần đều an toàn. --force/--full
+bỏ qua bảo vệ.
 
-    python3 scripts/sync_daily.py            # đồng bộ hàng ngày (chỉ chạy sau giờ đóng cửa)
-    python3 scripts/sync_daily.py --force    # đồng bộ ngay dù phiên chưa kết thúc
+    python3 scripts/sync_daily.py            # đồng bộ (bỏ qua nếu đang trong phiên)
+    python3 scripts/sync_daily.py --force    # đồng bộ ngay dù đang trong phiên
     python3 scripts/sync_daily.py --full     # + re-sync giá đầy đủ từ 2021 (chậm, dễ bị rate-limit)
 
-Lịch cron gợi ý (T2–T6, 16:00):
-    0 16 * * 1-5 cd /Users/aminhp93/personal/stock && /usr/bin/python3 scripts/sync_daily.py \
-        >> /Users/aminhp93/personal/stock/logs/sync_daily.log 2>&1
+Lịch chạy: launchd agent com.aminhp93.stock.syncdaily (T2–T6 16:00, chạy bù khi
+máy thức dậy nếu lúc 16:00 đang ngủ). Xem/gỡ:
+    launchctl list | grep syncdaily
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.aminhp93.stock.syncdaily.plist
 """
 
 from __future__ import annotations
@@ -37,19 +38,22 @@ sys.path.insert(0, ROOT)
 DB = dict(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
 INCREMENTAL_DAYS = 100      # cửa sổ fetch giá incremental
 BACKFILL_DAYS = 80          # vá chỉ báo cho các phiên trong khoảng này
-CLOSE_HH, CLOSE_MM = 15, 15  # sau giờ này (giờ máy) mới coi dữ liệu phiên hôm nay là chốt
+# "vùng nguy hiểm" — phiên HOSE đang diễn ra, dữ liệu hôm nay còn dở dang (giờ máy):
+SESSION_OPEN = (8, 45)
+SESSION_SETTLED = (15, 15)  # sau ATC + khớp lệnh sau giờ, coi như đã chốt
 
 
 def log(msg: str) -> None:
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
 
 
-def market_closed(now: datetime | None = None) -> bool:
-    """True nếu phiên hôm nay đã kết thúc (hoặc hôm nay là cuối tuần → không có phiên)."""
+def in_trading_session(now: datetime | None = None) -> bool:
+    """True nếu đang trong phiên (T2–T6, 08:45–15:15) — lúc này bar hôm nay chưa chốt.
+    Trước phiên: chưa có bar hôm nay. Sau phiên / cuối tuần: bar đã chốt. Đều an toàn."""
     now = now or datetime.now()
     if now.weekday() >= 5:
-        return True
-    return (now.hour, now.minute) >= (CLOSE_HH, CLOSE_MM)
+        return False
+    return SESSION_OPEN <= (now.hour, now.minute) < SESSION_SETTLED
 
 
 def step_prices(full: bool) -> None:
@@ -141,9 +145,9 @@ def main() -> int:
     full = "--full" in sys.argv
     force = "--force" in sys.argv or full
 
-    if not force and not market_closed():
-        log(f"⏸  Phiên giao dịch hôm nay chưa kết thúc ({datetime.now():%H:%M}) — bỏ qua để "
-            f"tránh nạp dữ liệu trong phiên. Chạy sau {CLOSE_HH:02d}:{CLOSE_MM:02d}, hoặc "
+    if not force and in_trading_session():
+        log(f"⏸  Đang trong phiên giao dịch ({datetime.now():%H:%M}) — bỏ qua để tránh nạp "
+            f"dữ liệu dở dang. Sẽ chạy ở lần hẹn kế (sau {SESSION_SETTLED[0]:02d}:{SESSION_SETTLED[1]:02d}); "
             f"thêm --force / --full để đồng bộ ngay.")
         return 0
 

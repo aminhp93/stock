@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent: chạy scripts/sync_daily.py lúc 16:00 các ngày T2–T6.
+  Khác cron: nếu máy đang ngủ lúc 16:00, launchd chạy bù 1 lần khi máy thức dậy.
+
+  Cài / nạp lại:
+    cp deploy/com.aminhp93.stock.syncdaily.plist ~/Library/LaunchAgents/
+    launchctl bootout  gui/$(id -u)/com.aminhp93.stock.syncdaily 2>/dev/null
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.aminhp93.stock.syncdaily.plist
+
+  Kiểm tra / chạy tay / gỡ:
+    launchctl list | grep syncdaily
+    launchctl kickstart -p gui/$(id -u)/com.aminhp93.stock.syncdaily
+    launchctl bootout gui/$(id -u)/com.aminhp93.stock.syncdaily
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.aminhp93.stock.syncdaily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/aminhp93/personal/stock/scripts/sync_daily.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/aminhp93/personal/stock</string>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/Users/aminhp93/personal/stock/logs/sync_daily.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/aminhp93/personal/stock/logs/sync_daily.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+    <key>Nice</key>
+    <integer>5</integer>
+</dict>
+</plist>
