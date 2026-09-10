@@ -479,7 +479,7 @@ def render(d: dict, narrative: dict) -> str:
         <div class="row"><span class="k">GTGD khớp lệnh</span><span class="v">{_fmt(hnx_s.get('gtgd'))} tỷ</span></div>
         <div class="row"><span class="k">Độ rộng (tăng / giảm)</span><span class="v"><span class="up">{hnx_s.get('up','?')}</span> / <span class="down">{hnx_s.get('dn','?')}</span></span></div>
         <div class="row"><span class="k">Tâm lý (gauge 0–100)</span><span class="v">{ps.get('gauge','—')} · {({'EXTREME_FEAR':'Sợ hãi cực độ','FEAR':'Sợ hãi','NEUTRAL':'Trung tính','GREED':'Tham lam','EXTREME_GREED':'Tham lam cực độ'}).get(ps.get('label'),'—')}</span></div>
-        <div class="row"><span class="k">Biến động thực 20p</span><span class="v">{it.get('rvol',0):.1f}</span></div>
+        <div class="row"><span class="k">Biến động thực 20p</span><span class="v">{_vn(it.get('rvol') or 0, 1)}</span></div>
       </div>
     </div>
     <div class="callout"><b>Chưa có trong hệ thống:</b> tự doanh mua/bán ròng · tỷ giá USD/VND · giá vàng · lãi suất tiết kiệm.</div>
