@@ -125,11 +125,9 @@ flowchart LR
    - 3 Kịch bản Bull/Base/Bear, Quản trị rủi ro Half-Kelly, và Checklist 7 tiêu chuẩn Gatekeeper.
 
 4. **💰 `/finance/personal` - [4. Tài Chính Cá Nhân (Personal Finance Hub)](file:///Users/aminhp93/personal/githubcoffee/stock/src/pages/PersonalLayout.tsx)**:
-   - **`/finance/personal/tool` (1. Công Cụ)**: FIRE Planner (Quy tắc 4%), Quỹ An Toàn Khẩn Cấp, Phân bổ danh mục rủi ro, Mô phỏng Lãi Kép 500 Triệu (Tiết kiệm vs Lump Sum vs DCA).
-   - **`/finance/personal/raw` (2. Dữ Liệu Thô)**: Bảng ghi chép tài sản chi tiết (Vàng, Chứng khoán, Sổ tiết kiệm ngân hàng, Tiền mặt các ví/tài khoản, Thẻ tín dụng, Dư nợ vay).
-   - **`/finance/personal/visual` (3. Trực Quan Hoá)**: Biểu đồ biến động tài sản ròng (Net Worth), tỷ trọng danh mục (Asset Allocation), cơ cấu nợ vs tài sản.
-   - **`/finance/personal/assess` (4. Đánh Giá Chung)**: Ma trận so sánh các kênh đầu tư (Bất động sản, Vàng, Chứng khoán, Tiết kiệm, Trái phiếu), ma trận rủi ro vs lợi nhuận.
-   - **`/finance/personal/recommend` (5. Khuyến Nghị)**: Khuyến nghị cơ cấu lại danh mục cổ phiếu, kế hoạch trả nợ vay ngân hàng và lộ trình tích sản tối ưu.
+   - **`/finance/personal/raw` (1. Dữ Liệu Thô)**: Bảng ghi chép tài sản chi tiết (Vàng, Chứng khoán, Sổ tiết kiệm ngân hàng, Tiền mặt các ví/tài khoản, Thẻ tín dụng, Dư nợ vay).
+   - **`/finance/personal/assess` (2. Đánh Giá Chung)**: Ma trận so sánh các kênh đầu tư (Bất động sản, Vàng, Chứng khoán, Tiết kiệm, Trái phiếu), ma trận rủi ro vs lợi nhuận.
+   - **`/finance/personal/recommend` (3. Khuyến Nghị)**: Khuyến nghị cơ cấu lại danh mục cổ phiếu, kế hoạch trả nợ vay ngân hàng và lộ trình tích sản tối ưu.
 
 5. **📹 `/finance/stock/observation` - [5. Quan Sát Tâm Lý Livestream CFA99 (CFA99 Observation Monitor)](file:///Users/aminhp93/personal/githubcoffee/stock/src/pages/ObservationPage.tsx)**:
    - **Kiến trúc 3 Tầng**: Raw Data (Livestream & Comments & Transcripts) → Sentiment Metrics (Bullish, Bearish, FOMO/Fear Z-Scores) → Market Relationship (Attention & Sentiment vs VN-Index & Forward Returns).

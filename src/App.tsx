@@ -12,7 +12,6 @@ import { MorningRoutinePage } from "./pages/MorningRoutinePage";
 import { PersonalLayout } from "./pages/PersonalLayout";
 import {
   RawDataTab,
-  VisualizeTab,
   AssessmentTab,
   RecommendationTab,
 } from "./pages/FinancePage";
@@ -64,15 +63,15 @@ export const App: React.FC = () => {
           <Route path="/finance/personal" element={<PersonalLayout />}>
             <Route index element={<Navigate to="raw" replace />} />
             <Route path="raw" element={<RawDataTab />} />
-            <Route path="visual" element={<VisualizeTab />} />
             <Route path="assess" element={<AssessmentTab />} />
             <Route path="recommend" element={<RecommendationTab />} />
             {/* aliases */}
-            {/* "tool" page removed — redirect to raw data */}
+            {/* "tool" and "visual" pages removed — redirect to raw data */}
             <Route path="tool" element={<Navigate to="../raw" replace />} />
             <Route path="tools" element={<Navigate to="raw" replace />} />
+            <Route path="visual" element={<Navigate to="../raw" replace />} />
             <Route path="data" element={<Navigate to="raw" replace />} />
-            <Route path="charts" element={<Navigate to="visual" replace />} />
+            <Route path="charts" element={<Navigate to="raw" replace />} />
             <Route
               path="assessment"
               element={<Navigate to="assess" replace />}
