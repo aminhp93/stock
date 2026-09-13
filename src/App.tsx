@@ -8,6 +8,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { SymbolDetailPage } from "./pages/SymbolDetailPage";
 import { CurrentWatchlistPage } from "./pages/CurrentWatchlistPage";
 import { TestPage } from "./pages/TestPage";
+import { MorningRoutinePage } from "./pages/MorningRoutinePage";
 import { PersonalLayout } from "./pages/PersonalLayout";
 import {
   RawDataTab,
@@ -31,7 +32,10 @@ export const App: React.FC = () => {
           />
           {/* ── Stock Subroutes ── */}
           <Route path="/finance/stock" element={<StockLayout />}>
-            <Route index element={<Navigate to="data" replace />} />
+            <Route index element={<Navigate to="morning" replace />} />
+            <Route path="morning" element={<MorningRoutinePage />} />
+            <Route path="routine" element={<Navigate to="morning" replace />} />
+            <Route path="briefing" element={<Navigate to="morning" replace />} />
             <Route path="data" element={<DataPage />} />
             <Route path="chart" element={<ChartPage />} />
             <Route path="watchlist" element={<DashboardPage />} />

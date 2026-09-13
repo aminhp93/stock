@@ -173,3 +173,102 @@ export interface TelegramSentimentResult {
   summary: string;
   error?: string;
 }
+
+export interface MorningBriefingData {
+  session: string;
+  prev: string;
+  weekday: string;
+  today: string;
+  vnindex: {
+    close: number;
+    ret: number;
+    ma20?: number;
+    ma50?: number;
+  };
+  hnx: {
+    close: number;
+    ret: number;
+  };
+  exchanges: Record<string, Record<string, { gtgd: number; up: number; dn: number }>>;
+  foreign_flow: [string, number][];
+  internals: {
+    pct_ma20?: number;
+    pct_ma50?: number;
+    pct_ma200?: number;
+    adv_dec?: number;
+    nh_nl?: number;
+    rvol?: number;
+    vol_ratio?: number;
+    drawdown?: number;
+  };
+  psychology: {
+    gauge: number;
+    label: string;
+    z: number;
+  };
+  movers_up: [string, number, number][];
+  movers_down: [string, number, number][];
+  top_foreign_buy: [string, number][];
+  top_foreign_sell: [string, number][];
+  strong: Array<{
+    sym: string;
+    name: string;
+    price: number;
+    r5: number;
+    rsi: number;
+    turn: number;
+  }>;
+  reward_risk: Array<{
+    sym: string;
+    name: string;
+    price: number;
+    buy_lo: number;
+    target: number;
+    stop: number;
+    rr: number;
+    rsi: number;
+    factors: string;
+  }>;
+  portfolio: {
+    rows: Array<{
+      sym: string;
+      qty: number;
+      cost_nav: number;
+      price: number | null;
+      in_db: boolean;
+      day_pct?: number;
+      vs_cost_pct?: number | null;
+      pnl?: number;
+      tech?: string;
+      weight?: number;
+      foreign?: number;
+      weight_pct?: number;
+    }>;
+    total_cost: number;
+    total_value: number;
+    pnl: number;
+    pnl_pct: number;
+    day_change: number;
+    day_pct: number;
+  };
+}
+
+export interface MorningBriefingResponse {
+  status: string;
+  data: MorningBriefingData;
+  artifact_url: string;
+  notes: string;
+  available_dates: string[];
+  has_html: boolean;
+  error?: string;
+}
+
+export interface DailyChecklistTask {
+  id: string;
+  timeSlot: string;
+  title: string;
+  description: string;
+  category: 'PRE_MARKET' | 'ATO' | 'MORNING' | 'NOON' | 'AFTERNOON' | 'POST_MARKET';
+  completed: boolean;
+}
+

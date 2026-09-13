@@ -99,7 +99,13 @@ flowchart LR
 
 ## 🌐 4. Các Tuyến Route Ứng Dụng Web (Vite + React SPA)
 
-Ứng dụng chia thành **3 phân hệ rõ ràng**:
+Ứng dụng chia thành **các phân hệ chuyên biệt**:
+
+0. **🌅 `/finance/stock/morning` - [0. Bảng Điều Khiển Đầu Ngày & Bản Tin Sáng (Morning Routine Hub)](file:///Users/aminhp93/personal/stock/src/pages/MorningRoutinePage.tsx)**:
+   - **Bản Tin Buổi Sáng**: Tích hợp xem trực tiếp bản tin báo in HTML từ hệ thống (`scripts/ban_tin_sang.py`), liên kết Claude Artifact URL (mở tab mới & preview), và lưu ghi chú chiến thuật ngày.
+   - **Lộ Trình & Checklist Trong Ngày**: Checklists công việc cần làm chia theo timeline (Trước GD 08:00–08:50, ATO 09:00–09:15, Phiên sáng, Nghỉ trưa, Chiều/ATC, Sau phiên) lưu tiến độ `localStorage`.
+   - **Radar Vĩ Mô & Quốc Tế**: Giám sát DXY, USD/VND, US 10Y Yield, Dầu Brent, Vàng SJC/Thế giới và diễn biến phiên trước.
+   - **Cảnh Báo Danh Mục Nắm Giữ**: Kiểm tra nhanh 4 mã **TCH, MBS, HDG, PDR** (trạng thái MA20/MA50, RSI, khối ngoại mua/bán).
 
 1. **📁 `/data` - [1. Dữ Liệu Thị Trường (View, Sync & Update Raw Data)](file:///Users/aminhp93/personal/githubcoffee/stock/src/pages/DataPage.tsx)**:
    - **Thống kê kho PostgreSQL**: 1,403 mã cổ phiếu, 464,975 nến giá, khung thời gian 2021 – 2026.
@@ -137,6 +143,10 @@ flowchart LR
 
 | Endpoint | Method | Tham số | Mô tả |
 |---|---|---|---|
+| `/api/morning/briefing` | GET | Không | Dữ liệu tổng hợp bản tin sáng, chỉ số thị trường, vĩ mô, danh mục |
+| `/api/morning/html` | GET | Không | Trả về trực tiếp HTML bản tin sáng gần nhất phục vụ iframe viewer |
+| `/api/morning/config` | POST | `artifact_url`, `notes` | Lưu link Claude Artifact và ghi chú chiến thuật ngày |
+| `/api/morning/generate` | POST | Không | Kích hoạt script `ban_tin_sang.py` tạo bản tin mới nhất |
 | `/api/data/stats` | GET | Không | Thống kê số lượng mã, số nến giá, khung thời gian và trạng thái DB |
 | `/api/data/raw-prices` | GET | `symbol`, `limit` | Bảng nến giá thô OHLCV, Volume, RSI 14, MA20, MA50 |
 | `/api/data/sync` | POST / GET | `symbol` | Đồng bộ, xóa cache và cập nhật nến mới nhất |

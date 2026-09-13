@@ -7,6 +7,7 @@ import {
   DataStats,
   RawPricesResponse,
   SyncResult,
+  MorningBriefingResponse,
 } from "../types";
 
 const API_BASE = "/api";
@@ -972,3 +973,52 @@ export async function fetchTckdAnalysis(): Promise<TckdAnalysis> {
   const json = await res.json();
   return json.data;
 }
+
+// ─── Morning Routine & Briefing APIs ─────────────────────────────────────────
+
+export async function fetchMorningBriefing(): Promise<MorningBriefingResponse> {
+  const res = await fetch(`${API_BASE}/morning/briefing`);
+  if (!res.ok) {
+    const err = await res
+      .json()
+      .catch(() => ({ error: "Không thể tải số liệu bản tin sáng." }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return await res.json();
+}
+
+export async function saveMorningConfig(payload: {
+  artifact_url?: string;
+  notes?: string;
+}): Promise<{ status: string; config: { artifact_url?: string; notes?: string } }> {
+  const res = await fetch(`${API_BASE}/morning/config`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res
+      .json()
+      .catch(() => ({ error: "Không thể lưu cấu hình bản tin sáng." }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return await res.json();
+}
+
+export async function triggerGenerateBriefing(): Promise<{
+  status: string;
+  session: string;
+  file: string;
+}> {
+  const res = await fetch(`${API_BASE}/morning/generate`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res
+      .json()
+      .catch(() => ({ error: "Không thể kích hoạt tạo bản tin sáng." }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return await res.json();
+}
+

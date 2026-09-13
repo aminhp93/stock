@@ -12,6 +12,7 @@ PORT = int(os.environ.get("PORT", 8000))
 DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
 
 _SHARED_TELEGRAM_ANALYZER = None
+_MORNING_DATA_CACHE = None
 STRATEGY_DB = dict(host="localhost", port=5432, dbname="stock_db", user="postgres", password="postgres")
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
@@ -96,6 +97,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_finance_raw()
         elif path == "/api/tckd/analysis":
             self.handle_tckd_analysis()
+        elif path == "/api/morning/briefing":
+            self.handle_morning_briefing()
+        elif path == "/api/morning/html":
+            self.handle_morning_html()
         else:
             # SPA fallback: if file does not exist, serve index.html
             local_path = self.translate_path(self.path)
@@ -111,6 +116,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/data/sync":
             symbol = query.get("symbol", ["TCH"])[0].upper()
             self.handle_api_data_sync(symbol)
+        elif path == "/api/morning/config":
+            self.handle_morning_config_save()
+        elif path == "/api/morning/generate":
+            self.handle_morning_generate()
         elif path == "/api/observation/collect":
             self.handle_observation_collect()
         elif path == "/api/observation/seed-sample":
@@ -1664,6 +1673,138 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"status": "success", "message": "Đã tạo xong dữ liệu mẫu 60 ngày CFA99!"})
         except Exception as e:
             self.send_json_response({"error": str(e)}, 500)
+
+    # ─── Morning Routine & Briefing APIs ──────────────────────────────────────
+    def send_html_response(self, html_content: str, status_code: int = 200):
+        content = html_content.encode("utf-8")
+        self.send_response(status_code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
+    def handle_morning_briefing(self):
+        try:
+            global _MORNING_DATA_CACHE
+            now = time.time()
+            data = None
+            if _MORNING_DATA_CACHE and (now - _MORNING_DATA_CACHE.get("timestamp", 0) < 180):
+                data = _MORNING_DATA_CACHE.get("data")
+            if not data:
+                import scripts.ban_tin_sang as bts
+                data = bts.gather()
+                _MORNING_DATA_CACHE = {"timestamp": now, "data": data}
+
+            cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "morning_briefing.json")
+            cfg = {}
+            if os.path.exists(cfg_path):
+                try:
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        cfg = json.load(f)
+                except Exception:
+                    pass
+
+            artifacts_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
+            available_dates = []
+            if os.path.exists(artifacts_dir):
+                for f in sorted(os.listdir(artifacts_dir), reverse=True):
+                    if f.startswith("ban-tin-sang-") and f.endswith(".html"):
+                        d_str = f.replace("ban-tin-sang-", "").replace(".html", "")
+                        available_dates.append(d_str)
+
+            latest_html_exists = len(available_dates) > 0 or os.path.exists(
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts_ban_tin_sang.html")
+            )
+
+            default_artifact_url = "https://claude.ai/code/artifact/8f5177be-2fc0-4f88-8237-c3ed26672840?open_in_browser=1&via=user_open&org=1f43057e-c374-43fd-9001-60bc2aa3df30"
+
+            self.send_json_response({
+                "status": "success",
+                "data": data,
+                "artifact_url": cfg.get("artifact_url") or default_artifact_url,
+                "notes": cfg.get("notes", ""),
+                "available_dates": available_dates,
+                "has_html": latest_html_exists
+            })
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_morning_html(self):
+        try:
+            artifacts_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
+            newest_file = None
+            if os.path.exists(artifacts_dir):
+                files = [f for f in sorted(os.listdir(artifacts_dir), reverse=True) if f.startswith("ban-tin-sang-") and f.endswith(".html")]
+                if files:
+                    newest_file = os.path.join(artifacts_dir, files[0])
+            if not newest_file:
+                alt = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts_ban_tin_sang.html")
+                if os.path.exists(alt):
+                    newest_file = alt
+
+            if newest_file and os.path.exists(newest_file):
+                with open(newest_file, "r", encoding="utf-8") as f:
+                    html_content = f.read()
+                self.send_html_response(html_content)
+            else:
+                import scripts.ban_tin_sang as bts
+                d = bts.gather()
+                narrative = bts.mechanical_narrative(d)
+                html = bts.render(d, narrative)
+                self.send_html_response(html)
+        except Exception as e:
+            self.send_html_response(f"<html><body><h3>Lỗi khi tải bản tin: {e}</h3></body></html>", 500)
+
+    def handle_morning_config_save(self):
+        try:
+            content_len = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_len).decode("utf-8")
+            payload = json.loads(body) if body else {}
+
+            cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "morning_briefing.json")
+            existing = {}
+            if os.path.exists(cfg_path):
+                try:
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        existing = json.load(f)
+                except Exception:
+                    pass
+
+            if "artifact_url" in payload:
+                existing["artifact_url"] = str(payload["artifact_url"]).strip()
+            if "notes" in payload:
+                existing["notes"] = str(payload["notes"])
+            existing["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                json.dump(existing, f, ensure_ascii=False, indent=2)
+
+            self.send_json_response({"status": "success", "config": existing})
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
+    def handle_morning_generate(self):
+        try:
+            global _MORNING_DATA_CACHE
+            _MORNING_DATA_CACHE = None
+            import scripts.ban_tin_sang as bts
+            d = bts.gather()
+            narrative = bts.mechanical_narrative(d)
+            html = bts.render(d, narrative)
+            out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
+            os.makedirs(out_dir, exist_ok=True)
+            out_path = os.path.join(out_dir, f"ban-tin-sang-{d['session']}.html")
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            self.send_json_response({
+                "status": "success",
+                "session": d["session"],
+                "file": os.path.basename(out_path)
+            })
+        except Exception as e:
+            self.send_json_response({"error": str(e)}, 500)
+
 
 
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):

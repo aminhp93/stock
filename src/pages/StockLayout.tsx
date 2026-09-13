@@ -1,8 +1,13 @@
 import React from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Database, BarChart3, Bot, Briefcase, Zap } from "lucide-react";
+import { Sunrise, Database, BarChart3, Bot, Briefcase, Zap } from "lucide-react";
 
 const SUB_TABS = [
+  {
+    to: "/finance/stock/morning",
+    label: "Đầu Ngày",
+    icon: <Sunrise size={13} />,
+  },
   { to: "/finance/stock/data", label: "Dữ Liệu", icon: <Database size={13} /> },
   {
     to: "/finance/stock/chart",
